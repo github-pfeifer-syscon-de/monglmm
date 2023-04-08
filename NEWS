@@ -1,0 +1,5 @@
+Version 0.1
+	Intial release shows graphs for cpu,mem,net,disk,gpu,clk
+	a selectable process graph
+	filesystem usage, with load indicator
+        the libg15 was modified so it uses libusb-1.0
