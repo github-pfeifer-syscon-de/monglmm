@@ -48,3 +48,15 @@
 /nbproject/project.xml
 /nbproject/private/Default.properties
 /res/Makefile.in
+/PKGBUILD
+/src/configure.ac
+/pkg/monglmm/.BUILDINFO
+/src/monglmm
+/pkg/monglmm/usr/share/applications/monglmm.desktop
+/pkg/monglmm/.MTREE
+/pkg/monglmm/.PKGINFO
+/pkg/monglmm/usr/bin/monglmm
+/pkg/
+/autom4te.cache/output.5
+/autom4te.cache/traces.5
+/src/.deps/NameValue.Tpo
