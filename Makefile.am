@@ -3,7 +3,7 @@
 SUBDIRS = res src
 
 dist_doc_DATA = \
-	README \
+	README.md \
 	COPYING \
 	AUTHORS \
 	ChangeLog \

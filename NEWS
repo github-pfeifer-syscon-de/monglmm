@@ -3,3 +3,29 @@ Version 0.1
 	a selectable process graph
 	filesystem usage, with load indicator
         the libg15 was modified so it uses libusb-1.0
+
+10.8.20 added average clock, working for arm(c)
+        (x64 as far as i coud see only supports actual clock value)
+        very simple support for libgtop,
+            on linux stick to proc/sys as this offers much more functions
+           -> more fixing will be possible but as i did not have a hpux(c) around...
+               if you want to try it use "configure --with-glibtop"
+
+25.12.20 added process tree with different renderings,
+           file sys with read/write indicator (as color)
+
+19.1.21  added options for configure (see also ./configure --help)
+        --with-libg15 display informations on g15(c) using usb
+        --with-lmsensors use lmsensors for hardware infos (if no sensors show up may require setup once by sudo sensors-detect)
+        --with-raspi for RaspberryPi(c) show core voltage (requires /opt/vc/... functions (c) Broadcom)
+        --enable-debug enable debug, disable optimization
+
+27.2.22 added used swap in mem display (as relative avail swap)
+
+22.9.22 for configure:
+     added --with-gles using GL ES 3 e.g. useful on Raspi's (suggested same use on GenericGlm)
+     lately i had problems when enable --with-raspi that includes the broadcom opengl libs, that break desktop GL, but as i haven't seen the voltage move that seems tolerable
+
+23.12.22 improved support GPU values, user selection
+     for openGL queries are supported (which only show application local values (primitives/samples), so --with-gles makes best use of resources)
+     the suport for other GPU values depends on GL extensions support for AMDperfCounters which seems being quite commonly used

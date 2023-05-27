@@ -1,4 +1,4 @@
-PKGCONFIG = pkgconf
+PKGCONFIG = pkg-config
 GLIB_COMPILE_RESOURCES = $(shell $(PKGCONFIG) --variable=glib_compile_resources gio-2.0)
 
 MONGLMM_RESOURCE_XML=monglapp.gresource.xml
