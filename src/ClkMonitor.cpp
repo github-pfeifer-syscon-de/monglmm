@@ -228,11 +228,10 @@ ClkMonitor::clock_avg(const std::string &cpu_dir, unsigned int clock_steps[], un
         cpu_stat = cpu_dir;
         cpu_stat += "/cpufreq/scaling_cur_freq";
         FileByLine curFreq;
-        if (!curFreq.open(cpu_stat, "r"))
-        {
-            g_warning("monitors: Could not open .../cpufreq/stats/time_in_state and %s: %d, %s",
-                    cpu_stat.c_str(), errno, strerror(errno) );
-            return 0.0;
+        if (!curFreq.open(cpu_stat, "r")) {
+            //g_warning("monitors: Could not open .../cpufreq/stats/time_in_state and %s: %d, %s",
+            //        cpu_stat.c_str(), errno, strerror(errno) );
+            return 0.0; // do not complain as we will use leagacy afterwards
         }
         double act_freq = 0.0;
         const char *buf = curFreq.nextLine(&len);
@@ -298,20 +297,9 @@ ClkMonitor::clock_avg(const std::string &cpu_dir, unsigned int clock_steps[], un
     return avg_freq;
 }
 
-
-
-gboolean
-ClkMonitor::update(int refreshRate, glibtop * glibtop)
+void
+ClkMonitor::leagacyFreq()
 {
-    if (maxMHz <= 1.0f) {
-        readMaxFreq();
-        if (maxMHz <= 1.0f) {   // if first try failed, try cpuid approach
-            std::string cpu = cpuInfo();
-            decodeMaxClock(cpu);
-        }
-    }
-    cpus = 0;
-#if 0
 // one shot, not avail for arm
     char buf[80];
     unsigned int test = 0;
@@ -339,13 +327,26 @@ ClkMonitor::update(int refreshRate, glibtop * glibtop)
         }
     }
     fclose(stat);
-#else
+}
+
+
+gboolean
+ClkMonitor::update(int refreshRate, glibtop * glibtop)
+{
+    if (maxMHz <= 1.0f) {
+        readMaxFreq();
+        if (maxMHz <= 1.0f) {   // if first try failed, try cpuid approach
+            std::string cpu = cpuInfo();
+            decodeMaxClock(cpu);
+        }
+    }
+    cpus = 0;
     // try to resolve clock with time resolution
     DIR *dir;
     struct dirent *ent;
     const char *sdir = "/sys/devices/system/cpu/";
+    double sumFreq{0.0};
     if ((dir = opendir(sdir)) != nullptr) {
-        /* find all the processes in /proc */
         while ((ent = readdir(dir)) != nullptr) {
             if (ent->d_type == DT_DIR
                 && strncmp(ent->d_name, "cpu", 3) == 0) {
@@ -357,15 +358,16 @@ ClkMonitor::update(int refreshRate, glibtop * glibtop)
                     std::string cpuDir(sdir);
                     cpuDir += std::string(ent->d_name);
                     clkMHz[cpu] = clock_avg(cpuDir, m_clockStep[cpu], m_clockTime[cpu]);
+                    sumFreq += clkMHz[cpu];
                     cpus = max(cpus, cpu + 1);
                 }
             }
         }
         closedir(dir);
     }
-#endif
-
-
+    if (sumFreq == 0.0) {   // if advanced method failed use /proc
+        leagacyFreq();
+    }
     if (cpus > CLOCKS) {
         cpus = CLOCKS;      // limit to internal maximum, anyway displaying more than 16 lines is not useful
     }

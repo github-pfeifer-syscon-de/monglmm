@@ -42,7 +42,7 @@ public:
     std::string getSecMax() override;
     Gdk::RGBA *getColor(unsigned int diagram) override;
     double clock_avg(const std::string &cpu_dir, unsigned int clock_steps[], unsigned int clock_time[]);
-
+    void leagacyFreq();
 private:
     unsigned int cpus;
     double clkMHz[CLOCKS];
