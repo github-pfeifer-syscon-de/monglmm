@@ -67,7 +67,7 @@ G15Worker::isRunning()
 static unsigned char *
 cairo2g15Image(Cairo::RefPtr<Cairo::ImageSurface> g15pixmap)
 {
-    int h = (int)ceilf(G15_LCD_HEIGHT / 8.0f);
+    int h = static_cast<int>(ceilf(static_cast<float>(G15_LCD_HEIGHT) / 8.0f));
     unsigned char *data = new unsigned char [G15_LCD_WIDTH * h];
     memset(data, 0, G15_LCD_WIDTH * h);
     unsigned char *pixdata = g15pixmap->get_data();

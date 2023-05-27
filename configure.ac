@@ -13,7 +13,7 @@ AM_SILENT_RULES([yes])
 AX_CHECK_ENABLE_DEBUG([info], [DEBUG], [RELEASE], [IS-RELEASE])
 AC_PROG_CXX
 AC_PROG_CC
-AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
+AX_CXX_COMPILE_STDCXX([20], [noext], [mandatory])
 
 LT_INIT
 
