@@ -13,17 +13,18 @@ AM_SILENT_RULES([yes])
 AX_CHECK_ENABLE_DEBUG([info], [DEBUG], [RELEASE], [IS-RELEASE])
 AC_PROG_CXX
 AC_PROG_CC
-dnl we do not depend on c++20 in just one place (glglobe),
+dnl we depend on c++20 in just one place (glglobe),
 dnl (did choose it for consistency across libs and programs)
 dnl so if you happen to find yourself in the need to use
-dnl a older compiler, c++17, should work as well.
+dnl a older compiler, c++17 should work as well.
 AX_CXX_COMPILE_STDCXX([20], [noext], [optional])
 
 LT_INIT
 
 PKG_CHECK_MODULES(GTHREAD, [gthread-2.0])
 
-PKG_CHECK_MODULES(GENERICGLM, [genericglm-0.2.3])
+PKG_CHECK_MODULES(GENERICGLM, [genericglm-0.2.4])
+PKG_CHECK_MODULES(GENERICIMG, [genericimg-0.1.0])
 
 PKG_CHECK_MODULES(GLIBMM, [glibmm-2.4])
 
