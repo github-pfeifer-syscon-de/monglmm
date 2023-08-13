@@ -139,15 +139,17 @@ GpuCounterGroup::GpuCounterGroup(GLuint group)
 		      << " maxActiveCounters" << m_maxActiveCounters << std::endl;
 	#endif
 	std::vector<GLuint> counterList(numCounters);
-	glGetPerfMonitorCountersAMD(group, NULL, NULL,
-								numCounters, &counterList[0]);
-	for (int i = 0; i < numCounters; ++i) {
-		auto cntId = counterList[i];
-		auto cnt = std::make_shared<GpuAmdCounter>(this, cntId);
-		m_counterIds.insert(std::pair<GLuint, std::shared_ptr<GpuAmdCounter>>(cntId, cnt));
-		auto cntName = cnt->getName();
-		m_counterNames.insert(std::pair<std::string, std::shared_ptr<GpuAmdCounter>>(cntName, cnt));
-	}
+    if (numCounters > 0) {
+        glGetPerfMonitorCountersAMD(group, NULL, NULL,
+                                    numCounters, &counterList[0]);
+        for (int i = 0; i < numCounters; ++i) {
+            auto cntId = counterList[i];
+            auto cnt = std::make_shared<GpuAmdCounter>(this, cntId);
+            m_counterIds.insert(std::pair<GLuint, std::shared_ptr<GpuAmdCounter>>(cntId, cnt));
+            auto cntName = cnt->getName();
+            m_counterNames.insert(std::pair<std::string, std::shared_ptr<GpuAmdCounter>>(cntName, cnt));
+        }
+    }
 }
 
 std::shared_ptr<GpuAmdCounter>
