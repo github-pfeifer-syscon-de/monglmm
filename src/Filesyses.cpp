@@ -52,8 +52,10 @@ Filesyses::update(GraphShaderContext *pGraph_shaderContext, TextContext* textCtx
             geo = createDiskGeometry(diskInfo, pGraph_shaderContext, textCtx, pFont, persView, updateInterval);
             pGraph_shaderContext->addGeometry(geo);
         }
-        geo->setPosition(pd);   // always update position, as we may have changes (e.g. unmount)
-        geo->setScale(scale);
+        if (geo) {
+            geo->setPosition(pd);   // always update position, as we may have changes (e.g. unmount)
+            geo->setScale(scale);
+        }
         pd.y -= scale * 2.0f;
     }
 }
