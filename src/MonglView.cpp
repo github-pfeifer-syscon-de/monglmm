@@ -53,9 +53,10 @@ MonglView::MonglView(Gtk::Application* application)
 , m_processes{n_values}
 , m_selectedTreeNode{nullptr}
 , m_popupMenu()
-, m_filesyses{new Filesyses()}
+, m_filesyses{std::make_shared<Filesyses>()}
 , m_diskInfos()
 , m_application{application}
+, m_netInfo{std::make_shared<NetInfo>()}
 {
 
     read_config();
@@ -178,6 +179,8 @@ MonglView::monitors_update()
     m_diskInfos.update(m_updateInterval, m_glibtop);
     // update after disk as it depends on it
     m_filesyses->update(m_graph_shaderContext, m_textContext, m_font, m_projView, m_updateInterval);
+    
+    m_netInfo->update(m_graph_shaderContext, m_textContext, m_font, m_projView);
 
     naviGlArea->queue_render();
 #ifdef LIBG15

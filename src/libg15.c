@@ -509,7 +509,8 @@ int exitLibG15()
     return retval;
 }
 
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void dumpPixmapIntoLCDFormat(unsigned char *lcd_buffer, unsigned char const *data)
 {
 /*
@@ -587,6 +588,7 @@ static void dumpPixmapIntoLCDFormat(unsigned char *lcd_buffer, unsigned char con
 	base_offset += G15_LCD_WIDTH - (G15_LCD_WIDTH / 8);
     }
 }
+#pragma GCC diagnostic pop
 
 int handle_usb_errors(const char *prefix, int ret) {
 
@@ -892,6 +894,8 @@ int setKBBrightness(unsigned int level)
     return retval;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 static unsigned char g15KeyToLogitechKeyCode(int key)
 {
    // first 12 G keys produce F1 - F12, thats 0x3a + key
@@ -905,6 +909,7 @@ static unsigned char g15KeyToLogitechKeyCode(int key)
         return 0x1e + key - 12; // sigh, half an hour to find  -12 ....
     }
 }
+#pragma GCC diagnostic pop
 
 static unsigned int processKeyEvent9Byte(unsigned char *buffer)
 {

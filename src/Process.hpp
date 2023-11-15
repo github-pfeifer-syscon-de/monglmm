@@ -22,10 +22,10 @@
 #include <glibmm.h>
 #include <string>
 #include <memory>
+#include <TreeNode.hpp>
 
 #include "Geometry.hpp"
 #include "Monitor.hpp"
-#include "TreeNode.hpp"
 
 class Process : public TreeNode {
 public:

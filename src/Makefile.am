@@ -86,7 +86,13 @@ monglmm_SOURCES =  \
 	GpuCounter.cpp \
 	GpuCounter.hpp \
 	GpuExtAmdCounter.cpp \
-	GpuExtAmdCounter.hpp
+	GpuExtAmdCounter.hpp \
+	NetConnection.cpp \
+	NetConnection.hpp \
+	NetNode.cpp \
+	NetNode.hpp \
+	NetInfo.cpp \
+	NetInfo.hpp
 
 if LIBG15
 monglmm_SOURCES += \

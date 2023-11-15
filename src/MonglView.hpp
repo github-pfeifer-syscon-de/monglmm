@@ -37,6 +37,7 @@
 #include "TextContext.hpp"
 #include "DiagramMonitor.hpp"
 #include "config.h"
+#include "NetInfo.hpp"
 #ifdef LIBG15
 #include "G15Worker.hpp"
 #else
@@ -106,6 +107,8 @@ private:
     Gdk::RGBA m_text_color;
     Gdk::RGBA m_background_color;
     std::shared_ptr<Monitor> m_temp;
+    std::shared_ptr<NetInfo> m_netInfo;
+    std::shared_ptr<NetNode> m_netRoot;
 };
 
 static const  guint n_values = 100;
