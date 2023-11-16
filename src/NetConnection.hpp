@@ -30,6 +30,7 @@ public:
     explicit NetAddress(const NetAddress& orig) = delete;
     virtual ~NetAddress() = default;
 
+    Glib::RefPtr<Gio::InetAddress> getAddress();
     std::string getName();
     std::vector<Glib::ustring> getNameSplit();
 private:
@@ -42,7 +43,6 @@ private:
 class NetConnection
 {
 public:
-    NetConnection();
     NetConnection(
               const std::string& localIp
             , const std::string& remoteIp
@@ -57,12 +57,14 @@ public:
     uint32_t getRemotePort() const;
     std::string getServiceName();
     void setServiceName(const std::string& serviceName);
-    std::vector<Glib::ustring> getRemoteNames();
     bool isValid();
     uint32_t getStatus() const;
     bool isIncomming() const;
     void setIncomming(bool incomming);
     static std::string ip(uint32_t iip);
+    uint32_t getWellKnownPort();
+    std::string getGroupSuffix();
+
 private:
     std::shared_ptr<NetAddress> m_localIp;
     uint32_t m_localPort{0u};

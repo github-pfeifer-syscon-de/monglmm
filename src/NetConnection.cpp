@@ -47,6 +47,7 @@ NetAddress::getName()
     if (m_name.empty()) {
         auto resolver = Gio::Resolver::get_default();
         try {
+            // may use asynchronous ...
             m_name = resolver->lookup_by_address(m_address);
         }
         catch (const Glib::Error& e) {
@@ -62,40 +63,55 @@ std::vector<Glib::ustring>
 NetAddress::getNameSplit()
 {
     if (m_splitedName.empty()) {
+        getName();      // init to make stati m_ip... available
+        //std::cout << __FILE__ << "::getNameSplit"
+        //          << " addr " << m_address->to_string()
+        //          << " name " << getName()
+        //          << " isIp " << (m_ip ? "yes" : "no")
+        //          << " fam " << (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV4 ? "ipv4" : m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6 ? "ipv6" :Glib::ustring::sprintf("%d", m_address->get_family()))
+        //          << std::endl;
         if (m_ip) {
-            if (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6) {
-                auto addr = getName();
-                int dotcount = 0;
-                for (auto i = addr.begin(); i != addr.end(); ++i) {
-                    auto c = *i;
-                    if (c == ':') {
-                        ++dotcount;
-                    }
-                }
-                auto pos = addr.find("::");
-                if (pos != addr.npos) {
-                    ++pos;
-                    addr.insert(pos, "0");    // there might be multiple blocks... but keep it simple for now as our searching will break with empty parts...
-                }
-                StringUtils::split(addr, ':', m_splitedName);
-            }
-            else {
-                std::vector<Glib::ustring> parts;   // ipv4 are noted from most to least significant part
-                StringUtils::split(getName(), '.', parts);
-                std::reverse(parts.begin(), parts.end());
-                m_splitedName = parts;
-            }
+            // keep it simple, especially ipv6 will take up a relatively large room if splitted (and not showing much)
+            m_splitedName.push_back(getName());
+//            if (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6) {
+//                auto addr = getName();
+//                int dotcount = 0;
+//                for (auto i = addr.begin(); i != addr.end(); ++i) {
+//                    auto c = *i;
+//                    if (c == ':') {
+//                        ++dotcount;
+//                    }
+//                }
+//                auto pos = addr.find("::");
+//                if (pos != addr.npos) {
+//                    ++pos;
+//                    addr.insert(pos, "0");    // there might be multiple blocks... but keep it simple for now as our searching will break with empty parts...
+//                }
+//                StringUtils::split(addr, ':', m_splitedName);
+//                std::reverse(m_splitedName.begin(), m_splitedName.end());
+//            }
+//            else {
+//                std::vector<Glib::ustring> parts;   // ipv4 are noted from most to least significant part
+//                StringUtils::split(getName(), '.', parts);
+//                std::reverse(parts.begin(), parts.end());
+//                m_splitedName = parts;
+//            }
         }
         else {
             StringUtils::split(getName(), '.', m_splitedName);
         }
+        //for (auto part : m_splitedName) {
+        //    std::cout << part << " , ";
+        //}
+        //std::cout << "--------" << std::endl;
     }
     return m_splitedName;
 }
 
-
-NetConnection::NetConnection()
+Glib::RefPtr<Gio::InetAddress>
+NetAddress::getAddress()
 {
+    return m_address;
 }
 
 NetConnection::NetConnection(
@@ -135,6 +151,25 @@ NetConnection::isValid()
        && m_localPort > 0u
        && m_remotePort > 0u     // for listening this might be valid ...
        && m_status > 0u;
+}
+
+// use well known port names, not a randomly chosen
+uint32_t
+NetConnection::getWellKnownPort()
+{
+    return isIncomming()
+            ? getLocalPort()
+            : getRemotePort();
+}
+
+// add some suffix for grouping, to separate
+//   incomming/outgoing + ports to same destination
+std::string
+NetConnection::getGroupSuffix()
+{
+    return Glib::ustring::sprintf("%c%d",
+            (isIncomming() ? '<' : '>')
+            , getWellKnownPort());
 }
 
 std::shared_ptr<NetAddress>

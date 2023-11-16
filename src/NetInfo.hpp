@@ -45,6 +45,10 @@ protected:
             uint32_t index);
     double render(NaviContext *shaderContext, TextContext *txtCtx, Font *pFont,  const std::shared_ptr<NetNode>& node);
     void read(const char* name, std::list<std::shared_ptr<NetConnection>>& netConnections);
+    std::shared_ptr<NetNode> createNode(
+        const std::shared_ptr<NetConnection>& firstEntry
+        ,const std::shared_ptr<NetNode>& node
+        ,uint32_t index);
 
 private:
     std::shared_ptr<NetNode> m_root;

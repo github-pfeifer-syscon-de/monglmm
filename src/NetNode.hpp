@@ -31,12 +31,13 @@
 class NetNode
 {
 public:
-    NetNode(const Glib::ustring& name);
+    NetNode(const Glib::ustring& name, const Glib::ustring& key);
     explicit NetNode(const NetNode& orig) = delete;
     virtual ~NetNode();
 
     void setConnection(const std::shared_ptr<NetConnection>& conn);
-    Glib::ustring getDisplayName();
+    Glib::ustring getDisplayName() const;
+    Glib::ustring getKey() const;
     void setTouched(bool touched);
     bool isTouched() const;
     std::list<std::shared_ptr<NetNode>>& getChildren();
@@ -55,6 +56,7 @@ protected:
 private:
     std::shared_ptr<NetConnection> m_conn;
     Glib::ustring  m_name;
+    Glib::ustring  m_key;
     bool m_touched{true};
     uint32_t m_lastStatus{0u};
 };

@@ -145,9 +145,7 @@ NetInfo::setServiceName(std::shared_ptr<NetConnection>& netConn)
 //                  << std::endl;
 //    }
     if (netConn->getServiceName().empty()) {
-        auto port = netConn->isIncomming()      // use well known port names, not a randomly choosen
-                        ? netConn->getLocalPort()
-                        : netConn->getRemotePort();
+        auto port = netConn->getWellKnownPort();
         auto entry = m_portNames.find(port);
         std::string serviceName;
         if (entry != m_portNames.end()) {
@@ -169,19 +167,55 @@ NetInfo::group(const std::list<std::shared_ptr<NetConnection>>& list, uint32_t i
         std::vector<Glib::ustring> parts = conn->getRemoteAddr()->getNameSplit();
         if (parts.size() >= index) {
             std::string key = parts[parts.size() - index];
+            if (parts.size() == index) {
+                key += conn->getGroupSuffix();
+            }
             auto entry = collected.find(key);
             if (entry == collected.end()) {
                 collected.insert(
-                        std::pair<std::string, std::list<std::shared_ptr<NetConnection>>>(
-                            key, std::list<std::shared_ptr<NetConnection>>()));
+                        std::pair(key, std::list<std::shared_ptr<NetConnection>>()));
                 entry = collected.find(key);
             }
             (*entry).second.push_back(conn);
         }
     }
+    //for (auto entry : collected) {
+    //    std::cout << entry.first << " " << entry.second.size() << std::endl;
+    //}
     return collected;
 }
 
+std::shared_ptr<NetNode>
+NetInfo::createNode(
+    const std::shared_ptr<NetConnection>& connection
+    ,const std::shared_ptr<NetNode>& node
+    ,uint32_t index)
+{
+    auto nameSplit = connection->getRemoteAddr()->getNameSplit();
+    Glib::ustring newName = nameSplit[nameSplit.size() - index];
+    bool matching = false;
+    auto key = newName;
+    if (nameSplit.size() == index) {
+        newName = Glib::ustring::sprintf("%s:%s", newName, connection->getServiceName());    // , firstEntry->isIncomming() ? '<' : '>'
+        key = newName + connection->getGroupSuffix();
+        matching = true;
+    }
+    std::shared_ptr<NetNode> newNode;
+    for (auto netchld : node->getChildren()){
+        if (netchld->getKey() == key) {
+            newNode = netchld;
+            netchld->setTouched(true);
+        }
+    }
+    if (!newNode) {
+        newNode = std::make_shared<NetNode>(newName, key);
+        node->getChildren().push_back(newNode);
+    }
+    if (matching) { // only these have a usable status
+        newNode->setConnection(connection);
+    }
+    return newNode;
+}
 
 void
 NetInfo::handle(const std::shared_ptr<NetNode>& node,
@@ -195,31 +229,9 @@ NetInfo::handle(const std::shared_ptr<NetNode>& node,
     for (auto entry : collected) {
         auto key = entry.first;
         if (!key.empty()) {
-            Glib::ustring newName;
-            bool matching = false;
-            auto firstEntry = entry.second.front();
-            if (firstEntry->getRemoteAddr()->getNameSplit().size() == index) {
-                newName = Glib::ustring::sprintf("%s:%s", key, firstEntry->getServiceName());
-                matching = true;
-            }
-            else {
-                newName = key;
-            }
-            std::shared_ptr<NetNode> newNode;
-            for (auto netchld : node->getChildren()){
-                if (netchld->getDisplayName() == newName) {
-                    newNode = netchld;
-                    netchld->setTouched(true);
-                }
-            }
-            if (!newNode) {
-                newNode = std::make_shared<NetNode>(newName);
-                node->getChildren().push_back(newNode);
-            }
-            if (matching) { // only these have a usable status
-                newNode->setConnection(firstEntry);
-            }
-            handle(newNode, entry.second, index + 1);
+            std::list<std::shared_ptr<NetConnection>>& connEntries = entry.second;
+            auto newNode = createNode(*(connEntries.begin()), node, index);
+            handle(newNode, connEntries, index + 1);
         }
     }
     node->clearUntouched();
@@ -239,7 +251,7 @@ NetInfo::read(const char* name, std::list<std::shared_ptr<NetConnection>>& netCo
             std::getline(stat, buf);
             std::vector<Glib::ustring> parts;
             StringUtils::splitRepeat(buf, ' ', parts);
-            if (parts.size() > 4
+            if (parts.size() >= 4
              && parts[0] != "sl") { // skip heading
                 auto localipPort = parts[1];
                 auto remoteipPort = parts[2];
@@ -315,7 +327,7 @@ NetInfo::update(NaviContext *pGraph_shaderContext,
                 TextContext *txtCtx, Font *pFont, Matrix &persView)
 {
     if (!m_root) {
-        m_root = std::make_shared<NetNode>("Net");
+        m_root = std::make_shared<NetNode>("@", "@");   // u1f310 might be an alternative but is not commonly supported
         auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont);
         pGraph_shaderContext->addGeometry(treeGeo.get()); // only add this as main elements to context, children are rendered by default
         Position pos{1.5f, 2.3f, 0.0f};

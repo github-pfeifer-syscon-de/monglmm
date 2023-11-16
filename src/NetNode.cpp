@@ -20,18 +20,15 @@
 
 #include "NetNode.hpp"
 
-NetNode::NetNode(const Glib::ustring& name)
+NetNode::NetNode(const Glib::ustring& name, const Glib::ustring& key)
 : m_name{name}
+, m_key{key}
 {
 }
 
 NetNode::~NetNode()
 {
-    // m_children.clear should be sufficent?
     m_children.clear();
-    //for (auto chld = m_children.begin(); chld != m_children.end(); ) {
-    //    chld = m_children.erase(chld);  // as we use shared pointers this should be easy
-    //}
 }
 
 void
@@ -41,9 +38,15 @@ NetNode::setConnection(const std::shared_ptr<NetConnection>& conn)
 }
 
 Glib::ustring
-NetNode::getDisplayName()
+NetNode::getDisplayName() const
 {
     return m_name;
+}
+
+Glib::ustring
+NetNode::getKey() const
+{
+    return m_key;
 }
 
 Gdk::RGBA
