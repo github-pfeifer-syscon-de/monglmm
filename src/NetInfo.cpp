@@ -230,8 +230,21 @@ NetInfo::handle(const std::shared_ptr<NetNode>& node,
         auto key = entry.first;
         if (!key.empty()) {
             std::list<std::shared_ptr<NetConnection>>& connEntries = entry.second;
-            auto newNode = createNode(*(connEntries.begin()), node, index);
-            handle(newNode, connEntries, index + 1);
+            for (auto conEntry = connEntries.begin(); conEntry != connEntries.end(); ) {
+                auto conn = *conEntry;
+                auto addrEntry = conn->getRemoteAddr()->getNameSplit();
+                if (addrEntry.size() == index) {    // make node for any finished entry
+                    createNode(conn, node, index);
+                    conEntry = connEntries.erase(conEntry);
+                }
+                else {
+                    ++conEntry;
+                }
+            }
+            if (connEntries.size() > 0) {  // all non finished keep grouped
+                auto newNode = createNode(*(connEntries.begin()), node, index);
+                handle(newNode, connEntries, index + 1);
+            }
         }
     }
     node->clearUntouched();
