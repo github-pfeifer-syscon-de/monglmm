@@ -32,6 +32,7 @@ class NetNode
 {
 public:
     NetNode(const Glib::ustring& name, const Glib::ustring& key);
+    NetNode(const Glib::ustring& name, const Glib::ustring& key, bool showConn);
     explicit NetNode(const NetNode& orig) = delete;
     virtual ~NetNode();
 
@@ -46,19 +47,24 @@ public:
                 Font *pFont);
     void clearUntouched();
     Gdk::RGBA getColor() const;
+    void createLineDown(NaviContext *shaderContext, float y);
 
 protected:
     std::list<std::shared_ptr<NetNode>> m_children;
     std::shared_ptr<Geometry> m_geo;
     std::shared_ptr<Text> m_text;
     std::shared_ptr<Geometry> getMarkGeometry(NaviContext *shaderContext);
-
+    std::shared_ptr<Geometry> m_lineDown;
+    std::shared_ptr<Geometry> m_lineLeft;
+    static constexpr auto LINE_COLOR = 0.8f;
 private:
     std::shared_ptr<NetConnection> m_conn;
     Glib::ustring  m_name;
     Glib::ustring  m_key;
     bool m_touched{true};
     uint32_t m_lastStatus{0u};
+    float m_lastY{0.0f};
+    bool m_showConn;
 };
 
 

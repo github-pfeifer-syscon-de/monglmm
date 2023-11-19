@@ -323,14 +323,17 @@ NetInfo::render(NaviContext *shaderContext,
                 const std::shared_ptr<NetNode>& node)
 {
     auto treeGeo = node->getTreeGeometry(shaderContext, txtCtx, pFont);
-    Position pos{0.2f, 0.0, 0.0};
+    Position pos{NODE_INDENT, 0.0, 0.0};
+    float lastY = 0.0f;
     for (auto chld : node->getChildren()) {
-        pos.y -= 0.2f;
+        pos.y += NODE_LINESPACE;
         auto chldGeo = chld->getTreeGeometry(shaderContext, txtCtx, pFont);
         treeGeo->addGeometry(chldGeo.get());
         chldGeo->setPosition(pos);
+        lastY = pos.y;
         pos.y += render(shaderContext, txtCtx, pFont, chld);
     }
+    node->createLineDown(shaderContext, lastY);
     return pos.y;   // as we start from 0 return the used space aka. length
 }
 
@@ -340,7 +343,7 @@ NetInfo::update(NaviContext *pGraph_shaderContext,
                 TextContext *txtCtx, Font *pFont, Matrix &persView)
 {
     if (!m_root) {
-        m_root = std::make_shared<NetNode>("@", "@");   // u1f310 might be an alternative but is not commonly supported
+        m_root = std::make_shared<NetNode>("@", "@", false);   // u1f310 might be an alternative but is not commonly supported
         auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont);
         pGraph_shaderContext->addGeometry(treeGeo.get()); // only add this as main elements to context, children are rendered by default
         Position pos{1.5f, 2.3f, 0.0f};

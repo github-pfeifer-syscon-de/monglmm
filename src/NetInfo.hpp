@@ -35,6 +35,8 @@ public:
     void update(NaviContext *pGraph_shaderContext,
                 TextContext *_txtCtx, Font *pFont, Matrix &persView);
     void setServiceName(std::shared_ptr<NetConnection>& netConn);
+    static constexpr auto NODE_INDENT = 0.2f;
+    static constexpr auto NODE_LINESPACE = -0.2f;
 
 protected:
     void buildTree();
@@ -49,7 +51,6 @@ protected:
         const std::shared_ptr<NetConnection>& firstEntry
         ,const std::shared_ptr<NetNode>& node
         ,uint32_t index);
-
 private:
     std::shared_ptr<NetNode> m_root;
     std::map<uint32_t, std::string> m_portNames;

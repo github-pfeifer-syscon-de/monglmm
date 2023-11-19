@@ -19,10 +19,17 @@
 
 
 #include "NetNode.hpp"
+#include "NetInfo.hpp"
 
 NetNode::NetNode(const Glib::ustring& name, const Glib::ustring& key)
+: NetNode(name, key, true)
+{
+}
+
+NetNode::NetNode(const Glib::ustring& name, const Glib::ustring& key, bool showConn)
 : m_name{name}
 , m_key{key}
+, m_showConn{showConn}
 {
 }
 
@@ -115,6 +122,12 @@ NetNode::getMarkGeometry(NaviContext *shaderContext)
     if (m_text) {
         geo->addGeometry(m_text.get());
     }
+    if (m_lineLeft) {
+        geo->addGeometry(m_lineLeft.get());
+    }
+    if (m_lineDown) {
+        geo->addGeometry(m_lineDown.get());
+    }
     geo->setRemoveChildren(false);        // prefere removal with node, and with the nested nodes we otherwise run into trouble
 
     return geo;
@@ -133,21 +146,46 @@ NetNode::getTreeGeometry(
         Position pt(0.10f, -0.05f, 0.0f);
         m_text->setPosition(pt);
     }
+    if (m_showConn && !m_lineLeft) {
+        m_lineLeft = std::make_shared<Geometry>(GL_LINES, shaderContext);
+        Position p1{0.0f, 0.02f, 0.0f};
+        Position p2{-NetInfo::NODE_INDENT, 0.02f, 0.0f};
+        Color c(LINE_COLOR, LINE_COLOR, LINE_COLOR);
+        m_lineLeft->addLine(p1, p2, c, nullptr);
+        m_lineLeft->create_vao();
+    }
     if (!m_geo
      || (m_conn
          && m_lastStatus != m_conn->getStatus())) {
         m_geo = getMarkGeometry(shaderContext);
     }
-    // may need special consideration when destructing ...
-    //if (auto parent = node->m_parent.lock()) {
-    //    parent->getTreeGeometry()->addGeometry(treeGeo);
-    //}
-    //else {
-    //}
 
     return m_geo;
 }
 
+void
+NetNode::createLineDown(NaviContext *shaderContext, float y)
+{
+    if (m_lineDown
+     && m_children.size() == 0) {
+        m_geo->removeGeometry(m_lineDown.get());
+        m_lineDown.reset();
+        m_lastY = 0.0f;
+    }
+    else {
+        if (!m_lineDown
+          ||m_lastY != y)  {
+            m_lineDown = std::make_shared<Geometry>(GL_LINES, shaderContext);
+            Position p1{0.0f, 0.0f, 0.0f};
+            Position p2{0.0f, y, 0.0f};
+            Color c(LINE_COLOR, LINE_COLOR, LINE_COLOR);
+            m_lineDown->addLine(p1, p2, c, nullptr);
+            m_lineDown->create_vao();
+            m_geo->addGeometry(m_lineDown.get());
+            m_lastY = y;
+        }
+    }
+}
 
 void
 NetNode::clearUntouched()

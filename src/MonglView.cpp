@@ -179,9 +179,9 @@ MonglView::monitors_update()
     m_diskInfos.update(m_updateInterval, m_glibtop);
     // update after disk as it depends on it
     m_filesyses->update(m_graph_shaderContext, m_textContext, m_font, m_projView, m_updateInterval);
-    
-    m_netInfo->update(m_graph_shaderContext, m_textContext, m_font, m_projView);
-
+    if (m_netInfo) {    // dont try this if init failed
+        m_netInfo->update(m_graph_shaderContext, m_textContext, m_font, m_projView);
+    }
     naviGlArea->queue_render();
 #ifdef LIBG15
     worker->refresh();   // sync these updates
