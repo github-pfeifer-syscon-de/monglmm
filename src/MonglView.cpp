@@ -56,7 +56,6 @@ MonglView::MonglView(Gtk::Application* application)
 , m_filesyses{std::make_shared<Filesyses>()}
 , m_diskInfos()
 , m_application{application}
-, m_netInfo{std::make_shared<NetInfo>()}
 {
 
     read_config();
@@ -159,6 +158,7 @@ MonglView::init_shaders(Glib::Error &error)
     if (!m_textContext->createProgram(error)) {
         return FALSE;
     }
+    m_netInfo = std::make_shared<NetInfo>();
 
     return TRUE;
 }
@@ -179,8 +179,8 @@ MonglView::monitors_update()
     m_diskInfos.update(m_updateInterval, m_glibtop);
     // update after disk as it depends on it
     m_filesyses->update(m_graph_shaderContext, m_textContext, m_font, m_projView, m_updateInterval);
-    if (m_netInfo) {    // dont try this if init failed
-        m_netInfo->update(m_graph_shaderContext, m_textContext, m_font, m_projView);
+    if (m_netInfo) {
+        m_netInfo->update();
     }
     naviGlArea->queue_render();
 #ifdef LIBG15
@@ -333,7 +333,7 @@ MonglView::unrealize()
         delete m_textContext;
         m_textContext = nullptr;
     }
-
+    m_netInfo.reset();
 }
 
 static void
@@ -408,7 +408,9 @@ MonglView::drawContent()
         m_projView = naviGlArea->getProjection() * naviGlArea->getView();
 
         m_graph_shaderContext->setLight();
-
+        if (m_netInfo) {
+            m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font);
+        }
         m_graph_shaderContext->display(m_projView);
 
         checkError("display process");

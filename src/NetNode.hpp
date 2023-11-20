@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include <list>
+#include <map>
 #include <memory>
 #include <glibmm.h>
 #include <NaviContext.hpp>
@@ -41,16 +41,18 @@ public:
     Glib::ustring getKey() const;
     void setTouched(bool touched);
     bool isTouched() const;
-    std::list<std::shared_ptr<NetNode>>& getChildren();
+    std::shared_ptr<NetNode> getChild(const Glib::ustring& key);
+    void add(const std::shared_ptr<NetNode>& node);
     std::shared_ptr<Geometry> getTreeGeometry(NaviContext *shaderContext,
                 TextContext *txtCtx,
                 Font *pFont);
+    void setChildrenTouched(bool touched);
     void clearUntouched();
     Gdk::RGBA getColor() const;
     void createLineDown(NaviContext *shaderContext, float y);
-
+    std::list<std::shared_ptr<NetNode>> getChildren();
 protected:
-    std::list<std::shared_ptr<NetNode>> m_children;
+    std::map<Glib::ustring, std::shared_ptr<NetNode>> m_children;
     std::shared_ptr<Geometry> m_geo;
     std::shared_ptr<Text> m_text;
     std::shared_ptr<Geometry> getMarkGeometry(NaviContext *shaderContext);

@@ -88,11 +88,23 @@ NetNode::isTouched() const
     return m_touched;
 }
 
-std::list<std::shared_ptr<NetNode>>&
-NetNode::getChildren()
+std::shared_ptr<NetNode>
+NetNode::getChild(const Glib::ustring& key)
 {
-    return m_children;
+    std::shared_ptr<NetNode> node;
+    auto entry =  m_children.find(key);
+    if (entry != m_children.end()) {
+        node = (*entry).second;
+    }
+    return node;
 }
+
+void
+NetNode::add(const std::shared_ptr<NetNode>& node)
+{
+    m_children.insert(std::pair(node->getKey(), node));
+}
+
 
 std::shared_ptr<Geometry>
 NetNode::getMarkGeometry(NaviContext *shaderContext)
@@ -187,11 +199,28 @@ NetNode::createLineDown(NaviContext *shaderContext, float y)
     }
 }
 
+std::list<std::shared_ptr<NetNode>>
+NetNode::getChildren()
+{
+    std::list<std::shared_ptr<NetNode>> ret;
+    for (auto netchld : m_children) {
+        ret.push_back(netchld.second);
+    }
+    return ret;
+}
+
+void
+NetNode::setChildrenTouched(bool touched)
+{
+    for (auto netchld : m_children) {
+        netchld.second->setTouched(touched);
+    }
+}
 void
 NetNode::clearUntouched()
 {
     for (auto netchld = m_children.begin(); netchld != m_children.end(); ) {
-        if (!(*netchld)->isTouched()) {
+        if (!(*netchld).second->isTouched()) {
             //std::cout << "erasing "
             //          << " name " << (*netchld)->getDisplayName()
             //          << " use " << (*netchld).use_count()

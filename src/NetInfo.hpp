@@ -32,14 +32,14 @@ public:
     explicit NetInfo(const NetInfo& orig) = delete;
     virtual ~NetInfo() = default;
 
-    void update(NaviContext *pGraph_shaderContext,
-                TextContext *_txtCtx, Font *pFont, Matrix &persView);
+    void update();
+    void draw(NaviContext *pGraph_shaderContext,
+                TextContext *_txtCtx, Font *pFont);
     void setServiceName(std::shared_ptr<NetConnection>& netConn);
     static constexpr auto NODE_INDENT = 0.2f;
     static constexpr auto NODE_LINESPACE = -0.2f;
 
 protected:
-    void buildTree();
     std::map<std::string, std::list<std::shared_ptr<NetConnection>>>
         group(const std::list<std::shared_ptr<NetConnection>>& list, uint32_t index);
     void handle(const std::shared_ptr<NetNode>& node,
@@ -54,6 +54,7 @@ protected:
 private:
     std::shared_ptr<NetNode> m_root;
     std::map<uint32_t, std::string> m_portNames;
+    std::list<std::shared_ptr<NetConnection>> m_netConnections;
 };
 
 

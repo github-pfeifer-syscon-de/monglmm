@@ -200,17 +200,12 @@ NetInfo::createNode(
         key = newName + connection->getGroupSuffix();
         matching = true;
     }
-    std::shared_ptr<NetNode> newNode;
-    for (auto netchld : node->getChildren()){
-        if (netchld->getKey() == key) {
-            newNode = netchld;
-            netchld->setTouched(true);
-        }
-    }
+    std::shared_ptr<NetNode> newNode = node->getChild(key);
     if (!newNode) {
         newNode = std::make_shared<NetNode>(newName, key);
-        node->getChildren().push_back(newNode);
+        node->add(newNode);
     }
+    newNode->setTouched(true);
     if (matching) { // only these have a usable status
         newNode->setConnection(connection);
     }
@@ -223,9 +218,7 @@ NetInfo::handle(const std::shared_ptr<NetNode>& node,
             uint32_t index)
 {
     std::map<std::string, std::list<std::shared_ptr<NetConnection>>> collected = group(list, index);
-    for (auto netchld : node->getChildren()){
-        netchld->setTouched(false);
-    }
+    node->setChildrenTouched(false);
     for (auto entry : collected) {
         auto key = entry.first;
         if (!key.empty()) {
@@ -308,12 +301,11 @@ NetInfo::read(const char* name, std::list<std::shared_ptr<NetConnection>>& netCo
 }
 
 void
-NetInfo::buildTree()
+NetInfo::update()
 {
-    std::list<std::shared_ptr<NetConnection>> netConnections;
-    read("/proc/net/tcp", netConnections);
-    read("/proc/net/tcp6", netConnections);
-    handle(m_root, netConnections, 1);
+    m_netConnections.clear();
+    read("/proc/net/tcp", m_netConnections);
+    read("/proc/net/tcp6", m_netConnections);
 }
 
 double
@@ -339,8 +331,8 @@ NetInfo::render(NaviContext *shaderContext,
 
 
 void
-NetInfo::update(NaviContext *pGraph_shaderContext,
-                TextContext *txtCtx, Font *pFont, Matrix &persView)
+NetInfo::draw(NaviContext *pGraph_shaderContext,
+                TextContext *txtCtx, Font *pFont)
 {
     if (!m_root) {
         m_root = std::make_shared<NetNode>("@", "@", false);   // u1f310 might be an alternative but is not commonly supported
@@ -349,7 +341,7 @@ NetInfo::update(NaviContext *pGraph_shaderContext,
         Position pos{1.5f, 2.3f, 0.0f};
         treeGeo->setPosition(pos);
     }
-    buildTree();
+    handle(m_root, m_netConnections, 1);
     render(pGraph_shaderContext, txtCtx, pFont, m_root);
 }
 
