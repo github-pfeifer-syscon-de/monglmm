@@ -101,14 +101,13 @@ private:
     TreeNode* m_selectedTreeNode;
     Gtk::Menu m_popupMenu;
     std::shared_ptr<Filesyses> m_filesyses;
-    DiskInfos m_diskInfos;
+    std::shared_ptr<DiskInfos> m_diskInfos;
     Gtk::Application* m_application;
 
     Gdk::RGBA m_text_color;
     Gdk::RGBA m_background_color;
     std::shared_ptr<Monitor> m_temp;
     std::shared_ptr<NetInfo> m_netInfo;
-    std::shared_ptr<NetNode> m_netRoot;
 };
 
 static const  guint n_values = 100;

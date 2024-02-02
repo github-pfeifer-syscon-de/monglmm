@@ -32,15 +32,10 @@
 #include "DiskInfo.hpp"
 
 DiskInfo::DiskInfo()
-: m_device()
-, m_mount()
-, m_touched{true}
+: m_touched{true}
 , m_bytesReadPerS{0l}
 , m_bytesWrittenPerS{0l}
 , m_lastUsage{-1.0}  //  ?
-, m_geometry{nullptr}
-, m_devTxt{nullptr}
-, m_mountTxt{nullptr}
 , m_actualReadTime{0l}
 , m_actualWriteTime{0l}
 , m_lastReadTime{0l}
@@ -51,23 +46,23 @@ DiskInfo::DiskInfo()
 
 DiskInfo::~DiskInfo()
 {
-  removeGeometry();
+    removeGeometry();
 }
 
 void
 DiskInfo::removeGeometry()
 {
-    if (m_devTxt != nullptr) {
+    if (m_geometry != nullptr) {
+        delete m_geometry;
+        m_geometry = nullptr;
+    }
+    if (m_devTxt != nullptr) {      // remove child entries as last!
         delete m_devTxt;
         m_devTxt = nullptr;
     }
     if (m_mountTxt != nullptr) {
         delete m_mountTxt;
         m_mountTxt = nullptr;
-    }
-    if (m_geometry != nullptr) {
-        delete m_geometry;
-        m_geometry = nullptr;
     }
 }
 

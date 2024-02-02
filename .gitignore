@@ -64,3 +64,16 @@
 /autom4te.cache/output.6
 /src/.deps/ClkMonitor.Tpo
 /src/.deps/
+/test-driver
+/test/funky_test.log
+/test/funky_test
+/test/Makefile.in
+/test/funky_test.trs
+/test/Makefile
+/test/test-suite.log
+/test/active_cntl.hpp
+/test/active_plc.cpp
+/test/active_ptr.hpp
+/test/active_ptr.cpp
+/test/active_plc.hpp
+/test/active_cntl.cpp

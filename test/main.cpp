@@ -1,5 +1,6 @@
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
- * Copyright (C) 2018 rpf
+ * Copyright (C) 2023 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Page.hpp"
+#include <iostream>
 
-Page::Page()
+#include "main.hpp"
+#include "active_plc.hpp"
+
+Test::Test()
 {
+}
+
+void
+Test::test()
+{
+}
+
+int
+main(int argc, char** argv) {
+    std::cout << "Start" << std::endl;
+    //auto test = psc::mem::active_plc<Test>();
+    std::cout << "End" << std::endl;
+    return 0;
 }

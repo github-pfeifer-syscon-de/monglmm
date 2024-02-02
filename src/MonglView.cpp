@@ -54,7 +54,7 @@ MonglView::MonglView(Gtk::Application* application)
 , m_selectedTreeNode{nullptr}
 , m_popupMenu()
 , m_filesyses{std::make_shared<Filesyses>()}
-, m_diskInfos()
+, m_diskInfos{std::make_shared<DiskInfos>()}
 , m_application{application}
 {
 
@@ -176,9 +176,13 @@ MonglView::monitors_update()
     // update after processe as it depends on it
     m_processes.update(m_graph_shaderContext, m_textContext, m_font, m_diagrams[0], m_diagrams[1], m_projView);
 
-    m_diskInfos.update(m_updateInterval, m_glibtop);
+    if (m_diskInfos) {
+        m_diskInfos->update(m_updateInterval, m_glibtop);
+    }
     // update after disk as it depends on it
-    m_filesyses->update(m_graph_shaderContext, m_textContext, m_font, m_projView, m_updateInterval);
+    if (m_filesyses) {
+        m_filesyses->update(m_graph_shaderContext, m_textContext, m_font, m_projView, m_updateInterval);
+    }
     if (m_netInfo) {
         m_netInfo->update();
     }
@@ -246,13 +250,13 @@ MonglView::init(Gtk::GLArea *glArea)
     std::shared_ptr<Monitor> net = std::make_shared<NetMonitor>(n_values);
     graphs.push_back(net);
     std::shared_ptr<DiskMonitor> diskMonitor = std::make_shared<DiskMonitor>(n_values);
-    diskMonitor->setDiskInfos(&m_diskInfos);
+    diskMonitor->setDiskInfos(m_diskInfos);
     graphs.push_back(diskMonitor);
     std::shared_ptr<Monitor> gpu = std::make_shared<GpuMonitor>(n_values, naviGlArea);
     graphs.push_back(gpu);
     std::shared_ptr<Monitor> clk = std::make_shared<ClkMonitor>(n_values);
     graphs.push_back(clk);
-    m_filesyses->setDiskInfos(&m_diskInfos);
+    m_filesyses->setDiskInfos(m_diskInfos);
 #if defined(LMSENSORS) || defined(RASPI)
     m_temp = std::make_shared<TempMonitor>(n_values);
     graphs.push_back(m_temp);
@@ -320,6 +324,10 @@ MonglView::unrealize()
         d->close();
     }
     m_diagrams.clear();
+    m_diskInfos->removeDiskInfos();
+    m_filesyses.reset();
+    m_diskInfos.reset();
+    m_netInfo.reset();
     // This belongs to the destructor, but then we have no widget to reference GLContext from
     if (m_font != nullptr) {
         delete m_font;
@@ -333,7 +341,6 @@ MonglView::unrealize()
         delete m_textContext;
         m_textContext = nullptr;
     }
-    m_netInfo.reset();
 }
 
 static void

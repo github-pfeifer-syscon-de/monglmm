@@ -30,7 +30,7 @@ class NetInfo
 public:
     NetInfo();
     explicit NetInfo(const NetInfo& orig) = delete;
-    virtual ~NetInfo() = default;
+    virtual ~NetInfo();
 
     void update();
     void draw(NaviContext *pGraph_shaderContext,
@@ -45,7 +45,6 @@ protected:
     void handle(const std::shared_ptr<NetNode>& node,
             const std::list<std::shared_ptr<NetConnection>>& list,
             uint32_t index);
-    double render(NaviContext *shaderContext, TextContext *txtCtx, Font *pFont,  const std::shared_ptr<NetNode>& node);
     void read(const char* name, std::list<std::shared_ptr<NetConnection>>& netConnections);
     std::shared_ptr<NetNode> createNode(
         const std::shared_ptr<NetConnection>& firstEntry

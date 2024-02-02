@@ -271,7 +271,7 @@ Processes::updateCpu(GraphShaderContext* pGraph_shaderContext,
 }
 
 void
-Processes::updateMem(GraphShaderContext* pGraph_shaderContext, 
+Processes::updateMem(GraphShaderContext* pGraph_shaderContext,
 	TextContext *_txtCtx, Font* pFont,
 	std::shared_ptr<DiagramMonitor> mem, Matrix &persView, Position &p)
 {

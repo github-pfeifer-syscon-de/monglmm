@@ -27,11 +27,10 @@
 #include "FileByLine.hpp"
 #include "Buffer.hpp"
 
-typedef DiskInfo* pDisk;
 
 class CompareByData  {
     public:
-    bool operator()(const pDisk &a, const pDisk &b) {
+    bool operator()(const ptrDiskInfo &a, const ptrDiskInfo &b) {
         if (a == nullptr) {
             return FALSE;
         }
@@ -56,10 +55,6 @@ DiskInfos::DiskInfos()
 DiskInfos::~DiskInfos()
 {
     m_mounts.clear();
-    for (auto p : m_devices) {  // devices contains all
-        DiskInfo *diskinfo = p.second;
-        delete diskinfo;
-    }
     m_devices.clear();
 }
 
@@ -97,13 +92,13 @@ DiskInfos::updateDiskStat(int refreshRate, glibtop * glibtop)
             DiskInfo tInfo;
             if (tInfo.readStat(line, 0l)) {
                 auto devDisk = m_devices.find(tInfo.getDevice());
-                DiskInfo *diskInfo;
+                ptrDiskInfo diskInfo;
                 if (devDisk != m_devices.end()) {
                     diskInfo = devDisk->second;
                 }
                 else {
-                    diskInfo = new DiskInfo();
-                    m_devices.insert(std::pair<std::string, DiskInfo *>(tInfo.getDevice(), diskInfo));
+                    diskInfo = std::make_shared<DiskInfo>();
+                    m_devices.insert(std::pair(tInfo.getDevice(), diskInfo));
                 }
                 diskInfo->readStat(line, diff);
             }
@@ -112,7 +107,7 @@ DiskInfos::updateDiskStat(int refreshRate, glibtop * glibtop)
     m_previous_diskstat_time = actual_time;
     // remove those we did not touch
     for (auto devDisk = m_devices.begin(); devDisk != m_devices.end(); ) {
-        DiskInfo *diskInfo = devDisk->second;
+        auto diskInfo = devDisk->second;
         if (!diskInfo->isTouched()) {
             devDisk = m_devices.erase(devDisk);
             remove(diskInfo);
@@ -125,11 +120,11 @@ DiskInfos::updateDiskStat(int refreshRate, glibtop * glibtop)
 
 // get from device name of a partition the disk e.g. sda1 -> sda
 //   expected map to be sorted e.g. sda before sda1 so we wont find sda1 from sda10
-DiskInfo *
+ptrDiskInfo
 DiskInfos::getDisk(std::string const &device) const
 {
     for (auto p : m_devices) {
-        DiskInfo *diskInfo = p.second;
+        auto diskInfo = p.second;
         if (device.rfind(diskInfo->getDevice(), 0) == 0) {
             return diskInfo;
         }
@@ -141,7 +136,7 @@ void
 DiskInfos::updateMounts(int refresh_rate, glibtop * glibtop)
 {
     for (auto p : m_devices) {
-        DiskInfo *diskInfo = p.second;
+        auto diskInfo = p.second;
         diskInfo->setFilesysTouched(false);
     }
 #ifdef LIBGTOP
@@ -198,10 +193,10 @@ DiskInfos::updateMounts(int refresh_rate, glibtop * glibtop)
                         std::string devName = dev.substr(5);
                         auto p = m_devices.find(devName);
                         if (p != m_devices.end()) {
-                            DiskInfo *diskInfo = p->second;
+                            auto diskInfo = p->second;
                             auto m = m_mounts.find(mount);
                             if (m == m_mounts.end()) {      // add to mounts if needed
-                                m_mounts.insert(std::pair<std::string, DiskInfo *>(mount, diskInfo));
+                                m_mounts.insert(std::pair(mount, diskInfo));
                                 diskInfo->setMount(mount);
                             }
                             diskInfo->refreshFilesys(glibtop);
@@ -221,15 +216,15 @@ DiskInfos::updateMounts(int refresh_rate, glibtop * glibtop)
     }
 #endif
     for (auto p : m_devices) {
-        DiskInfo *filesys = p.second;
+        auto filesys = p.second;
         if (!filesys->isFilesysTouched()
-             && filesys->getMount().length() > 0) {    // if device is unmounted keep device, but remove mount
+          && filesys->getMount().length() > 0) {    // if device is unmounted keep device, but remove mount
             auto m = m_mounts.find(filesys->getMount());
             if (m != m_mounts.end()) {
                 //std::cout << "Removing fs " << filesys->getMount() << " with dev " << filesys->getMount() << std::endl;
                 m_mounts.erase(m);
                 filesys->setMount("");
-		filesys->removeGeometry();
+                filesys->removeGeometry();
             }
         }
     }
@@ -237,7 +232,7 @@ DiskInfos::updateMounts(int refresh_rate, glibtop * glibtop)
 
 
 void
-DiskInfos::remove(DiskInfo *diskInfo)
+DiskInfos::remove(ptrDiskInfo diskInfo)
 {
     // keep structures in sync
     if (diskInfo->getDevice() != "") {
@@ -252,23 +247,22 @@ DiskInfos::remove(DiskInfo *diskInfo)
             m_mounts.erase(mnt);
         }
     }
-    delete diskInfo;
 }
 
-DiskInfo *
+ptrDiskInfo
 DiskInfos::getPrefered(std::string const &device) const
 {
-    DiskInfo *diskInfo = nullptr;
+    ptrDiskInfo diskInfo;
     if (!device.empty()) {
         auto dev = m_devices.find(device);
         if (dev != m_devices.end()) {
             diskInfo = dev->second;
         }
     }
-    if (diskInfo == nullptr) {
-        std::vector<pDisk> devs;
+    if (!diskInfo) {
+        std::vector<ptrDiskInfo> devs;
         for (auto dev : m_devices) {
-            pDisk diskInf = dev.second;
+            auto diskInf = dev.second;
             devs.push_back(diskInf);
         }
         std::sort(devs.begin(), devs.end(), CompareByData());
@@ -280,15 +274,22 @@ DiskInfos::getPrefered(std::string const &device) const
     return diskInfo;
 }
 
-const std::map<std::string, DiskInfo*> &
+const std::map<std::string, ptrDiskInfo> &
 DiskInfos::getFilesyses()
 {
     return m_mounts;
 }
 
 
-const std::map<std::string, DiskInfo*> &
+const std::map<std::string, ptrDiskInfo> &
 DiskInfos::getDevices()
 {
     return m_devices;
+}
+
+void
+DiskInfos::removeDiskInfos()
+{
+    m_mounts.clear();
+    m_devices.clear();
 }

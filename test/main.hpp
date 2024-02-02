@@ -1,5 +1,6 @@
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * Copyright (C) 2018 rpf
+ * Copyright (C) 2023 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Page.hpp"
+#pragma once
 
-Page::Page()
+class Test
 {
-}
+public:
+    Test();
+    explicit Test(const Test& orig) = delete;
+    virtual ~Test() = default;
+
+    void test();
+private:
+
+};
+

@@ -22,10 +22,14 @@
 #include <glib-2.0/glib.h>
 #include <string>
 #include <map>
+#include <memory>
 
 #include "Infos.hpp"
 #include "libgtop_helper.h"
 #include "DiskInfo.hpp"
+
+
+typedef std::shared_ptr<DiskInfo> ptrDiskInfo;
 
 class DiskInfos : public Infos {
 public:
@@ -34,23 +38,23 @@ public:
 
     void update(int refreshRate, glibtop * glibtop) override;
 
-    DiskInfo *getPrefered(std::string const &device) const;
+    ptrDiskInfo getPrefered(std::string const &device) const;
     // get from device name of a partition the disk e.g. sda1 -> sda
-    DiskInfo *getDisk(std::string const &device) const;
+    ptrDiskInfo getDisk(std::string const &device) const;
 
-    const std::map<std::string, DiskInfo*> & getFilesyses();
-    const std::map<std::string, DiskInfo*> & getDevices();
-
+    const std::map<std::string, ptrDiskInfo> & getFilesyses();
+    const std::map<std::string, ptrDiskInfo> & getDevices();
+    void removeDiskInfos();
 private:
     void updateDiskStat(int refreshRate, glibtop * glibtop);
     void updateMounts(int refresh_rate, glibtop * glibtop);
 
-    void remove(DiskInfo *diskInfo);
+    void remove(ptrDiskInfo diskInfo);
 
     gint64 m_previous_diskstat_time;
 
-    std::map<std::string, DiskInfo*> m_devices;
-    std::map<std::string, DiskInfo*> m_mounts;
+    std::map<std::string, ptrDiskInfo> m_devices;
+    std::map<std::string, ptrDiskInfo> m_mounts;
 
 };
 

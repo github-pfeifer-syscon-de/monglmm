@@ -27,7 +27,7 @@ public:
     FileByLine();
     virtual ~FileByLine();
 
-    bool open( const char *_name, const char *_mode);
+    bool open(const char *_name, const char *_mode);
     bool open(const std::string &_name, const char *_mode);
     const char * nextLine(size_t *len);
     FILE *getFile() const;

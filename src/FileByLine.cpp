@@ -21,8 +21,8 @@
 #include "FileByLine.hpp"
 
 FileByLine::FileByLine()
-: m_file(nullptr)
-, m_line(nullptr)
+: m_file{nullptr}
+, m_line{nullptr}
 {
 
 }
@@ -41,7 +41,7 @@ FileByLine::~FileByLine()
 }
 
 bool
-FileByLine::open( const char *_name, const char *_mode)
+FileByLine::open(const char *_name, const char *_mode)
 {
     if (m_file != nullptr) {
         fclose(m_file);

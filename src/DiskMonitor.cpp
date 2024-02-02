@@ -97,7 +97,7 @@ gboolean
 DiskMonitor::update(int refreshRate, glibtop * glibtop)
 {
     if (m_diskInfos) {
-        DiskInfo *diskInfo = m_diskInfos->getPrefered(m_device);
+        auto diskInfo = m_diskInfos->getPrefered(m_device);
         if (diskInfo) {
             m_used_device = diskInfo->getDevice();
             addPrimarySecondary(diskInfo->getBytesReadPerS(), diskInfo->getBytesWrittenPerS());
@@ -180,7 +180,7 @@ DiskMonitor::getSecMax()
 }
 
 void
-DiskMonitor::setDiskInfos(DiskInfos *diskInfos)
+DiskMonitor::setDiskInfos(const std::shared_ptr<DiskInfos>& diskInfos)
 {
     m_diskInfos = diskInfos;
 }

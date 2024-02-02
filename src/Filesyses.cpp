@@ -35,18 +35,13 @@ Filesyses::Filesyses()
 {
 }
 
-Filesyses::~Filesyses()
-{
-}
-
-
 void
 Filesyses::update(GraphShaderContext *pGraph_shaderContext, TextContext* textCtx, Font *pFont, Matrix &persView, gint updateInterval) {
     Position pd(-3.3f, 3.0f, 0.0f);
     auto fsMap = m_diskInfos->getFilesyses();
     float scale = std::min(1.0f, 3.0f / (float)fsMap.size());  // no upscaling
     for (auto p : fsMap) {
-        DiskInfo *diskInfo = p.second;
+        auto diskInfo = p.second;
         Geometry *geo = diskInfo->getGeometry();
         if (diskInfo->isChanged(updateInterval)) {
             geo = createDiskGeometry(diskInfo, pGraph_shaderContext, textCtx, pFont, persView, updateInterval);
@@ -66,7 +61,7 @@ Filesyses::updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height
     char tmp[64];
     double y = 10.0;
     for (auto p : m_diskInfos->getFilesyses()) {
-        DiskInfo *filesys = p.second;
+        auto filesys = p.second;
         cr->move_to(1.0, y);
         float percent = filesys->getFreePercent();
         std::string size = Monitor::formatScale(filesys->getCapacityBytes(), "");
@@ -79,7 +74,7 @@ Filesyses::updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height
 }
 
 void
-Filesyses::setDiskInfos(DiskInfos *diskInfos)
+Filesyses::setDiskInfos(const std::shared_ptr<DiskInfos>& diskInfos)
 {
     m_diskInfos = diskInfos;
 }
@@ -87,11 +82,11 @@ Filesyses::setDiskInfos(DiskInfos *diskInfos)
 
 
 float
-Filesyses::getOffset(DiskInfo *partInfo, guint64 diffTime, gint updateInterval)
+Filesyses::getOffset(const std::shared_ptr<DiskInfo>& partInfo, guint64 diffTime, gint updateInterval)
 {
     float r = 0.0f;
-    DiskInfo *diskInfo = m_diskInfos->getDisk(partInfo->getDevice()) ;
-    if (diskInfo == nullptr) {
+    auto diskInfo = m_diskInfos->getDisk(partInfo->getDevice()) ;
+    if (!diskInfo) {
         //std::cerr << "Cound not find disk for " << partInfo->getDevice() << std::endl;
         diskInfo = partInfo;
     }
@@ -104,7 +99,7 @@ Filesyses::getOffset(DiskInfo *partInfo, guint64 diffTime, gint updateInterval)
 }
 
 Geometry *
-Filesyses::createDiskGeometry(DiskInfo *partInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, Font *font, Matrix &persView, gint updateInterval) {
+Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, Font *font, Matrix &persView, gint updateInterval) {
     double usage = partInfo->getUsage();
     partInfo->setLastUsage(usage);
     partInfo->setLastReadTime(partInfo->getActualReadTime());

@@ -17,12 +17,14 @@
 
 #pragma once
 
+#include <gtkmm.h>
+
 class Page
 {
 public:
     Page();
-    Page(const Page& orig);
-    virtual ~Page();
+    explicit Page(const Page& orig) = delete;
+    virtual ~Page() = default;
 
     // the cairo font rendering is called a play function and as that leads to different outlines
     //    as the string gets longer -> the FT_Bitmap_ and pango_ft2_render might be an alterantive

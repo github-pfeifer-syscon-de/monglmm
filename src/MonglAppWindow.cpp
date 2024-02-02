@@ -79,9 +79,11 @@ MonglAppWindow::on_action_about()
             abtdlg->set_transient_for(*this);
             abtdlg->run();
             abtdlg->hide();
-        } else
+        }
+        else {
             std::cerr << "MonglAppWindow::on_action_about(): No \"abt-dlg\" object in abt-dlg.ui"
                 << std::endl;
+        }
     } catch (const Glib::Error& ex) {
         std::cerr << "MonglAppWindow::on_action_about(): " << ex.what() << std::endl;
     }

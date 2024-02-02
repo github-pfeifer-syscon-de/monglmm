@@ -29,6 +29,10 @@ NetInfo::NetInfo()
 {
 }
 
+NetInfo::~NetInfo()
+{
+}
+
 // allow cached resolve for service names...
 void
 NetInfo::setServiceName(std::shared_ptr<NetConnection>& netConn)
@@ -200,7 +204,8 @@ NetInfo::createNode(
         key = newName + connection->getGroupSuffix();
         matching = true;
     }
-    std::shared_ptr<NetNode> newNode = node->getChild(key);
+    auto namedNode = node->getChild(key);
+    std::shared_ptr<NetNode> newNode = std::dynamic_pointer_cast<NetNode>(namedNode);
     if (!newNode) {
         newNode = std::make_shared<NetNode>(newName, key);
         node->add(newNode);
@@ -308,40 +313,19 @@ NetInfo::update()
     read("/proc/net/tcp6", m_netConnections);
 }
 
-double
-NetInfo::render(NaviContext *shaderContext,
-                TextContext *txtCtx,
-                Font *pFont,
-                const std::shared_ptr<NetNode>& node)
-{
-    auto treeGeo = node->getTreeGeometry(shaderContext, txtCtx, pFont);
-    Position pos{NODE_INDENT, 0.0, 0.0};
-    float lastY = 0.0f;
-    for (auto chld : node->getChildren()) {
-        pos.y += NODE_LINESPACE;
-        auto chldGeo = chld->getTreeGeometry(shaderContext, txtCtx, pFont);
-        treeGeo->addGeometry(chldGeo.get());
-        chldGeo->setPosition(pos);
-        lastY = pos.y;
-        pos.y += render(shaderContext, txtCtx, pFont, chld);
-    }
-    node->createLineDown(shaderContext, lastY);
-    return pos.y;   // as we start from 0 return the used space aka. length
-}
-
 
 void
 NetInfo::draw(NaviContext *pGraph_shaderContext,
                 TextContext *txtCtx, Font *pFont)
 {
     if (!m_root) {
-        m_root = std::make_shared<NetNode>("@", "@", false);   // u1f310 might be an alternative but is not commonly supported
-        auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont);
-        pGraph_shaderContext->addGeometry(treeGeo.get()); // only add this as main elements to context, children are rendered by default
+        m_root = std::make_shared<NetNode>("@", "@");   // u1f310 might be an alternative but is not commonly supported
+        auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont, nullptr);
+        pGraph_shaderContext->addGeometry(treeGeo); // only add this as main elements to context, children are rendered by default
         Position pos{1.5f, 2.3f, 0.0f};
         treeGeo->setPosition(pos);
     }
     handle(m_root, m_netConnections, 1);
-    render(pGraph_shaderContext, txtCtx, pFont, m_root);
+    m_root->render(pGraph_shaderContext, txtCtx, pFont, nullptr);
 }
 

@@ -137,9 +137,9 @@ private:
     guint64 m_bytesWrittenPerS;
     struct statvfs fsd;
     double m_lastUsage;
-    Geometry *m_geometry;
-    Text *m_devTxt;
-    Text *m_mountTxt;
+    Geometry* m_geometry{nullptr};
+    Text* m_devTxt{nullptr};
+    Text* m_mountTxt{nullptr};
     unsigned long m_actualReadTime;
     unsigned long m_actualWriteTime;
     unsigned long m_lastReadTime;

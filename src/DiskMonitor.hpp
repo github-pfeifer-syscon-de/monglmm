@@ -42,10 +42,10 @@ public:
     std::string getPrimMax() override;
     std::string getSecMax() override;
 
-    void setDiskInfos(DiskInfos *diskInfos);
+    void setDiskInfos(const std::shared_ptr<DiskInfos>& diskInfos);
 private:
     void disk_device_changed(Gtk::ComboBox *device_combo);
-    DiskInfos *m_diskInfos;
+    std::shared_ptr<DiskInfos> m_diskInfos;
 };
 
 #define DISK_PRIMARY_DEFAULT_COLOR "#00FF00"

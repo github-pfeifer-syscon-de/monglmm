@@ -21,53 +21,36 @@
 #include <map>
 #include <memory>
 #include <glibmm.h>
-#include <NaviContext.hpp>
-#include <TextContext.hpp>
-#include <Text.hpp>
 #include <linux/bpf.h>  // only accessible version i could find for tcp status
+#include <NamedTreeNode.hpp>
 
 #include "NetConnection.hpp"
 
+class NetNode;
+
+typedef std::shared_ptr<NetNode> ptrNetNode;
+
 class NetNode
+: public NamedTreeNode
 {
 public:
     NetNode(const Glib::ustring& name, const Glib::ustring& key);
-    NetNode(const Glib::ustring& name, const Glib::ustring& key, bool showConn);
     explicit NetNode(const NetNode& orig) = delete;
-    virtual ~NetNode();
+    virtual ~NetNode() = default;
 
     void setConnection(const std::shared_ptr<NetConnection>& conn);
-    Glib::ustring getDisplayName() const;
-    Glib::ustring getKey() const;
     void setTouched(bool touched);
     bool isTouched() const;
-    std::shared_ptr<NetNode> getChild(const Glib::ustring& key);
-    void add(const std::shared_ptr<NetNode>& node);
-    std::shared_ptr<Geometry> getTreeGeometry(NaviContext *shaderContext,
-                TextContext *txtCtx,
-                Font *pFont);
     void setChildrenTouched(bool touched);
     void clearUntouched();
     Gdk::RGBA getColor() const;
-    void createLineDown(NaviContext *shaderContext, float y);
-    std::list<std::shared_ptr<NetNode>> getChildren();
+    bool isMarkGeometryUpdated() override;
+    void updateMarkGeometry(NaviContext *shaderContext) override;
 protected:
-    std::map<Glib::ustring, std::shared_ptr<NetNode>> m_children;
-    std::shared_ptr<Geometry> m_geo;
-    std::shared_ptr<Text> m_text;
-    std::shared_ptr<Geometry> getMarkGeometry(NaviContext *shaderContext);
-    std::shared_ptr<Geometry> m_lineDown;
-    std::shared_ptr<Geometry> m_lineLeft;
-    static constexpr auto LINE_COLOR = 0.8f;
+
 private:
     std::shared_ptr<NetConnection> m_conn;
-    Glib::ustring  m_name;
-    Glib::ustring  m_key;
     bool m_touched{true};
     uint32_t m_lastStatus{0u};
-    float m_lastY{0.0f};
-    bool m_showConn;
 };
-
-
 

@@ -23,12 +23,16 @@ LT_INIT
 
 PKG_CHECK_MODULES([GTHREAD], [gthread-2.0])
 
-PKG_CHECK_MODULES([GENERICGLM], [genericglm >= 0.2.4])
+PKG_CHECK_MODULES([GENERICGLM], [genericglm >= 0.2.7])
 PKG_CHECK_MODULES([GENERICIMG], [genericimg >= 0.1.0])
 
 PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4])
 
 PKG_CHECK_MODULES([GTKMM], [gtkmm-3.0])
+
+dnl include for testing font stuff
+PKG_CHECK_MODULES(LIBFONTCONFIG, [fontconfig])
+PKG_CHECK_MODULES(GLU, [glu])
 
 AC_ARG_WITH([glibtop], AS_HELP_STRING([--with-glibtop], [Build for glibtop (limited suuport) otherwise proc/sys will be used, linux only]))
 
@@ -40,7 +44,6 @@ AC_ARG_WITH([libg15], AS_HELP_STRING([--with-libg15], [Build with libg15 support
 
 AS_IF([test "x$with_libg15" = "xyes"], [
    PKG_CHECK_MODULES(LIBUSB, [libusb-1.0], [AC_DEFINE([LIBG15], [1], [Using libg15])])
-   PKG_CHECK_MODULES(LIBFONTCONFIG, [fontconfig])
 ])
 
 AM_CONDITIONAL([LIBG15], [test "x$with_libg15" = "xyes"])
@@ -92,5 +95,6 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 res/Makefile
+test/Makefile
 ])
 AC_OUTPUT

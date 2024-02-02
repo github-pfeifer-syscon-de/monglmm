@@ -128,7 +128,8 @@ endif
 
 monglmm_LDFLAGS =
 
-monglmm_LDADD = $(MONGLMM_LIBS) \
+monglmm_LDADD = \
+	$(MONGLMM_LIBS) \
 	$(GENERICGLM_LIBS) \
 	$(GENERICIMG_LIBS) \
 	$(GLIBMM_LIBS) \
