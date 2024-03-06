@@ -1,16 +1,22 @@
 
 TESTS = funky_test
 
+AM_CPPFLAGS = \
+	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
+	-DPACKAGE_SRC_DIR=\""$(srcdir)."\" \
+	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
+	-I../glmLib
+
+AM_CFLAGS= \
+	-Wall
+
+AM_CXXFLAGS = \
+	-Wall
+
 check_PROGRAMS = funky_test
 
 funky_test_SOURCES = \
-	main.cpp
+    main.cpp
 
-#	active_cntl.cpp \
-#	active_cntl.hpp \
-#	active_plc.cpp \
-#	active_plc.hpp \
-#	active_ptr.cpp \
-#	active_ptr.hpp
-
-# src/funky-class.cc src/another-funky-class.cc
+funky_test_LDADD = \
+    ../glmLib/libglm.a

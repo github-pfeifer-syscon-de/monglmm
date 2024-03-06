@@ -27,7 +27,8 @@
 #include "Geometry.hpp"
 #include "Matrix.hpp"
 #include "GraphShaderContext.hpp"
-#include "Font.hpp"
+#include <Font.hpp>
+#include <Font2.hpp>
 #include "Processes.hpp"
 #include "Monitor.hpp"
 #include "NaviGlArea.hpp"
@@ -74,6 +75,7 @@ private:
     GraphShaderContext *m_graph_shaderContext;
     TextContext *m_textContext;
     Font *m_font;
+    psc::gl::ptrFont2 m_font2;
 
     sigc::connection    m_timer;               /* Timer for regular updates     */
 

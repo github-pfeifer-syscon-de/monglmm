@@ -1,4 +1,4 @@
-/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
  * Copyright (C) 2023 RPf <gpl3@pfeifer-syscon.de>
  *
@@ -16,33 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-class Base
-{
-public:
-    Base();
-    explicit Base(const Base& orig) = delete;
-    virtual ~Base();
 
-    virtual void dummy();
-    void base();
-//private :
-    int m_val;
-};
+#include "active_ptr.hpp"
 
-class Test
-: public Base
-{
-public:
-    Test(int n);
-    explicit Test(const Test& orig) = delete;
-    virtual ~Test();
+namespace psc {
+namespace mem {
 
-    void dummy() override;
-    void test();
-    int get();
-//private:
-    int m_n;
-};
 
+
+
+} /* namespace mem */
+} /* namespace psc */

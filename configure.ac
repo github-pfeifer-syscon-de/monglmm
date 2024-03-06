@@ -93,8 +93,9 @@ AX_CHECK_SED()
 
 AC_CONFIG_FILES([
 Makefile
+glmLib/Makefile
+test/Makefile
 src/Makefile
 res/Makefile
-test/Makefile
 ])
 AC_OUTPUT

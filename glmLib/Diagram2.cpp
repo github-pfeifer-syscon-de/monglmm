@@ -1,6 +1,6 @@
-/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
- * Copyright (C) 2023 RPf <gpl3@pfeifer-syscon.de>
+ * Copyright (C) 2024 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,33 +16,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-class Base
+#include "Diagram2.hpp"
+
+namespace psc {
+namespace gl {
+
+
+Diagram2::Diagram2()
 {
-public:
-    Base();
-    explicit Base(const Base& orig) = delete;
-    virtual ~Base();
 
-    virtual void dummy();
-    void base();
-//private :
-    int m_val;
-};
+}
 
-class Test
-: public Base
-{
-public:
-    Test(int n);
-    explicit Test(const Test& orig) = delete;
-    virtual ~Test();
 
-    void dummy() override;
-    void test();
-    int get();
-//private:
-    int m_n;
-};
 
+} /* namespace gl */
+} /* namespace gl */

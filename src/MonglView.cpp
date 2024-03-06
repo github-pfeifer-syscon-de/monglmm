@@ -181,7 +181,7 @@ MonglView::monitors_update()
     }
     // update after disk as it depends on it
     if (m_filesyses) {
-        m_filesyses->update(m_graph_shaderContext, m_textContext, m_font, m_projView, m_updateInterval);
+        m_filesyses->update(m_graph_shaderContext, m_textContext, m_font2, m_projView, m_updateInterval);
     }
     if (m_netInfo) {
         m_netInfo->update();
@@ -240,6 +240,7 @@ MonglView::init(Gtk::GLArea *glArea)
     clear.b = m_background_color.get_blue();
     naviGlArea->set_clear_color(clear);
     m_font = new Font("sans-serif");
+    m_font2 = std::make_shared<psc::gl::Font2>("sans-serif");
 
     /* initialize the monitors */
     std::vector<std::shared_ptr<Monitor>> graphs;
@@ -416,7 +417,20 @@ MonglView::drawContent()
 
         m_graph_shaderContext->setLight();
         if (m_netInfo) {
-            m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font);
+            auto geomRoot = m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font2);
+            auto geomRootLease = geomRoot.lease();
+            if (geomRootLease) {
+                geomRootLease->display(m_graph_shaderContext, m_projView);
+            }
+        }
+        if (m_filesyses) {
+            auto geos = m_filesyses->getGeometries();
+            for (auto& geo : geos) {
+                auto lgeo = geo.lease();
+                if (lgeo) {
+                    lgeo->display(m_graph_shaderContext, m_projView);
+                }
+            }
         }
         m_graph_shaderContext->display(m_projView);
 

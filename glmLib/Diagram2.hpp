@@ -1,6 +1,6 @@
 /* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * Copyright (C) 2023 RPf <gpl3@pfeifer-syscon.de>
+ * Copyright (C) 2024 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,31 +18,20 @@
 
 #pragma once
 
-class Base
+namespace psc {
+namespace gl {
+
+
+class Diagram2
 {
 public:
-    Base();
-    explicit Base(const Base& orig) = delete;
-    virtual ~Base();
+    Diagram2();
+    explicit Diagram2(const Diagram2& orig) = delete;
+    virtual ~Diagram2() = default;
+private:
 
-    virtual void dummy();
-    void base();
-//private :
-    int m_val;
 };
 
-class Test
-: public Base
-{
-public:
-    Test(int n);
-    explicit Test(const Test& orig) = delete;
-    virtual ~Test();
 
-    void dummy() override;
-    void test();
-    int get();
-//private:
-    int m_n;
-};
-
+} /* namespace gl */
+} /* namespace psc */

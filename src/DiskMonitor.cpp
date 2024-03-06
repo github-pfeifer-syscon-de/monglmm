@@ -30,7 +30,6 @@
 
 DiskMonitor::DiskMonitor(guint points)
 : HistMonitor{points, "DISK"}
-, m_diskInfos{nullptr}
 {
     m_enabled = FALSE;
 }

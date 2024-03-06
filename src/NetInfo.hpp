@@ -21,6 +21,7 @@
 #include <list>
 #include <memory>
 #include <map>
+#include <Font2.hpp>
 
 #include "NetConnection.hpp"
 #include "NetNode.hpp"
@@ -33,8 +34,8 @@ public:
     virtual ~NetInfo();
 
     void update();
-    void draw(NaviContext *pGraph_shaderContext,
-                TextContext *_txtCtx, Font *pFont);
+    psc::gl::aptrGeom2 draw(NaviContext *pGraph_shaderContext,
+                TextContext *_txtCtx, const psc::gl::ptrFont2& pFont);
     void setServiceName(std::shared_ptr<NetConnection>& netConn);
     static constexpr auto NODE_INDENT = 0.2f;
     static constexpr auto NODE_LINESPACE = -0.2f;

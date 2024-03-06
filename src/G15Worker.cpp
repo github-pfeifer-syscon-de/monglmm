@@ -42,7 +42,7 @@ G15Worker::G15Worker(std::vector<std::shared_ptr<Page>> _pages, Glib::Dispatcher
 , m1on{"pkexec netctl start enp3s0"}
 , m1off{"pkexec netctl stop enp3s0"}
 {
-    gcmd[0] = Glib::ustring("/usr/local/netbeans-9.0/bin/netbeans");
+    gcmd[0] = Glib::ustring("/usr/local/netbeans/bin/netbeans");
     gcmd[1] = Glib::ustring("/usr/lib/thunderbird/thunderbird");
     gcmd[2] = Glib::ustring("VirtualBox");
     gcmd[3] = Glib::ustring("gimp");

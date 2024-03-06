@@ -22,7 +22,7 @@
 #include <iomanip>
 #include <fstream>
 #include <gtkmm.h>
-#include <math.h>
+#include <cmath>
 
 #include "TextContext.hpp"
 #include "Filesyses.hpp"
@@ -31,28 +31,50 @@
 #include "StringUtils.hpp"
 
 Filesyses::Filesyses()
-: m_diskInfos{nullptr}
 {
 }
 
 void
-Filesyses::update(GraphShaderContext *pGraph_shaderContext, TextContext* textCtx, Font *pFont, Matrix &persView, gint updateInterval) {
+Filesyses::update(
+    GraphShaderContext *pGraph_shaderContext,
+    TextContext* textCtx,
+    const psc::gl::ptrFont2& pFont,
+    Matrix &persView,
+    gint updateInterval) {
     Position pd(-3.3f, 3.0f, 0.0f);
     auto fsMap = m_diskInfos->getFilesyses();
     float scale = std::min(1.0f, 3.0f / (float)fsMap.size());  // no upscaling
     for (auto p : fsMap) {
         auto diskInfo = p.second;
-        Geometry *geo = diskInfo->getGeometry();
+        auto geo = diskInfo->getGeometry();
         if (diskInfo->isChanged(updateInterval)) {
             geo = createDiskGeometry(diskInfo, pGraph_shaderContext, textCtx, pFont, persView, updateInterval);
-            pGraph_shaderContext->addGeometry(geo);
+            //pGraph_shaderContext->addGeometry(geo);
         }
         if (geo) {
-            geo->setPosition(pd);   // always update position, as we may have changes (e.g. unmount)
-            geo->setScale(scale);
+            auto lgeo = geo.lease();
+            if (lgeo) {
+                lgeo->setPosition(pd);   // always update position, as we may have changes (e.g. unmount)
+                lgeo->setScale(scale);
+            }
         }
         pd.y -= scale * 2.0f;
     }
+}
+
+std::vector<psc::gl::aptrGeom2>
+Filesyses::getGeometries()
+{
+    std::vector<psc::gl::aptrGeom2> geometries;
+    auto fsMap = m_diskInfos->getFilesyses();
+    for (auto p : fsMap) {
+        auto diskInfo = p.second;
+        auto geo = diskInfo->getGeometry();
+        if (geo) {
+            geometries.push_back(geo);
+        }
+    }
+    return geometries;
 }
 
 void
@@ -98,8 +120,8 @@ Filesyses::getOffset(const std::shared_ptr<DiskInfo>& partInfo, guint64 diffTime
     return r;
 }
 
-Geometry *
-Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, Font *font, Matrix &persView, gint updateInterval) {
+psc::gl::aptrGeom2
+Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, const psc::gl::ptrFont2& font, Matrix &persView, gint updateInterval) {
     double usage = partInfo->getUsage();
     partInfo->setLastUsage(usage);
     partInfo->setLastReadTime(partInfo->getActualReadTime());
@@ -109,47 +131,56 @@ Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphSh
     //std::cout << this->dev << " Read " << (m_diffReadTime) << " greenOffs " << greenOffs << std::endl;
     //std::cout << this->dev << " Write " << (m_diffWriteTime) << " redOffs " << redOffs << std::endl;
 
-    Geometry *geo = new Geometry(GL_TRIANGLES, _ctx);
-    geo->setRemoveChildren(false);
+    auto geo = psc::mem::make_active<psc::gl::Geom2>(GL_TRIANGLES, _ctx);
+    auto lgeo = geo.lease();
+    if (lgeo) {
+        Color cu(0.5f + redOffs, 0.5f + greenOffs, 0.5f);   // idle gray, read green, write red
+        lgeo->addCylinder(FS_RADIUS, 0.0f, usage, &cu);
+        Color cf(0.2f, 0.9f, 0.2f);
+        lgeo->addCylinder(FS_RADIUS, usage, 1.0, &cf);
+        lgeo->create_vao();
 
-    Color cu(0.5f + redOffs, 0.5f + greenOffs, 0.5f);   // idle gray, read green, write red
-    geo->addCylinder(FS_RADIUS, 0.0f, usage, &cu);
-    Color cf(0.2f, 0.9f, 0.2f);
-    geo->addCylinder(FS_RADIUS, usage, 1.0, &cf);
-    geo->create_vao();
-
-    if (partInfo->getDevText() == nullptr) {
-        Text *devTxt = _txtCtx->createText(_ctx, font);
-        devTxt->setScale(0.0060f);
-        Position p(-0.3f , +1.2f, 0.3f);
-        devTxt->setPosition(p);
-        const Glib::ustring dev(partInfo->getDevice());
-        devTxt->setText(dev);
-        partInfo->setDevText(devTxt);
+        if (!partInfo->getDevText()) {
+            auto devTxt = psc::mem::make_active<psc::gl::Text2>(GL_TRIANGLES, _ctx, font);
+            auto ldevTxt = devTxt.lease();
+            if (ldevTxt) {
+                ldevTxt->setTextContext(_txtCtx);
+                ldevTxt->setScale(0.0060f);
+                Position p(-0.3f , +1.2f, 0.3f);
+                ldevTxt->setPosition(p);
+                const Glib::ustring dev(partInfo->getDevice());
+                ldevTxt->setText(dev);
+            }
+            partInfo->setDevText(devTxt);
+        }
+        lgeo->addGeometry(partInfo->getDevText());
+        if (!partInfo->getMountText()) {
+            auto mountTxt = psc::mem::make_active<psc::gl::Text2>(GL_TRIANGLES, _ctx, font);
+            auto lmountTxt = mountTxt.lease();
+            if (lmountTxt) {
+                lmountTxt->setTextContext(_txtCtx);
+                lmountTxt->setScale(0.0060f);
+                Position p(-0.3f, +1.0f, 0.3f);
+                lmountTxt->setPosition(p);
+            }
+            partInfo->setMountText(mountTxt);
+        }
+        double size = partInfo->getAvailBytes();
+        auto ssize = Monitor::formatScale(size, "B");
+        //std::cout << this->dev
+        //          << " avail " << fsd.f_bavail
+        //          << " frsize " << fsd.f_frsize
+        //          << " size " << size
+        //          << " ssize " << ssize
+        //        << std::endl;
+        Glib::ustring winfo = Glib::ustring::sprintf("%s %s", partInfo->getMount(),  ssize);
+        auto mountTxt = partInfo->getMountText();
+        auto lmountTxt = mountTxt.lease();
+        if (lmountTxt) {
+            lmountTxt->setText(winfo);
+        }
+        lgeo->addGeometry(mountTxt);
     }
-    geo->addGeometry(partInfo->getDevText());
-    if (partInfo->getMountText() == nullptr) {
-        Text *mountTxt = _txtCtx->createText(_ctx, font);
-        mountTxt->setScale(0.0060f);
-        Position p(-0.3f, +1.0f, 0.3f);
-        mountTxt->setPosition(p);
-        partInfo->setMountText(mountTxt);
-    }
-    double size = partInfo->getAvailBytes();
-    std::string ssize = Monitor::formatScale(size, "B");
-    //std::cout << this->dev
-    //          << " avail " << fsd.f_bavail
-    //          << " frsize " << fsd.f_frsize
-    //          << " size " << size
-    //          << " ssize " << ssize
-    //        << std::endl;
-    std::ostringstream oss1;
-    oss1 << partInfo->getMount() << " " << ssize;
-    std::string info = oss1.str();
-    Glib::ustring winfo(info);
-    partInfo->getMountText()->setText(winfo);
-    geo->addGeometry(partInfo->getMountText());
-
     partInfo->setGeometry(geo);
     return geo;
 }

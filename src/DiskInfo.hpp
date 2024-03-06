@@ -22,8 +22,8 @@
 #include <sys/statvfs.h>
 
 #include "libgtop_helper.h"
-#include "Geometry.hpp"
-#include "Text.hpp"
+#include <Geom2.hpp>
+#include <Text2.hpp>
 
 /*
  1 - major number
@@ -98,20 +98,20 @@ public:
     }
     double getUsage();
 
-    void setGeometry(Geometry *_geometry);
-    Geometry *getGeometry() const {
+    void setGeometry(const psc::gl::aptrGeom2& _geometry);
+    auto getGeometry() const {
         return m_geometry;
     }
-    void setDevText(Text *_devTxt) {
+    void setDevText(const psc::gl::aptrText2& _devTxt) {
         m_devTxt = _devTxt;
     }
-    Text * getDevText() const {
+    auto getDevText() const {
         return m_devTxt;
     }
-    void setMountText(Text *_MountTxt) {
+    void setMountText(const psc::gl::aptrText2&  _MountTxt) {
         m_mountTxt = _MountTxt;
     }
-    Text * getMountText() const {
+    auto getMountText() const {
         return m_mountTxt;
     }
     void setLastUsage(double _lastUsage) {
@@ -137,9 +137,9 @@ private:
     guint64 m_bytesWrittenPerS;
     struct statvfs fsd;
     double m_lastUsage;
-    Geometry* m_geometry{nullptr};
-    Text* m_devTxt{nullptr};
-    Text* m_mountTxt{nullptr};
+    psc::gl::aptrGeom2 m_geometry;
+    psc::gl::aptrText2 m_devTxt;
+    psc::gl::aptrText2 m_mountTxt;
     unsigned long m_actualReadTime;
     unsigned long m_actualWriteTime;
     unsigned long m_lastReadTime;

@@ -52,18 +52,9 @@ DiskInfo::~DiskInfo()
 void
 DiskInfo::removeGeometry()
 {
-    if (m_geometry != nullptr) {
-        delete m_geometry;
-        m_geometry = nullptr;
-    }
-    if (m_devTxt != nullptr) {      // remove child entries as last!
-        delete m_devTxt;
-        m_devTxt = nullptr;
-    }
-    if (m_mountTxt != nullptr) {
-        delete m_mountTxt;
-        m_mountTxt = nullptr;
-    }
+    m_devTxt.reset();
+    m_mountTxt.reset();
+    m_geometry.reset();
 }
 
 void
@@ -150,10 +141,7 @@ DiskInfo::refreshFilesys(glibtop * glibtop)
 
 
 void
-DiskInfo::setGeometry(Geometry *_geometry) {
-    if (m_geometry != nullptr) {
-        delete m_geometry;
-    }
+DiskInfo::setGeometry(const psc::gl::aptrGeom2& _geometry) {
     m_geometry = _geometry;
 }
 

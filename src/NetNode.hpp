@@ -22,7 +22,7 @@
 #include <memory>
 #include <glibmm.h>
 #include <linux/bpf.h>  // only accessible version i could find for tcp status
-#include <NamedTreeNode.hpp>
+#include <NamedTreeNode2.hpp>
 
 #include "NetConnection.hpp"
 
@@ -31,7 +31,7 @@ class NetNode;
 typedef std::shared_ptr<NetNode> ptrNetNode;
 
 class NetNode
-: public NamedTreeNode
+: public psc::gl::NamedTreeNode2
 {
 public:
     NetNode(const Glib::ustring& name, const Glib::ustring& key);

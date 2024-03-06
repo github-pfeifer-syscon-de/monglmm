@@ -23,7 +23,7 @@
 #include "NetInfo.hpp"
 
 NetNode::NetNode(const Glib::ustring& name, const Glib::ustring& key)
-: NamedTreeNode(name, key)
+: psc::gl::NamedTreeNode2(name, key)
 {
 }
 
@@ -78,25 +78,28 @@ NetNode::updateMarkGeometry(NaviContext *shaderContext)
     m_lastStatus = (m_conn ? m_conn->getStatus() : 0u);
     auto color = getColor();
     Color c(color.get_red(), color.get_green(), color.get_blue());
-    m_geo->deleteVertexArray();
-    if (m_conn) {
-        if (!m_conn->isIncomming()) {
-            Position p1{0.0f, 0.07f, 0.0f};
-            Position p2{0.0f, -0.03f, 0.0f};
-            Position p3{0.07f, 0.02f, 0.0f};
-            m_geo->addTri(p1, p2, p3 , c);
+    auto lgeo = m_geo.lease();
+    if (lgeo) {
+        lgeo->deleteVertexArray();
+        if (m_conn) {
+            if (!m_conn->isIncomming()) {
+                Position p1{0.0f, 0.07f, 0.0f};
+                Position p2{0.0f, -0.03f, 0.0f};
+                Position p3{0.07f, 0.02f, 0.0f};
+                lgeo->addTri(p1, p2, p3 , c);
+            }
+            else {
+                Position p1{0.07f, 0.07f, 0.0f};
+                Position p2{0.0f, 0.02f, 0.0f};
+                Position p3{0.07f, -0.03f, 0.0f};
+                lgeo->addTri(p1, p2, p3 , c);
+            }
         }
         else {
-            Position p1{0.07f, 0.07f, 0.0f};
-            Position p2{0.0f, 0.02f, 0.0f};
-            Position p3{0.07f, -0.03f, 0.0f};
-            m_geo->addTri(p1, p2, p3 , c);
+            lgeo->addCube(0.04f, c);
         }
+        lgeo->create_vao();
     }
-    else {
-        m_geo->addCube(0.04f, c);
-    }
-    m_geo->create_vao();
     //geo->setRemoveChildren(false);        // prefere removal with node, and with the nested nodes we otherwise run into trouble
 }
 

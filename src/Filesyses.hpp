@@ -18,11 +18,11 @@
 #pragma once
 
 #include <memory>
-#include <Geometry.hpp>
+#include <Geom2.hpp>
 #include <Matrix.hpp>
 #include <GraphShaderContext.hpp>
-#include <Font.hpp>
-#include <Text.hpp>
+#include <Font2.hpp>
+#include <Text2.hpp>
 #include <Page.hpp>
 
 class DiskInfos;    // forward declaration
@@ -34,18 +34,23 @@ public:
     explicit Filesyses(const Filesyses& fs) = delete;
     virtual ~Filesyses() = default;
 
-    void update(GraphShaderContext *pGraph_shaderContext, TextContext* textCtx, Font *pFont, Matrix &persView, gint updateInterval);
+    void update(
+        GraphShaderContext *pGraph_shaderContext,
+        TextContext* textCtx,
+        const psc::gl::ptrFont2& pFont,
+        Matrix &persView,
+        gint updateInterval);
 
+    std::vector<psc::gl::aptrGeom2> getGeometries();
     void updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height) override;
     void setDiskInfos(const std::shared_ptr<DiskInfos>& diskInfos);
 
-    Geometry *createDiskGeometry(const std::shared_ptr<DiskInfo>& diskInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, Font *font, Matrix &persView, gint updateInterval);
+    psc::gl::aptrGeom2 createDiskGeometry(const std::shared_ptr<DiskInfo>& diskInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, const psc::gl::ptrFont2& font, Matrix &persView, gint updateInterval);
 
 private:
     float getOffset(const std::shared_ptr<DiskInfo>& partInfo, guint64 diffTime, gint updateInterval);
 
     std::shared_ptr<DiskInfos> m_diskInfos;
-
     static constexpr float FS_RADIUS = 0.5f;
 };
 
