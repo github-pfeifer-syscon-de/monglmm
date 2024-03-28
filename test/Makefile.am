@@ -1,5 +1,5 @@
 
-TESTS = funky_test
+TESTS = funky_test ptr_test simple_test
 
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
@@ -13,10 +13,17 @@ AM_CFLAGS= \
 AM_CXXFLAGS = \
 	-Wall
 
-check_PROGRAMS = funky_test
+check_PROGRAMS = funky_test ptr_test simple_test
+
+simple_test_SOURCES = \
+    Simple.cpp
 
 funky_test_SOURCES = \
-    main.cpp
+    Prim.cpp \
+    funky_main.cpp
 
-funky_test_LDADD = \
+ptr_test_SOURCES = \
+    ptr_main.cpp
+
+ptr_test_LDADD = \
     ../glmLib/libglm.a

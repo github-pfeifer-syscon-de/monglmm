@@ -134,6 +134,7 @@ Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphSh
     auto geo = psc::mem::make_active<psc::gl::Geom2>(GL_TRIANGLES, _ctx);
     auto lgeo = geo.lease();
     if (lgeo) {
+        lgeo->setName(Glib::ustring::sprintf("disk %s ", partInfo->getMount()));
         Color cu(0.5f + redOffs, 0.5f + greenOffs, 0.5f);   // idle gray, read green, write red
         lgeo->addCylinder(FS_RADIUS, 0.0f, usage, &cu);
         Color cf(0.2f, 0.9f, 0.2f);

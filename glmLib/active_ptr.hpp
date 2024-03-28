@@ -23,12 +23,14 @@
 #include <mutex>
 #include <type_traits>
 #include <typeinfo>
+#include <unistd.h> // usleep
 
-#undef ACTIVEPTR_DEBUG
+
 
 namespace psc {
 namespace mem {
 
+static bool active_debug{false};
 
     /*
      * this is crude implementation of a shared pointer pattern
@@ -40,7 +42,7 @@ namespace mem {
      * - it is known that this is highly inefficent
      * - it is not prepared for multithreading
      */
-    template<typename T>
+    template<typename T,typename A = T>
     class active_ctl
     {
     public:
@@ -52,9 +54,10 @@ namespace mem {
         }
         ~active_ctl()
         {
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "active_ctl::~active_ctl " << std::hex << m_ptr << std::dec << std::endl;
-            #endif
+            if (active_debug) {
+            std::cout << "~active_ctl "
+                      << (*this) << std::endl;
+            }
         }
 
         void inc_use()
@@ -65,13 +68,16 @@ namespace mem {
         {
             if (m_usecount > 0u) {
                 --m_usecount;
-                return is_unreferenced();
+                if (m_usecount == 0u) {
+                    reset();
+                    return true;
+                }  // ready to reset
             }
             else {
-                #ifdef ACTIVEPTR_DEBUG
-                std::cout << "use already 0! " << std::hex << m_ptr << std::dec
-                          << std::endl;
-                #endif
+                if (active_debug) {
+                std::cout << "active_ctl use already 0! "
+                          << (*this) << std::endl;
+                }
             }
             return false;
         }
@@ -87,10 +93,10 @@ namespace mem {
                 --m_leasecount;
             }
             else {
-                #ifdef ACTIVEPTR_DEBUG
-                std::cout << "lease already 0! " << std::hex << m_ptr << std::dec
-                          << std::endl;
-                #endif
+                if (active_debug) {
+                std::cout << "active_ctl lease already 0! "
+                          << (*this) << std::endl;
+                }
             }
             return m_defered_reset && m_leasecount == 0u;
         }
@@ -101,10 +107,6 @@ namespace mem {
         inline T* get_ptr() const
         {
             return m_ptr;
-        }
-        inline void set_ptr(T* ptr)
-        {
-            m_ptr = ptr;
         }
         inline void set_defered_reset(bool defered_reset)
         {
@@ -123,30 +125,32 @@ namespace mem {
         {
             m_alloc = alloc;
             using traits_t = std::allocator_traits<decltype(alloc)>; // The matching trait
-            T* t = traits_t::allocate(alloc, 1);         // with count
-            traits_t::construct(alloc, t, args...);     // construct the element
-            set_ptr(t);
+            m_ptr = traits_t::allocate(alloc, 1);         // with count
+            traits_t::construct(alloc, m_ptr, args...);     // construct the element
         }
         void reset()
         {
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "active_ctl::reset "
-                      << (*this)
-                      << std::endl;
-            #endif
-            using traits_t = std::allocator_traits<decltype(m_alloc)>; // The matching trait
             if (get_leasecount() == 0u) {
+                if (active_debug) {
+                std::cout << "active_ctl::reset dealloc "
+                          << (*this)
+                          << std::endl;
+                }
                 T* ptr = get_ptr();
                 if (ptr) {
                     m_ptr = nullptr;
-                    #ifdef ACTIVEPTR_DEBUG
-                    std::cout << "active_ctl::reset dealloc" << std::endl;
-                    #endif
+                    using traits_t = std::allocator_traits<decltype(m_alloc)>; // The matching trait
+                    traits_t::destroy(m_alloc, ptr);
                     traits_t::deallocate(m_alloc, ptr, 1);
-                    set_defered_reset(false);    // now we are done
+                    set_defered_reset(false);    // no need to check again
                 }
             }
             else {
+                if (active_debug) {
+                std::cout << "active_ctl::reset defere"
+                          << (*this)
+                          << std::endl;
+                }
                 set_defered_reset(true);
             }
         }
@@ -168,7 +172,7 @@ namespace mem {
         }
 
     protected:
-        std::allocator<T> get_alloc() const
+        std::allocator<A> get_alloc() const
         {
             return m_alloc;
         }
@@ -178,21 +182,25 @@ namespace mem {
         std::atomic_uint32_t m_usecount;
         std::atomic_uint32_t m_leasecount;
         bool m_defered_reset{false};
-        std::allocator<T> m_alloc;
+        std::allocator<A> m_alloc;
         mutable std::mutex m_changeMutex; // serialize decrement+free
     };
 
 
     /**
-     * T is the inner&visible type
+     * T is the part created to use the pointer
      **/
-    template<typename T>
+    template<typename T, typename A = T>
     class active_lease
     {
     public:
         active_lease(active_ctl<T>* active_ctl)
         : m_active_ctl{active_ctl}
         {
+            if (m_active_ctl->get_usecount() == 0u) {
+                std::cout << "lease with count 0 "
+                          << *this << std::endl;
+            }
             m_ptr = dynamic_cast<T*>(m_active_ctl->get_ptr());
             if (m_ptr) {
                 m_active_ctl->inc_lease();
@@ -202,10 +210,18 @@ namespace mem {
         }
         ~active_lease()
         {
-            std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
-            if (m_incremented && m_active_ctl->dec_lease()) {
-                m_active_ctl->reset();
+            if (active_debug) {
+            std::cout << "~active_lease "
+                      << (*this)
+                      << std::endl;
             }
+            {
+                std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
+                if (m_incremented && m_active_ctl->dec_lease()) {
+                    m_active_ctl->reset();
+                }
+            }
+            removeControlIfUnsued();    // unlikely but better check than to be leaking
         }
         // make sure this is only for local use, the rest is in the responsibility of the user
         explicit active_lease(const active_lease<T>& active_lease) = delete;
@@ -233,6 +249,25 @@ namespace mem {
             return m_ptr != nullptr;
         }
 
+        // try to avoid this
+//        active_lease<T>& operator=(const active_lease<T>& lease)
+//        {
+//            if (m_incremented && m_active_ctl->dec_lease()) {
+//                m_active_ctl->reset();
+//            }
+//            removeControlIfUnsued();
+//            m_active_ctl = lease.m_active_ctl;
+//            m_ptr = m_active_ctl;
+//            if (m_ptr) {
+//                m_active_ctl->inc_lease();
+//                m_incremented = true;
+//            }
+//            else {
+//                m_incremented = false;
+//            }
+//            return *this;
+//        }
+
         friend std::ostream& operator<<(std::ostream& os, const active_lease<T>& lease)
         {
             os << "addr " << std::hex << lease.get() << std::dec
@@ -240,7 +275,21 @@ namespace mem {
             return os;
         }
     private:
-        active_ctl<T>* m_active_ctl;
+        void removeControlIfUnsued()
+        {
+            if (m_active_ctl
+             && m_active_ctl->is_unreferenced()) {
+                if (active_debug) {
+                std::cout << "active_lease::removeControlIfUnsued delete "
+                          << (*this)
+                          << std::endl;
+                }
+                delete m_active_ctl;
+                m_active_ctl = nullptr;
+            }
+        }
+
+        active_ctl<T,A>* m_active_ctl;
         T* m_ptr;
         bool m_incremented{false};
 
@@ -250,19 +299,19 @@ namespace mem {
     /**
      * T is the outer type (which may be incorrect, but we try to cast on pointer access)
      **/
-    template<typename T>
+    template<typename T, typename A = T>
     class active_ptr
     {
     public:
         // Constructor
         active_ptr()
-        : m_active_ctl{new active_ctl<T>()}
+        : m_active_ctl{new active_ctl<T,A>()}
         {
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "default const. "
+            if (active_debug) {
+            std::cout << "active_ptr default const. "
                       << (*this)
                       << std::endl;
-            #endif
+            }
             // counting unconditional seems more convenient
             //   as creating 2 linked instances and setting one
             //   will make the second on become active...
@@ -273,11 +322,11 @@ namespace mem {
         active_ptr(const active_ptr<T>& sp)
         : m_active_ctl{sp.m_active_ctl}
         {
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "copy lval "
+            if (active_debug) {
+            std::cout << "active_ptr copy lval "
                       << (*this)
                       << std::endl;
-            #endif
+            }
             m_active_ctl->inc_use();
         }
 
@@ -285,11 +334,11 @@ namespace mem {
         active_ptr(active_ptr<T>&& sp)
         : m_active_ctl{sp.m_active_ctl}
         {
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "copy rval "
+            if (active_debug) {
+            std::cout << "active_ptr copy rval "
                       << (*this)
                       << std::endl;
-            #endif
+            }
         }
 
         // conversion
@@ -298,12 +347,12 @@ namespace mem {
         active_ptr(const active_ptr<C>& r)
         {
             // the template represents only the extern type, as we use dynamic cast on access this should work
-            m_active_ctl = reinterpret_cast<active_ctl<T>*>(r.get_control());
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "conversion "
+            m_active_ctl = reinterpret_cast<active_ctl<T,A>*>(r.get_control());
+            if (active_debug) {
+            std::cout << "active_ptr conversion "
                       << (*this)
                       << std::endl;
-            #endif
+            }
             m_active_ctl->inc_use();
         }
         /**
@@ -317,47 +366,52 @@ namespace mem {
         ~active_ptr()
         {
             //std::lock_guard<std::mutex> guard(m_changeMutex);   // better to be safe than sorry???
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "active_ptr::~active_ptr "
-                      << (*this)
-                      << std::endl;
-            #endif
-            std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
-            if (m_active_ctl->dec_use()) {
-                reset();
+            if (active_debug) {
+            std::cout << "~active_ptr "
+                      << (*this) << std::endl;
+            }
+            if (m_active_ctl) {
+                if (m_active_ctl->is_active()) {
+                    std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
+                    m_active_ctl->dec_use();
+                }
+                else {  // if inactive no locking required ...
+                    m_active_ctl->dec_use();
+                }
             }
             removeControlIfUnsued();
         }
 
         active_ptr<T>& operator=(const active_ptr<T>& sp)
         {
-            if (m_active_ctl->dec_use()) {
-                reset();
+            if (m_active_ctl) {
+                m_active_ctl->dec_use();
             }
             removeControlIfUnsued();
             m_active_ctl = sp.m_active_ctl;
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "assign lval "
+            if (active_debug) {
+            std::cout << "active_ptr assign lval "
                       << (*this)
                       << std::endl;
-            #endif
+            }
             m_active_ctl->inc_use();
             return *this;
         }
 
         active_ptr<T>& operator=(active_ptr<T>&& sp)
         {
-            if (m_active_ctl->dec_use()) {
-                reset();
+            if (m_active_ctl) {
+                m_active_ctl->dec_use();
             }
             removeControlIfUnsued();
             m_active_ctl = sp.m_active_ctl;
-            #ifdef ACTIVEPTR_DEBUG
-            std::cout << "assign rval "
+            if (active_debug) {
+            std::cout << "active_ptr assign rval "
                       << (*this)
                       << std::endl;
-            #endif
-            m_active_ctl->inc_use();
+            }
+            //m_active_ctl->inc_use();
+            sp.m_active_ctl = nullptr;      // mark as "empty", some cases are guarded but not all...
             return *this;
         }
 
@@ -368,22 +422,26 @@ namespace mem {
 
         void reset()
         {
-            // called with lock already active
+            std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
             m_active_ctl->reset();
         }
 
         // Reference count
         uint32_t use_count() const
         {
-            return m_active_ctl->get_usecount();
+            return m_active_ctl
+                    ? m_active_ctl->get_usecount()
+                    : 0u;
         }
 
         uint32_t lease_count() const
         {
-            return m_active_ctl->get_leasecount();
+            return m_active_ctl
+                    ? m_active_ctl->get_leasecount()
+                    : 0u;
         }
 
-        active_ctl<T>* get_control() const
+        active_ctl<T,A>* get_control() const
         {
             return m_active_ctl;
         }
@@ -392,12 +450,14 @@ namespace mem {
         // Get the pointer, use only for testing !
         T* get() const
         {
-          return dynamic_cast<T*>(m_active_ctl->get_ptr());
+          return dynamic_cast<T*>(m_active_ctl
+                                    ? m_active_ctl->get_ptr()
+                                    : nullptr);
         }
 
         explicit operator bool() const noexcept
         {
-            return m_active_ctl->is_active();
+            return m_active_ctl && m_active_ctl->is_active();
         }
 
         active_lease<T> lease() const
@@ -407,7 +467,12 @@ namespace mem {
 
         void removeControlIfUnsued()
         {
-            if (m_active_ctl->is_unreferenced()) {
+            if (active_debug) {
+            std::cout << "active_ptr::removeControlIfUnsued"
+                      << std::endl;
+            }
+            if (m_active_ctl
+             && m_active_ctl->is_unreferenced()) {
                 delete m_active_ctl;
                 m_active_ctl = nullptr;
             }
@@ -422,9 +487,9 @@ namespace mem {
             return os;
         }
 
-
+        using element_type = T;
     private:
-        active_ctl<T>* m_active_ctl;
+        active_ctl<T,A>* m_active_ctl;
     };
 
 
@@ -432,13 +497,37 @@ namespace mem {
     inline active_ptr<T>
     make_active(Args&&... args)
     {
-        active_ptr<T> active_ptr;
+        active_ptr<T,T> active_ptr;
         std::allocator<T> alloc;
         active_ptr.get_control()->alloc(alloc, std::forward<Args>(args)...);
         return active_ptr;
     }
 
 
+
+    /// Convert type of `active_ptr` rvalue, via `dynamic_cast`
+    /// @since C++20
+    template<typename T, typename U>
+    inline active_ptr<T>
+    dynamic_pointer_cast(active_ptr<U>&& r) noexcept
+    {
+      using S = active_ptr<T>;
+      if (auto* p = dynamic_cast<typename S::element_type*>(r.get()))
+	return S(std::move(r));
+      return S();
+    }
+
+    /// Convert type of `active_ptr` lvalue, via `dynamic_cast`
+    /// @since C++20
+    template<typename T, typename U>
+    inline active_ptr<T>
+    dynamic_pointer_cast(const active_ptr<U>& r) noexcept
+    {
+      using S = active_ptr<T>;
+      if (auto* p = dynamic_cast<typename S::element_type*>(r.get()))
+	return S(r);
+      return S();
+    }
 
 } /* namespace mem */
 } /* namespace psc */

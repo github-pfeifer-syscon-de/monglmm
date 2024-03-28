@@ -1,5 +1,6 @@
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
- * Copyright (C) 2021 rpf
+ * Copyright (C) 2024 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,29 +16,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-#include <memory>
-#include <glibmm.h>
+#include "TreeNode2.hpp"
+#include "TextContext.hpp"
+#include "TreeGeometry2.hpp"
 
-#include "Monitor.hpp"
-#include "Diagram2.hpp"
-#include "libgtop_helper.h"
+namespace psc {
+namespace gl {
 
-class DiagramMonitor : public psc::gl::Diagram2 {
-public:
-    DiagramMonitor(std::shared_ptr<Monitor> _monitor, NaviContext *_naviContext, TextContext *_textCtx);
-    virtual ~DiagramMonitor() = default;
 
-    void update(gint updateInterval, glibtop *glibtop);
-    void save_settings(Glib::KeyFile *keyFile);
-    Gtk::Box* create_config_page();
-    void close();
 
-    std::shared_ptr<Monitor> getMonitor() {
-        return m_monitor;
-    }
-private:
-    std::shared_ptr<Monitor> m_monitor;
-};
 
+TreeGeometry2::TreeGeometry2(GLenum type, GeometryContext *ct)
+: Geom2::Geom2(type, ct)
+{
+}
+
+
+
+
+} /* namespace gl */
+} /* namespace psc */

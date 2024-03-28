@@ -24,16 +24,17 @@
 #include <map>
 #include <iostream>
 #include <memory>
+#include <array>
 
 #include "GraphShaderContext.hpp"
 #include "Process.hpp"
-#include "Font.hpp"
+#include "Font2.hpp"
 #include "DiagramMonitor.hpp"
-#include "Text.hpp"
+#include "Text2.hpp"
 
 static const long ROOT_PID = 1l;
 
-enum class TREETYPE {
+enum class TreeType {
     ARC = 'a',  // see also Processes::fromString
     BLOCK = 'b',
     LINE = 'l'
@@ -46,38 +47,47 @@ public:
 
     void resetProc();
     void update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem);
-    void findMax();
-    void update(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, Font *pFont, std::shared_ptr<DiagramMonitor> cpu, std::shared_ptr<DiagramMonitor> mem, Matrix &persView);
+    static constexpr auto TOP_PROC = 3u;
+    void findMax(std::array<pProcess, TOP_PROC>& topMem
+               , std::array<pProcess, TOP_PROC>& topCpu);
+    void display(
+            GraphShaderContext *pGraph_shaderContext,
+            TextContext *_txtCtx,
+            const psc::gl::ptrFont2& pFont,
+            std::shared_ptr<DiagramMonitor> cpu,
+            std::shared_ptr<DiagramMonitor> mem,
+            Matrix &persView);
     void setTreeType(const Glib::ustring &uProcessType);
     void buildTree();
     void restore();
 
 
-    static TREETYPE fromString(const Glib::ustring &str) {
+    static TreeType fromString(const Glib::ustring &str) {
         if (str == "b") {
-            return TREETYPE::BLOCK;
+            return TreeType::BLOCK;
         }
         if (str == "l") {
-            return TREETYPE::LINE;
+            return TreeType::LINE;
         }
-        return TREETYPE::ARC;       // use some default
+        return TreeType::ARC;       // use some default
     }
     void printInfo();
+    void displayTops(NaviContext* context, const Matrix &projView);
 protected:
-    void updateCpu(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, Font *pFont, std::shared_ptr<DiagramMonitor> cpu, Matrix &persView, Position &p);
-    void updateMem(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, Font *pFont, std::shared_ptr<DiagramMonitor> mem, Matrix &persView, Position &p);
+    void updateCpu(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, const psc::gl::ptrFont2& pFont, std::shared_ptr<DiagramMonitor> cpu, Matrix &persView, Position &p);
+    void updateMem(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, const psc::gl::ptrFont2& pFont, std::shared_ptr<DiagramMonitor> mem, Matrix &persView, Position &p);
 
 private:
     std::map<long, pProcess> mProcesses;
-    pProcess pMem[3];       // proc highest mem usage
-    pProcess pCpu[3];       // proc highest cpu usage
-    Geometry *m_memGeo[3];
-    Geometry *m_cpuGeo[3];
-    Text *m_textCpu[3];
-    Text *m_textMem[3];
-    Geometry *createBox(GeometryContext *shaderContext, Gdk::RGBA &color);
-    TreeNode *m_procRoot;
-
+    std::array<pProcess, TOP_PROC> m_topMem;    // proc highest mem usage
+    std::array<pProcess, TOP_PROC> m_topCpu;  // proc highest cpu usage
+    std::array<psc::gl::aptrGeom2, TOP_PROC> m_memGeo;
+    std::array<psc::gl::aptrGeom2, TOP_PROC> m_cpuGeo;
+    std::array<psc::gl::aptrText2, TOP_PROC> m_textCpu;
+    std::array<psc::gl::aptrText2, TOP_PROC> m_textMem;
+    psc::gl::aptrGeom2 createBox(GeometryContext *shaderContext, Gdk::RGBA &color);
+    pProcess m_procRoot;
+    constexpr static auto sdir = "/proc";
     guint m_size;
-    TREETYPE m_treeType;
+    TreeType m_treeType;
 };

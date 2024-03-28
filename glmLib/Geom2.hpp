@@ -24,10 +24,9 @@
 #include <gdkmm.h>
 #include <iostream>
 #include <stdio.h>
-#include <math.h>
+#include <cmath>
 #include <vector>
 #include <list>
-#include <string>
 #include <StringUtils.hpp>
 
 #include "active_ptr.hpp"
@@ -49,41 +48,6 @@ class Geom2;
 
 typedef psc::mem::active_ptr<Geom2> aptrGeom2;
 
-
-/* position, color and normal information for each vertex */
-struct vertex_info
-{
-    vertex_info()
-    {
-    }
-    vertex_info(const Position &p, const Color &c, const Vector &n, const UV &u)
-    : position(p)
-    , color(c)
-    , normal(n)
-    , uv(u)
-    , tangent(Vector(0.0f, 0.0f, 0.0f))
-    , bitangent(Vector(0.0f, 0.0f, 0.0f))
-    {
-    }
-    vertex_info(const Position &p, const Color &c, const Vector &n, const UV &u, const Vector &tangent, const Vector &bitangent)
-    : position(p)
-    , color(c)
-    , normal(n)
-    , uv(u)
-    , tangent(tangent)
-    , bitangent(bitangent)
-    {
-    }
-    Position position;
-    Color color;
-    Vector normal;
-    UV uv;
-    Vector tangent;
-    Vector bitangent;
-};
-
-typedef struct vertex_info vertex_info;
-
 typedef std::vector<GLfloat> Vertexts;
 typedef std::vector<GLushort> Indexes;
 typedef class Geometry Geometry;
@@ -95,11 +59,18 @@ public:
     Geom2(GLenum type, GeometryContext *ctx);
     virtual ~Geom2();
 
-    void addVertex(vertex_info &inf);
+    void setName(Glib::UStringView name);
+    Glib::ustring& getName();
     void addRect(Position &p1, Position &p2, Color &c);
     void addTri(Position &p1, Position &p2, Position &p3, Color &c);
     void addLine(Position &p1, Position &p2, Color &c, Vector *n = nullptr);
-    void addPoint(const Position *p, const Color *c = nullptr, const Vector *n = nullptr, const UV *uv = nullptr, const Vector *tangent = nullptr, const Vector *bitagent = nullptr);
+    void addPoint(
+            const Position *p
+          , const Color *c = nullptr
+          , const Vector *n = nullptr
+          , const UV *uv = nullptr
+          , const Vector *tangent = nullptr
+          , const Vector *bitagent = nullptr);
     void addCube(float size, Color &c);
     void addSphere(float radius, unsigned int rings, unsigned int sectors);
     void addCylinder(float radius, float start, float end, Color *c, unsigned int approx = 36);
@@ -120,8 +91,8 @@ public:
     Position &getViewMin() override;
     Position &getModelMin();
     Position &getModelMax();
-    static void min(Position &set, const Position &other);
-    static void max(Position &set, const Position &other);
+    static void min(Position &set, const Position* pos);
+    static void max(Position &set, const Position* pos);
     void addGeometry(aptrGeom2 geo);
     virtual void setMaster(Geom2* geo);
     void removeGeometry(Geom2* geo);
@@ -147,6 +118,7 @@ protected:
     Position v_min,v_max;
     //std::list<GeometryDestructionListener *> destructionListeners;
     bool m_removeChildren;
+    Glib::ustring m_name;
 private:
     unsigned int m_vao;
     Vertexts m_vertexes; // temporary vertex buffer during building

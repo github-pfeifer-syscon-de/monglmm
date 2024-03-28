@@ -23,7 +23,7 @@
 #include "DiagramMonitor.hpp"
 
 DiagramMonitor::DiagramMonitor(std::shared_ptr<Monitor> _monitor, NaviContext *_naviContext, TextContext *_textCtx)
-: Diagram{_monitor->getSize(), _naviContext, _textCtx}
+: Diagram2{_monitor->getSize(), _naviContext, _textCtx}
 , m_monitor{_monitor}
 {
     for (guint i = 0; i < m_monitor->getNumDiagram(); ++i) {
@@ -32,10 +32,6 @@ DiagramMonitor::DiagramMonitor(std::shared_ptr<Monitor> _monitor, NaviContext *_
     }
 }
 
-
-DiagramMonitor::~DiagramMonitor()
-{
-}
 
 
 void
@@ -68,7 +64,7 @@ DiagramMonitor::create_config_page()
 void
 DiagramMonitor::close()
 {
-    if (m_monitor != nullptr) {
+    if (m_monitor) {
         m_monitor->close();
     }
 }

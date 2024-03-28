@@ -100,7 +100,7 @@ private:
     void drawContent();
     Processes m_processes;
     NaviGlArea *naviGlArea;
-    TreeNode* m_selectedTreeNode;
+    psc::gl::TreeNode2* m_selectedTreeNode;
     Gtk::Menu m_popupMenu;
     std::shared_ptr<Filesyses> m_filesyses;
     std::shared_ptr<DiskInfos> m_diskInfos;

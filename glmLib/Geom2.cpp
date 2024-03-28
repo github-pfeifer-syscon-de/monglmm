@@ -146,49 +146,51 @@ Geom2::isRemoveChildren() {
 }
 
 void
-Geom2::addVertex(vertex_info &inf)
+Geom2::addPoint(
+    const Position *p
+  , const Color *c
+  , const Vector *n
+  , const UV *uv
+  , const Vector *tangent
+  , const Vector *bitangent)
 {
-    m_vertexes.push_back(inf.position.x);
-    m_vertexes.push_back(inf.position.y);
-    m_vertexes.push_back(inf.position.z);
-    min(m_min, inf.position);
-    max(m_max, inf.position);
+    m_vertexes.push_back(p->x);
+    m_vertexes.push_back(p->y);
+    m_vertexes.push_back(p->z);
+    min(m_min, p);
+    max(m_max, p);
     if (m_ctx->useColor()) {
-        m_vertexes.push_back(inf.color.r);
-        m_vertexes.push_back(inf.color.g);
-        m_vertexes.push_back(inf.color.b);
+        auto defCol{Color(1.0f)};
+        auto tp = (c != nullptr ? c : &defCol);
+        m_vertexes.push_back(tp->r);
+        m_vertexes.push_back(tp->g);
+        m_vertexes.push_back(tp->b);
     }
     if (m_ctx->useNormal()) {
-        m_vertexes.push_back(inf.normal.x);
-        m_vertexes.push_back(inf.normal.y);
-        m_vertexes.push_back(inf.normal.z);
+        auto defNor{Vector(0.0f, 1.0f, 0.0f)};
+        auto tn = (n != nullptr ? n : &defNor);
+        m_vertexes.push_back(tn->x);
+        m_vertexes.push_back(tn->y);
+        m_vertexes.push_back(tn->z);
     }
     if (m_ctx->useUV()) {
-        m_vertexes.push_back(inf.uv.x);
-        m_vertexes.push_back(inf.uv.y);
+        auto defUV{UV(0.0f)};
+        auto tuv = (uv != nullptr ? uv : &defUV);
+        m_vertexes.push_back(tuv->s);
+        m_vertexes.push_back(tuv->t);
     }
     if (m_ctx->useNormalMap()) {
-        m_vertexes.push_back(inf.tangent.x);
-        m_vertexes.push_back(inf.tangent.y);
-        m_vertexes.push_back(inf.tangent.z);
-        m_vertexes.push_back(inf.bitangent.x);
-        m_vertexes.push_back(inf.bitangent.y);
-        m_vertexes.push_back(inf.bitangent.z);
+        auto defTan{Vector(1.0f, 0.0f, 0.0f)};
+        auto ttan = (tangent != nullptr ? tangent : &defTan);
+        m_vertexes.push_back(ttan->x);
+        m_vertexes.push_back(ttan->y);
+        m_vertexes.push_back(ttan->z);
+        auto defBitan{Vector(0.0f, 0.0f, 1.0f)};
+        auto tbitan = (bitangent != nullptr ? bitangent : &defBitan);
+        m_vertexes.push_back(tbitan->x);
+        m_vertexes.push_back(tbitan->y);
+        m_vertexes.push_back(tbitan->z);
     }
-}
-
-void
-Geom2::addPoint(const Position *p, const Color *c, const Vector *n, const UV *uv, const Vector *tangent, const Vector *bitangent)
-{
-    vertex_info inf(*p
-                    , c != nullptr ? *c : Color(1.0f)
-                    , n != nullptr ? *n : Vector(0.0f, 1.0f, 0.0f)
-                    , uv != nullptr ? *uv : UV(0.0f)
-                    , tangent != nullptr ? *tangent : Vector(1.0f, 0.0f, 0.0f)
-                    , bitangent != nullptr ? *bitangent : Vector(0.0f, 0.0f, 1.0f)
-    );
-
-    addVertex(inf);
 }
 
 
@@ -216,20 +218,8 @@ Geom2::addIndex(int idx1, int idx2, int idx3)
 
 void
 Geom2::addLine(Position &p1, Position &p2, Color &c, Vector *n) {
-    vertex_info inf1;
-    inf1.position = p1;
-    inf1.color = c;
-    if (n != nullptr) {
-        inf1.normal = *n;
-    }
-    addVertex(inf1);
-    vertex_info inf2;
-    inf2.position = p2;
-    inf2.color = c;
-    if (n != nullptr) {
-        inf2.normal = *n;
-    }
-    addVertex(inf2);
+    addPoint(&p1, &c, n);
+    addPoint(&p2, &c, n);
 }
 
 
@@ -238,35 +228,34 @@ Geom2::addLine(Position &p1, Position &p2, Color &c, Vector *n) {
 void
 Geom2::addRect(Position &p1, Position &p2, Color &c)
 {
-    vertex_info inf[6];
-    inf[0].position = p1;
+    Position pos[6];
+    pos[0] = p1;
 
-    inf[1].position = p2;
+    pos[1] = p2;
 
-    inf[2].position.x = p1.x;
-    inf[2].position.y = p1.y;
-    inf[2].position.z = p2.z;
+    pos[2].x = p1.x;
+    pos[2].y = p1.y;
+    pos[2].z = p2.z;
 
-    inf[3].position = p2;
+    pos[3] = p2;
 
-    inf[4].position = p1;
+    pos[4] = p1;
 
-    inf[5].position.x = p2.x;
-    inf[5].position.y = p2.y;
-    inf[5].position.z = p1.z;
+    pos[5].x = p2.x;
+    pos[5].y = p2.y;
+    pos[5].z = p1.z;
 
+    Vector norm;
     if (m_ctx->useNormal()) {
-        inf[0].normal = glm::triangleNormal(inf[0].position, inf[1].position, inf[2].position);
+        norm = glm::triangleNormal(pos[0], pos[1], pos[2]);
     } else {
-        inf[0].normal.x = 0.0f;
-        inf[0].normal.y = 1.0f;
-        inf[0].normal.z = 0.0f;
+        norm.x = 0.0f;
+        norm.y = 1.0f;
+        norm.z = 0.0f;
     }
     for (int i = 0; i < 6; ++i) {
-	// this realizes flat shading
-	inf[i].normal = inf[0].normal;
-	inf[i].color = c;
-        addVertex(inf[i]);
+        // this realizes flat shading
+        addPoint(&pos[i], &c, &norm);
     }
 }
 
@@ -275,25 +264,22 @@ Geom2::addRect(Position &p1, Position &p2, Color &c)
 void
 Geom2::addTri(Position &p1, Position &p2, Position &p3, Color &c)
 {
-    vertex_info inf[3];
-    inf[0].position = p1;
+    Position pos[3];
+    pos[0] = p1;
+    pos[1] = p2;
+    pos[2] = p3;
 
-    inf[1].position = p2;
-
-    inf[2].position = p3;
-
+    Vector norm;
     if (m_ctx->useNormal()) {
-        inf[0].normal = glm::triangleNormal(inf[0].position, inf[1].position, inf[2].position);
+        norm = glm::triangleNormal(pos[0], pos[1], pos[2]);
     } else {
-        inf[0].normal.x = 0.0f;
-        inf[0].normal.y = 1.0f;
-        inf[0].normal.z = 0.0f;
+        norm.x = 0.0f;
+        norm.y = 1.0f;
+        norm.z = 0.0f;
     }
     for (int i = 0; i < 3; ++i) {
-	// this realizes flat shading
-	inf[i].normal = inf[0].normal;
-	inf[i].color = c;
-        addVertex(inf[i]);
+        // this realizes flat shading
+        addPoint(&pos[i], &c, &norm);
     }
 }
 
@@ -304,18 +290,18 @@ Geom2::addCube(float dist, Color &c)
     Position p1(dist, dist, -dist);
     Position p2(dist, -dist, -dist);
     Position p3(-dist, dist, -dist);
-    addPoint(&p0, &c, nullptr, nullptr);
-    addPoint(&p1, &c, nullptr, nullptr);
-    addPoint(&p2, &c, nullptr, nullptr);
-    addPoint(&p3, &c, nullptr, nullptr);
+    addPoint(&p0, &c);
+    addPoint(&p1, &c);
+    addPoint(&p2, &c);
+    addPoint(&p3, &c);
     Position p4(-dist, -dist, dist);
     Position p5(dist, dist, dist);
     Position p6(dist, -dist, dist);
     Position p7(-dist, dist, dist);
-    addPoint(&p4, &c, nullptr, nullptr);
-    addPoint(&p5, &c, nullptr, nullptr);
-    addPoint(&p6, &c, nullptr, nullptr);
-    addPoint(&p7, &c, nullptr, nullptr);
+    addPoint(&p4, &c);
+    addPoint(&p5, &c);
+    addPoint(&p6, &c);
+    addPoint(&p7, &c);
     // check these with culling
     addIndex(0, 2, 1); // front low
     addIndex(0, 1, 3); // front high
@@ -472,6 +458,18 @@ Geom2::getNumIndex()
 }
 
 void
+Geom2::setName(Glib::UStringView name)
+{
+    m_name = name.c_str();
+}
+
+Glib::ustring&
+Geom2::getName()
+{
+    return m_name;
+}
+
+void
 Geom2::display(NaviContext* context, const Matrix &projView)
 {
     glm::mat4 mvp = context->setModel(projView, getTransform());
@@ -482,6 +480,9 @@ Geom2::display(NaviContext* context, const Matrix &projView)
         if (cgeo) {
             auto lgeo = cgeo.lease();
             if (lgeo) {
+                //if (lgeo->getName() != "") {
+                //    std::cout << "display " << lgeo->getName() << std::endl;
+                //}
                 lgeo->display(context, mvp);
             }
             ++it;
@@ -501,7 +502,11 @@ Geom2::display(const Matrix &mvp)
     }
     if (m_vao == 0)
     {
-        std::cerr << "Geometry vao is 0 num vertexes " <<  m_numVertex << std::endl;
+        std::cerr << "Geometry vao is 0 num"
+                  << " vertexes " <<  m_numVertex
+                  << " type " << typeid(this).name()
+                  << " name " << m_name
+                  << std::endl;
 		return;
     }
     if (m_numVertex == 0)
@@ -532,17 +537,18 @@ Geom2::display(const Matrix &mvp)
 void
 Geom2::addGeometry(aptrGeom2 geo)
 {
-    //if (geo == this) {
-    //    std::cerr << "Adding geometry to itself " << typeid(*geo).name() << "!" << std::endl;
-    //    return;     // or throw exception ?
-    //}
-    for (auto pG : geometries) {
-        if (geo == pG) {
-            return;     // keep references unique (use set ?)
-        }
+    if (geo.get() == this) {
+        std::cerr << "Adding geometry to itself " << typeid(geo.get()).name() << "!" << std::endl;
+        return;     // or throw exception ?
     }
     auto lgeo = geo.lease();
     if (lgeo) {
+        if (lgeo->m_master == this) {     // already contained (cheaper than iterating)
+            return;
+        }
+        if (lgeo->m_master != nullptr) {  // only keep once in tree
+            lgeo->m_master->removeGeometry(lgeo.get());
+        }
         lgeo->setMaster(this);
     }
     geometries.push_back(geo);
@@ -553,6 +559,7 @@ Geom2::setMaster(Geom2* geo)
 {
     m_master = geo;
 }
+
 
 void
 Geom2::removeGeometry(Geom2* geo)
@@ -585,10 +592,10 @@ Geom2::addSphere(float radius, unsigned int rings, unsigned int sectors)
     unsigned int r, s;
 
     // as these values are expensive and will get used often precalculate
-    auto sinLon{new double[sectors]};
-    auto cosLon{new double[sectors]};
-    auto tCosLon{new double[sectors]};
-    auto tSinLon{new double[sectors]};
+    double sinLon[sectors];
+    double cosLon[sectors];
+    double tCosLon[sectors];
+    double tSinLon[sectors];
     for(s = 0; s < sectors; s++) {
         double const sms = ((double)s / (double)(sectors-1));
         double const lon = 2.0 * M_PI * sms;
@@ -612,34 +619,30 @@ Geom2::addSphere(float radius, unsigned int rings, unsigned int sectors)
             double const y = sinLat2;
             double const z = cosLon[s] * sinLat;
 
-            vertex_info vert;
-            vert.normal = Vector(x, y, z);
-            vert.uv = UV(sms,            // u matches our geometry above
-                         1.0f-rmr);		 // v inverted to match our bottom up geometry, (images defined top down)
-            vert.position = Position(x * radius, y * radius, z * radius);
-            vert.tangent = Vector(tSinLon[s] * sinLat, y, tCosLon[s] * sinLat);
-            vert.bitangent = Vector(sinLon[s] * btSinLat, btSinLat2, cosLon[s] * btSinLat);
-            addVertex(vert);
+
+            Vector normal{x, y, z};
+            UV uv{sms,            // u matches our geometry above
+                         1.0f-rmr};		 // v inverted to match our bottom up geometry, (images defined top down)
+            Position position{x * radius, y * radius, z * radius};
+            Vector tangent{tSinLon[s] * sinLat, y, tCosLon[s] * sinLat};
+            Vector bitangent{sinLon[s] * btSinLat, btSinLat2, cosLon[s] * btSinLat};
+            addPoint(&position, nullptr, &normal, &uv, &tangent, &bitangent);
             if (debugGeom != nullptr) {
                 // debug vectors
                 Color red(1.0f, 0.0f, 0.0f);
                 Vector nm(0.0f, 1.0f, 0.0f);
-                Position p0 = vert.position * 1.1f;
-                Position p1 = p0 + vert.normal;
+                Position p0 = position * 1.1f;
+                Position p1 = p0 + normal;
                 debugGeom->addLine(p0, p1, red, &nm);
                 Color gn(0.0f, 1.0f, 0.0f);
-                Position t = p0 + vert.tangent;
+                Position t = p0 + tangent;
                 debugGeom->addLine(p0, t, gn, &nm);
                 Color bl(0.0f, 0.0f, 1.0f);
-                Position b = p0 + vert.bitangent;
+                Position b = p0 + bitangent;
                 debugGeom->addLine(p0, b, bl, &nm);
             }
         }
     }
-    delete[] sinLon;
-    delete[] cosLon;
-    delete[] tCosLon;
-    delete[] tSinLon;
 
     m_indexes.reserve(rings * sectors * 6);
     for(r = 0; r < rings; r++) {
@@ -741,19 +744,19 @@ Geom2::getConcatTransform()
 }
 
 void
-Geom2::min(Position &set, const Position &other)
+Geom2::min(Position &set, const Position* pos)
 {
-    set.x = MIN(set.x, other.x);
-    set.y = MIN(set.y, other.y);
-    set.z = MIN(set.z, other.z);
+    set.x = std::min(set.x, pos->x);
+    set.y = std::min(set.y, pos->y);
+    set.z = std::min(set.z, pos->z);
 }
 
 void
-Geom2::max(Position &set, const Position &other)
+Geom2::max(Position &set, const Position* pos)
 {
-    set.x = MAX(set.x, other.x);
-    set.y = MAX(set.y, other.y);
-    set.z = MAX(set.z, other.z);
+    set.x = std::max(set.x, pos->x);
+    set.y = std::max(set.y, pos->y);
+    set.z = std::max(set.z, pos->z);
 }
 
 void
@@ -788,14 +791,14 @@ Geom2::updateClickBounds(glm::mat4 &mvp)
     Position p8(glm::vec3(pv8)/pv8.w);
     v_min = Position(999.0f, 999.0f, 999.0f);
     v_max = Position(-999.0f, -999.0f, -999.0f);
-    min(v_min, p1); max(v_max, p1);
-    min(v_min, p2); max(v_max, p2);
-    min(v_min, p3); max(v_max, p3);
-    min(v_min, p4); max(v_max, p4);
-    min(v_min, p5); max(v_max, p5);
-    min(v_min, p6); max(v_max, p6);
-    min(v_min, p7); max(v_max, p7);
-    min(v_min, p8); max(v_max, p8);
+    min(v_min, &p1); max(v_max, &p1);
+    min(v_min, &p2); max(v_max, &p2);
+    min(v_min, &p3); max(v_max, &p3);
+    min(v_min, &p4); max(v_max, &p4);
+    min(v_min, &p5); max(v_max, &p5);
+    min(v_min, &p6); max(v_max, &p6);
+    min(v_min, &p7); max(v_max, &p7);
+    min(v_min, &p8); max(v_max, &p8);
     //std::cout << "updateClick bounds " << std::hex << this << std::dec
     //          << " min " << v_min.x << " " << v_min.y << " " << v_min.z
     //          << " max " << v_max.x << " " << v_max.y << " " << v_max.z << std::endl;

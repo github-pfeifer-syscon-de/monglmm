@@ -173,8 +173,6 @@ MonglView::monitors_update()
         d->update(m_updateInterval, m_glibtop);
     }
     m_processes.update(m_diagrams[0]->getMonitor(), m_diagrams[1]->getMonitor());
-    // update after processe as it depends on it
-    m_processes.update(m_graph_shaderContext, m_textContext, m_font, m_diagrams[0], m_diagrams[1], m_projView);
 
     if (m_diskInfos) {
         m_diskInfos->update(m_updateInterval, m_glibtop);
@@ -271,7 +269,7 @@ MonglView::init(Gtk::GLArea *glArea)
         }
         std::shared_ptr<DiagramMonitor> d = std::make_shared<DiagramMonitor>(m, m_graph_shaderContext, m_textContext);
         m_diagrams.push_back(d);
-        d->setFont(m_font);
+        d->setFont(m_font2);
         d->setPosition(pos);
         Glib::ustring sname = m->getDisplayName();
         d->setName(sname);
@@ -432,6 +430,18 @@ MonglView::drawContent()
                 }
             }
         }
+        for (auto& d : m_diagrams) {
+            if (d) {
+                auto base = d->getBase();
+                auto lbase = base.lease();
+                if (lbase) {
+                    lbase->display(m_graph_shaderContext, m_projView);
+                }
+            }
+        }
+        // update after processe as it depends on it
+        m_processes.display(m_graph_shaderContext, m_textContext, m_font2, m_diagrams[0], m_diagrams[1], m_projView);
+
         m_graph_shaderContext->display(m_projView);
 
         checkError("display process");
@@ -629,23 +639,23 @@ MonglView::on_click_select(GdkEventButton* event, float mx, float my)
 
 bool
 MonglView::selectionChanged(Geometry *prev_selected, Geometry *selected) {
-    if (prev_selected != nullptr) {
-        auto ltreeGeo = dynamic_cast<TreeGeometry*>(prev_selected);
-        if (ltreeGeo != nullptr) {
-            TreeNode *treeNode = ltreeGeo->getTreeNode();
-            if (treeNode != nullptr) {
-                treeNode->setSelected(false);
-            }
-        }
-    }
-    auto treeGeo = dynamic_cast<TreeGeometry*>(selected);
-    if (treeGeo != nullptr) {
-        TreeNode *treeNode = treeGeo->getTreeNode();
-        if (treeNode != nullptr) {
-            treeNode->setSelected(true);
-            m_selectedTreeNode = treeNode;    // better keep ref for treeNode as these live longer...
-        }
-    }
+//    if (prev_selected != nullptr) {
+//        auto ltreeGeo = dynamic_cast<TreeGeometry*>(prev_selected);
+//        if (ltreeGeo != nullptr) {
+//            TreeNode *treeNode = ltreeGeo->getTreeNode();
+//            if (treeNode != nullptr) {
+//                treeNode->setSelected(false);
+//            }
+//        }
+//    }
+//    auto treeGeo = dynamic_cast<TreeGeometry*>(selected);
+//    if (treeGeo != nullptr) {
+//        TreeNode *treeNode = treeGeo->getTreeNode();
+//        if (treeNode != nullptr) {
+//            treeNode->setSelected(true);
+//            m_selectedTreeNode = treeNode;    // better keep ref for treeNode as these live longer...
+//        }
+//    }
     return FALSE;
 }
 

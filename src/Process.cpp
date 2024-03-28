@@ -29,10 +29,10 @@
 #include "Monitor.hpp"
 #include "NameValue.hpp"
 
-Process::Process(char *_path, long _pid, guint _size)
-: TreeNode::TreeNode()
-, stage{STAGE_NEW}
-, path{_path}
+Process::Process(std::string _path, long _pid, guint _size)
+: psc::gl::TreeNode2::TreeNode2()
+, stage{psc::gl::TreeNodeState::New}
+, path{std::move(_path)}
 , lastCpuTime{0l}
 , m_size{_size}
 , data_cpu{std::make_shared<Buffer<double>>(_size)}
@@ -75,9 +75,6 @@ Process::Process(char *_path, long _pid, guint _size)
 , m_load{0.0}
 {
     pid = _pid;
-}
-
-Process::~Process() {
 }
 
 void
@@ -186,11 +183,10 @@ void Process::update_stat() {
             }
         }
     }
-    catch (std::ios_base::failure &e)
-    {
+    catch (std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
             std::cerr << sstat << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message() << std::endl;
-            stage = STAGE_FIN;     // do not ask again
+            stage = psc::gl::TreeNodeState::Finished;     // do not ask again
         }
     }
     if (stat.is_open()) {
@@ -222,20 +218,21 @@ Process::update_status()
 		rssFileK = nameValue.getUnsigned("RssFile:");
 	}
 	else {
-        stage = STAGE_FIN;     // do not ask again
+        stage = psc::gl::TreeNodeState::Finished;     // do not ask again
 	}
 }
 
 
 Glib::ustring
-Process::getDisplayName() {
+Process::getDisplayName()
+{
     Glib::ustring wname(name);
-
     return wname;
 }
 
 void
-Process::killProcess() {
+Process::killProcess()
+{
     kill(pid, SIGTERM);
 }
 
@@ -250,6 +247,7 @@ Process::getMemData()
 {
 	return data_mem;
 }
+
 void
 Process::setTouched(bool _touched)
 {
@@ -268,14 +266,14 @@ Process::getName()
 	return name.c_str();
 }
 
-int
+psc::gl::TreeNodeState
 Process::getStage()
 {
 	return stage;
 }
 
 void
-Process::setStage(int _stage)
+Process::setStage(psc::gl::TreeNodeState _stage)
 {
 	stage = _stage;
 }
@@ -283,7 +281,7 @@ Process::setStage(int _stage)
 bool
 Process::isActive()
 {
-	return stage < STAGE_FIN;
+	return stage < psc::gl::TreeNodeState::Finished;
 }
 
 long

@@ -112,7 +112,7 @@ Text2::display(const Matrix &perspView)
     if (m_textType == GL_QUADS) {
         prepareTexture();
     }
-
+    //std::cout << "Text2::display \"" << m_text << "\"" << std::endl;
     m_min = Position(999.0f);
     m_max = Position(-999.0f);
     Position p = getPos();
@@ -164,15 +164,16 @@ Text2::display(const Matrix &perspView)
                 glm::vec4 a(dist, 0.0f, 0.0f, 0.0f);
                 glm::vec3 charskip(rotationScaling * a);
                 p += charskip;
-                min(m_min, p);
-                max(m_max, p);
+                min(m_min, &p);
+                max(m_max, &p);
                 Position pmax = p+lineskip;
                 Position pmin = p+lineskip;
-                min(m_min, pmax);
-                max(m_max, pmin);
+                min(m_min, &pmax);
+                max(m_max, &pmin);
             }
-            else
+            else {
                 std::cerr << "No glyph for 0x" << std::hex << c << "!" << std::dec << std::endl;
+            }
         }
     }
     if (m_textType == GL_QUADS) {

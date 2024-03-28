@@ -31,5 +31,17 @@ libglm_a_SOURCES =  \
 	Glyph2.hpp \
 	Text2.cpp \
 	Text2.hpp \
+	TreeRenderer2.cpp \
+	TreeRenderer2.hpp \
+	LineShapeRenderer2.cpp \
+	LineShapeRenderer2.hpp \
+	LineShapeGeometry2.cpp \
+	LineShapeGeometry2.hpp \
+	TreeGeometry2.cpp \
+	TreeGeometry2.hpp \
+	TextTreeGeometry2.cpp \
+	TextTreeGeometry2.hpp \
+	TreeNode2.cpp \
+	TreeNode2.hpp \
 	NamedTreeNode2.cpp \
 	NamedTreeNode2.hpp

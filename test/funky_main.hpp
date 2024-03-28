@@ -1,5 +1,6 @@
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * Copyright (C) 2021 rpf
+ * Copyright (C) 2023 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,28 +17,3 @@
  */
 
 #pragma once
-
-#include <memory>
-#include <glibmm.h>
-
-#include "Monitor.hpp"
-#include "Diagram2.hpp"
-#include "libgtop_helper.h"
-
-class DiagramMonitor : public psc::gl::Diagram2 {
-public:
-    DiagramMonitor(std::shared_ptr<Monitor> _monitor, NaviContext *_naviContext, TextContext *_textCtx);
-    virtual ~DiagramMonitor() = default;
-
-    void update(gint updateInterval, glibtop *glibtop);
-    void save_settings(Glib::KeyFile *keyFile);
-    Gtk::Box* create_config_page();
-    void close();
-
-    std::shared_ptr<Monitor> getMonitor() {
-        return m_monitor;
-    }
-private:
-    std::shared_ptr<Monitor> m_monitor;
-};
-

@@ -1,5 +1,6 @@
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * Copyright (C) 2021 rpf
+ * Copyright (C) 2024 RPf <gpl3@pfeifer-syscon.de>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,26 +19,42 @@
 #pragma once
 
 #include <memory>
-#include <glibmm.h>
 
-#include "Monitor.hpp"
-#include "Diagram2.hpp"
-#include "libgtop_helper.h"
+#include "TreeNode2.hpp"
+#include "Geom2.hpp"
 
-class DiagramMonitor : public psc::gl::Diagram2 {
+
+
+namespace psc {
+namespace gl {
+
+
+
+class TreeNode;
+
+class TreeGeometry2
+: public Geom2
+{
 public:
-    DiagramMonitor(std::shared_ptr<Monitor> _monitor, NaviContext *_naviContext, TextContext *_textCtx);
-    virtual ~DiagramMonitor() = default;
+    TreeGeometry2(GLenum type, GeometryContext *ctx);
+    virtual ~TreeGeometry2() = default;
 
-    void update(gint updateInterval, glibtop *glibtop);
-    void save_settings(Glib::KeyFile *keyFile);
-    Gtk::Box* create_config_page();
-    void close();
+    virtual bool match(const psc::mem::active_ptr<TreeGeometry2>& treeGeo) = 0;
 
-    std::shared_ptr<Monitor> getMonitor() {
-        return m_monitor;
-    }
+    virtual void createText(const std::shared_ptr<TreeNode2>& treeNode, NaviContext *_ctx, TextContext *txtCtx) = 0;
+    virtual void removeText() = 0;
+    virtual void setTextVisible(bool visible) = 0;
+
+
+protected:
 private:
-    std::shared_ptr<Monitor> m_monitor;
+
 };
 
+
+
+
+
+
+} /* namespace gl */
+} /* namespace psc */

@@ -22,15 +22,16 @@
 #include <glibmm.h>
 #include <string>
 #include <memory>
-#include <TreeNode.hpp>
+#include <TreeNode2.hpp>
 
 #include "Geometry.hpp"
 #include "Monitor.hpp"
 
-class Process : public TreeNode {
+class Process
+: public psc::gl::TreeNode2 {
 public:
-    Process(char *path, long pid, guint _size);
-    virtual ~Process();
+    Process(std::string path, long pid, guint _size);
+    virtual ~Process() = default;
 
     void roll();
     void setPid(long pid);
@@ -44,9 +45,9 @@ public:
     void setTouched(bool _touched);
     bool isTouched();
     const char* getName() override;
-    int getStage() override;
+    psc::gl::TreeNodeState getStage() override;
     float getLoad() override;
-    void setStage(int _stage);
+    void setStage(psc::gl::TreeNodeState _stage);
     bool isActive();
     long getMemUsage();
     long getMemGraph();
@@ -59,7 +60,7 @@ private:
     // internal
     bool touched;
 
-    int stage;  // when getting an error on reading set this to false so we wont ask again
+    psc::gl::TreeNodeState stage;  // when getting an error on reading set this to false so we wont ask again
     std::string path;
     Position pos;
     unsigned long lastCpuTime;
@@ -175,15 +176,15 @@ private:
     double m_load;      // load ratio 0..1
 };
 
-typedef Process* pProcess;
+typedef std::shared_ptr<Process> pProcess;
 
 class CompareByMem  {
     public:
     bool operator()(const pProcess &a, const pProcess &b) {
-        if (a == nullptr) {
+        if (!a) {
             return FALSE;
         }
-        if (b == nullptr) {
+        if (!b) {
             return TRUE;
         }
         return a->getMemUsage() > b->getMemUsage();
@@ -193,10 +194,10 @@ class CompareByMem  {
 class CompareByCpu  {
     public:
     bool operator()(const pProcess &a, const pProcess &b) {
-        if (a == nullptr) {
+        if (!a) {
             return FALSE;
         }
-        if (b == nullptr) {
+        if (!b) {
             return TRUE;
         }
         // getCpuUsage -> last value

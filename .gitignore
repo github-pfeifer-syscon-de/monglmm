@@ -73,3 +73,9 @@
 /test/test-suite.log
 /test/active_plc.cpp
 /test/active_plc.hpp
+/test/simple_test
+/test/ptr_test
+/test/simple_test.trs
+/test/ptr_test.trs
+/glmLib/.deps/libglm_a-LineShapeTreeGeometry2.Tpo
+/test/simple_test.log

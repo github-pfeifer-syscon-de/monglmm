@@ -121,6 +121,7 @@ NamedTreeNode2::createLineDown(NaviContext *shaderContext, float y)
                 Color c(LINE_COLOR, LINE_COLOR, LINE_COLOR);
                 llineDown->addLine(p1, p2, c);
                 llineDown->create_vao();
+                llineDown->setName("NamedTreeNode2.lineDown");
             }
             auto lgeo = m_geo.lease();
             if (lgeo) {
@@ -153,6 +154,7 @@ NamedTreeNode2::getTreeGeometry(
         auto lgeo = m_geo.lease();
         if (lgeo) {
             lgeo->addGeometry(text);
+            lgeo->setName("NamedTreeNode2.geo");
             if (m_parent) {
                 auto lineLeft = psc::mem::make_active<Geom2>(GL_LINES, shaderContext);
                 auto llineLeft = lineLeft.lease();
