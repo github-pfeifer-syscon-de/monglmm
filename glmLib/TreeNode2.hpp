@@ -37,7 +37,7 @@ enum class TreeNodeState {
 };
 
 class TreeNode2
-: public std::enable_shared_from_this<TreeNode2>
+//: public std::enable_shared_from_this<TreeNode2>
 {
 public:
 
@@ -52,6 +52,7 @@ public:
     virtual TreeNodeState getStage() = 0;
     virtual float getLoad() = 0;
     virtual Glib::ustring getDisplayName() = 0;
+    virtual bool isPrimary() = 0;
     TreeNode2 *getParent();
     std::list<std::shared_ptr<TreeNode2>>& getChildren();
     psc::mem::active_ptr<TreeGeometry2>& getTreeGeometry();

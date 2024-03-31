@@ -30,7 +30,7 @@
 namespace psc {
 namespace mem {
 
-static bool active_debug{false};
+static constexpr bool active_debug{false};
 
     /*
      * this is crude implementation of a shared pointer pattern
@@ -47,9 +47,6 @@ static bool active_debug{false};
     {
     public:
         active_ctl()
-        : m_ptr{nullptr}
-        , m_usecount{0u}
-        , m_leasecount{0u}
         {
         }
         ~active_ctl()
@@ -178,9 +175,9 @@ static bool active_debug{false};
         }
     private:
         // Shared pointer
-        T* m_ptr;
-        std::atomic_uint32_t m_usecount;
-        std::atomic_uint32_t m_leasecount;
+        T* m_ptr{nullptr};
+        std::atomic_uint32_t m_usecount{0u};
+        std::atomic_uint32_t m_leasecount{0u};
         bool m_defered_reset{false};
         std::allocator<A> m_alloc;
         mutable std::mutex m_changeMutex; // serialize decrement+free
@@ -197,16 +194,13 @@ static bool active_debug{false};
         active_lease(active_ctl<T>* active_ctl)
         : m_active_ctl{active_ctl}
         {
-            if (m_active_ctl->get_usecount() == 0u) {
-                std::cout << "lease with count 0 "
-                          << *this << std::endl;
+            if (m_active_ctl) {
+                m_ptr = dynamic_cast<T*>(m_active_ctl->get_ptr());  // only convert once
+                if (m_ptr) {
+                    m_active_ctl->inc_lease();
+                    m_incremented = true;
+                }
             }
-            m_ptr = dynamic_cast<T*>(m_active_ctl->get_ptr());
-            if (m_ptr) {
-                m_active_ctl->inc_lease();
-                m_incremented = true;
-            }
-            // only convert once
         }
         ~active_lease()
         {
@@ -215,13 +209,13 @@ static bool active_debug{false};
                       << (*this)
                       << std::endl;
             }
-            {
+            if (m_incremented) {
                 std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
-                if (m_incremented && m_active_ctl->dec_lease()) {
+                if (m_active_ctl->dec_lease()) {
                     m_active_ctl->reset();
                 }
             }
-            removeControlIfUnsued();    // unlikely but better check than to be leaking
+            removeControlIfUnsued();
         }
         // make sure this is only for local use, the rest is in the responsibility of the user
         explicit active_lease(const active_lease<T>& active_lease) = delete;
@@ -290,7 +284,7 @@ static bool active_debug{false};
         }
 
         active_ctl<T,A>* m_active_ctl;
-        T* m_ptr;
+        T* m_ptr{nullptr};
         bool m_incremented{false};
 
     };
@@ -304,18 +298,17 @@ static bool active_debug{false};
     {
     public:
         // Constructor
-        active_ptr()
-        : m_active_ctl{new active_ctl<T,A>()}
+        active_ptr(active_ctl<T,A>* active_ctl = nullptr)
+        : m_active_ctl{active_ctl}
         {
+            if (m_active_ctl) { // count only "used" instances
+                m_active_ctl->inc_use();
+            }
             if (active_debug) {
             std::cout << "active_ptr default const. "
                       << (*this)
                       << std::endl;
             }
-            // counting unconditional seems more convenient
-            //   as creating 2 linked instances and setting one
-            //   will make the second on become active...
-            m_active_ctl->inc_use();
         }
 
         // Copy constructor
@@ -327,7 +320,9 @@ static bool active_debug{false};
                       << (*this)
                       << std::endl;
             }
-            m_active_ctl->inc_use();
+            if (m_active_ctl) {
+                m_active_ctl->inc_use();
+            }
         }
 
         // Copy constructor
@@ -343,7 +338,7 @@ static bool active_debug{false};
 
         // conversion
         template<typename C
-                ,typename std::enable_if<!std::is_base_of<C&&, T>::value>::type* = nullptr>
+                ,typename std::enable_if<std::is_assignable<T&&, C>::value>::type* = nullptr>
         active_ptr(const active_ptr<C>& r)
         {
             // the template represents only the extern type, as we use dynamic cast on access this should work
@@ -353,7 +348,9 @@ static bool active_debug{false};
                       << (*this)
                       << std::endl;
             }
-            m_active_ctl->inc_use();
+            if (m_active_ctl) {
+                m_active_ctl->inc_use();
+            }
         }
         /**
          */
@@ -394,7 +391,9 @@ static bool active_debug{false};
                       << (*this)
                       << std::endl;
             }
-            m_active_ctl->inc_use();
+            if (m_active_ctl) {
+                m_active_ctl->inc_use();
+            }
             return *this;
         }
 
@@ -422,8 +421,10 @@ static bool active_debug{false};
 
         void reset()
         {
-            std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
-            m_active_ctl->reset();
+            if (m_active_ctl) {
+                std::lock_guard<std::mutex> lock(m_active_ctl->get_mutex());
+                m_active_ctl->reset();
+            }
         }
 
         // Reference count
@@ -497,9 +498,10 @@ static bool active_debug{false};
     inline active_ptr<T>
     make_active(Args&&... args)
     {
-        active_ptr<T,T> active_ptr;
+        auto m_active_ctl = new active_ctl<T>();
         std::allocator<T> alloc;
-        active_ptr.get_control()->alloc(alloc, std::forward<Args>(args)...);
+        m_active_ctl->alloc(alloc, std::forward<Args>(args)...);
+        active_ptr<T> active_ptr{m_active_ctl};
         return active_ptr;
     }
 
@@ -507,15 +509,16 @@ static bool active_debug{false};
 
     /// Convert type of `active_ptr` rvalue, via `dynamic_cast`
     /// @since C++20
-    template<typename T, typename U>
-    inline active_ptr<T>
-    dynamic_pointer_cast(active_ptr<U>&& r) noexcept
-    {
-      using S = active_ptr<T>;
-      if (auto* p = dynamic_cast<typename S::element_type*>(r.get()))
-	return S(std::move(r));
-      return S();
-    }
+    //template<typename T, typename U>
+    //inline active_ptr<T>
+    //dynamic_pointer_cast(active_ptr<U>&& r) noexcept
+    //{
+    //    using S = active_ptr<T>;
+    //    if (auto* p = dynamic_cast<typename S::element_type*>(r.get())) {
+    //        return S(std::move(r));
+    //    }
+    //    return S();
+    //}
 
     /// Convert type of `active_ptr` lvalue, via `dynamic_cast`
     /// @since C++20
@@ -523,10 +526,11 @@ static bool active_debug{false};
     inline active_ptr<T>
     dynamic_pointer_cast(const active_ptr<U>& r) noexcept
     {
-      using S = active_ptr<T>;
-      if (auto* p = dynamic_cast<typename S::element_type*>(r.get()))
-	return S(r);
-      return S();
+        using S = active_ptr<T>;
+        if (auto* p = dynamic_cast<typename S::element_type*>(r.get())) {
+            return S{reinterpret_cast<active_ctl<T>*>(r.get_control())};
+        }
+        return S();
     }
 
 } /* namespace mem */

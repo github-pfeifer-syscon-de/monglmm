@@ -37,6 +37,14 @@ libglm_a_SOURCES =  \
 	LineShapeRenderer2.hpp \
 	LineShapeGeometry2.cpp \
 	LineShapeGeometry2.hpp \
+	SunDiscRenderer2.cpp \
+	SunDiscRenderer2.hpp \
+	SunDiscGeometry2.cpp \
+	SunDiscGeometry2.hpp \
+	FallShapeRenderer2.cpp \
+	FallShapeRenderer2.hpp \
+	FallShapeGeometry2.cpp \
+	FallShapeGeometry2.hpp \
 	TreeGeometry2.cpp \
 	TreeGeometry2.hpp \
 	TextTreeGeometry2.cpp \

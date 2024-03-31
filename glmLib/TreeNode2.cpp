@@ -107,7 +107,6 @@ TreeNode2::setTreeGeometry(const psc::mem::active_ptr<TreeGeometry2>& _treeGeome
             _ltreeGeo->setRotation(lmTreeGeo->getRotation());
         }
     }
-    //_treeGeometry->addDestructionListener(this);    // keep track if geometry will get destroyed by recursive destruction
     m_treeGeometry = _treeGeometry;
 }
 

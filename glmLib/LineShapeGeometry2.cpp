@@ -57,9 +57,6 @@ LineShapeGeometry2::create(const std::shared_ptr<TreeNode2>& node, LineShapeRend
     if (xSize > _renderer.getShapeSideGap()) {
         xSize -= _renderer.getShapeSideGap();
     }
-    if (m_line) {       // remove previous line
-        m_line.reset();
-    }
     deleteVertexArray();
     m_mid = m_start;
     m_mid.x += m_width / 2.0 ;
@@ -84,7 +81,7 @@ LineShapeGeometry2::create(const std::shared_ptr<TreeNode2>& node, LineShapeRend
     Position p6(p2 + depthOffs);
     Position p7(p3 + depthOffs);
 
-    Color c0 = _renderer.pos2Color(m_mid.x, node->getStage(), m_load);
+    Color c0 = _renderer.pos2Color(m_mid.x, node->getStage(), m_load, node->isPrimary());
     addPoint(&p0, &c0, &nt);    // 0 top
     addPoint(&p1, &c0, &nt);    // 1
     addPoint(&p2, &c0, &nt);    // 2
@@ -131,8 +128,12 @@ LineShapeGeometry2::create(const std::shared_ptr<TreeNode2>& node, LineShapeRend
                 Position pl3(m_mid);
                 Position pl2(pl3);
                 pl2.z -= _renderer.getShapeForwardGap() / 2.0;
-                m_line = psc::mem::make_active<Geom2>(GL_LINES, m_ctx);
+                if (!m_line) {
+                    m_line = psc::mem::make_active<Geom2>(GL_LINES, m_ctx);
+                    addGeometry(m_line);    // display together
+                }
                 if (auto lline = m_line.lease()) {
+                    lline->deleteVertexArray();
                     lline->setMarkable(false);
                     lline->addLine(pl0, pl1, c0, &nt);
                     lline->addLine(pl1, pl2, c0, &nt);
@@ -140,7 +141,6 @@ LineShapeGeometry2::create(const std::shared_ptr<TreeNode2>& node, LineShapeRend
                     lline->create_vao();
                 }
             }
-            addGeometry(m_line);    // display together
         }
         else {
             std::cout << "casting parent to LineShapeGeometry2 failed!" << std::endl;

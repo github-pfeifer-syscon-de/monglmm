@@ -18,37 +18,35 @@
 
 #pragma once
 
+#include "TextTreeGeometry2.hpp"
+#include "SunDiscRenderer2.hpp"
 
-class Base
-{
+
+namespace psc {
+namespace gl {
+
+
+
+class SunDiscGeometry2
+: public TextTreeGeometry2 {
 public:
-    Base(int n);
-    explicit Base(const Base& orig) = delete;
-    virtual ~Base();
+    SunDiscGeometry2(const psc::gl::ptrFont2& font, GeometryContext *_ctx);
+    virtual ~SunDiscGeometry2() = default;
 
-    virtual void dummy();
-    void base();
-    int get();
-protected :
-    int m_val;
+    void update(double inner, double start, double size, Position &pos, const std::shared_ptr<TreeNode2>& treeNode);
+    void create(const std::shared_ptr<TreeNode2>& node, SunDiscRenderer2& _renderer);
+    bool match(const psc::mem::active_ptr<TreeGeometry2>& treeGeom) override;
+protected:
+    double m_start{0.0};
+    double m_size{0.0};
+    double m_inner{0.0};
+    TreeNodeState m_stage{TreeNodeState::New};
+    float m_load{0.0f};
+    Position m_pos{0.0f};
+private:
+
 };
 
-class Test
-: public Base
-{
-public:
-    Test(int n);
-    explicit Test(const Test& orig) = delete;
-    virtual ~Test();
 
-    void dummy() override;
-    void test();
-};
-
-class Unrelated
-{
-public:
-    Unrelated() = default;
-    explicit Unrelated(const Unrelated& orig) = delete;
-    ~Unrelated() = default;
-};
+} /* namespace gl */
+} /* namespace psc */

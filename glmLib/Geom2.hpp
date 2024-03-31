@@ -38,8 +38,6 @@ namespace psc {
 namespace gl {
 
 
-
-
 void checkError(const char *where);
 
 // as these primitives are required for geometry define them here
@@ -65,15 +63,15 @@ public:
     void addTri(Position &p1, Position &p2, Position &p3, Color &c);
     void addLine(Position &p1, Position &p2, Color &c, Vector *n = nullptr);
     void addPoint(
-            const Position *p
-          , const Color *c = nullptr
-          , const Vector *n = nullptr
-          , const UV *uv = nullptr
-          , const Vector *tangent = nullptr
-          , const Vector *bitagent = nullptr);
-    void addCube(float size, Color &c);
+            const Position* p
+          , const Color* c = nullptr
+          , const Vector* n = nullptr
+          , const UV* uv = nullptr
+          , const Vector* tangent = nullptr
+          , const Vector* bitagent = nullptr);
+    void addCube(float size, Color& c);
     void addSphere(float radius, unsigned int rings, unsigned int sectors);
-    void addCylinder(float radius, float start, float end, Color *c, unsigned int approx = 36);
+    void addCylinder(float radius, float start, float end, Color* c, unsigned int approx = 36);
     unsigned int getVertexIndex();  // valid during creation
     virtual void display(NaviContext* context, const Matrix &projView);
 
@@ -101,13 +99,13 @@ public:
     void resetMaster() override;
     void setRemoveChildren(bool removeChildren);
     bool isRemoveChildren();
-    void remove();
     virtual void setVisible(bool visible) override;
     void setSensitivity(float sensitivity);
     //void addDestructionListener(GeometryDestructionListener *listener);
     //void removeDestructionListener(GeometryDestructionListener *listener);
     void deleteVertexArray();
 protected:
+    void remove();
     std::list<aptrGeom2> geometries;
     std::list<Displayable *> m_legacyGeometries;
     Geom2 *m_master;
@@ -127,9 +125,6 @@ private:
     unsigned int m_stride_size;
     unsigned int m_numIndex;
 };
-
-typedef class Font Font;
-typedef class NaviContext NaviContext;
 
 
 class Tex {

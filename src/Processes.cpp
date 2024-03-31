@@ -32,8 +32,8 @@
 #include "TreeNode2.hpp"
 #include "Diagram.hpp"
 #include "LineShapeRenderer2.hpp"
-#include "SunDiscRenderer.hpp"
-#include "FallShapeRenderer.hpp"
+#include "SunDiscRenderer2.hpp"
+#include "FallShapeRenderer2.hpp"
 
 
 Processes::Processes(uint32_t _size)
@@ -350,10 +350,10 @@ Processes::display(
         switch (m_treeType) {
         case TreeType::ARC:
             pos = Position(0.0f, -5.0f, 0.0f);  // sundisc (center)
-            //treeRenderer = new SunDiscRenderer();
+            treeRenderer = std::make_shared<psc::gl::SunDiscRenderer2>();
             break;
         case TreeType::BLOCK:
-            //treeRenderer = new FallShapeRenderer();
+            treeRenderer = std::make_shared<psc::gl::FallShapeRenderer2>();
             break;
         case TreeType::LINE:
             treeRenderer = std::make_shared<psc::gl::LineShapeRenderer2>();

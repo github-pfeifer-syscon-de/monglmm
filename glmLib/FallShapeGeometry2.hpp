@@ -1,4 +1,4 @@
-/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
+/* -*- Mode: c++; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
  * Copyright (C) 2024 RPf <gpl3@pfeifer-syscon.de>
  *
@@ -16,33 +16,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
-#include "TreeRenderer2.hpp"
+#include "TextTreeGeometry2.hpp"
+#include "FallShapeRenderer2.hpp"
+
 
 namespace psc {
 namespace gl {
 
 
 
-void
-TreeRenderer2::setFullWidth(float _fullWidth)
+
+class FallShapeGeometry2
+: public TextTreeGeometry2
 {
-    m_fullWidth = _fullWidth;
-}
+public:
+    FallShapeGeometry2(const psc::gl::ptrFont2& font, GeometryContext *_ctx);
+    virtual ~FallShapeGeometry2() = default;
 
-double
-TreeRenderer2::getFullWidth()
-{
-    return m_fullWidth;
-}
+    void create(const std::shared_ptr<TreeNode2>& node, FallShapeRenderer2 &_renderer);
+    bool match(const psc::mem::active_ptr<TreeGeometry2>& treeGeom) override;
+    void update(Position& start, double size, const std::shared_ptr<TreeNode2>& treeNode, int depth);
 
-Color
-TreeRenderer2::pos2Color(double pos, TreeNodeState stage, float load, bool isPrim)
-{
-    return colorScheme.pos2Color(pos, m_fullWidth, stage, load, isPrim);
-}
+protected:
+    Position m_start{0.0f};
+    double m_size{0.0};
+    TreeNodeState m_stage{TreeNodeState::New};
+    float m_load{0.0f};
+    int m_depth{0};
+private:
 
-
+};
 
 
 

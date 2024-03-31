@@ -37,8 +37,8 @@ operator<< (std::ostream& os, const std::source_location& location)
 static int baseFreed{0};
 static int testFreed{0};
 
-Base::Base()
-: m_val{0}
+Base::Base(int n)
+: m_val{n}
 {
     ++baseFreed;
 }
@@ -61,18 +61,22 @@ Base::base()
     std::cout << std::source_location::current() << std::endl;
 }
 
-Test::Test(int n)
-: Base()
-, m_n{n}
+int Base::get()
 {
-    std::cout << std::source_location::current() << " n " << m_n << std::endl;
+    return m_val;
+}
+
+Test::Test(int n)
+: Base(n)
+{
+    std::cout << std::source_location::current() << " val " << m_val << std::endl;
     ++testFreed;
 }
 
 Test::~Test()
 {
     --testFreed;
-    std::cout << std::source_location::current() << " n " << m_n << std::endl;
+    std::cout << std::source_location::current() << " val " << m_val << std::endl;
 }
 
 void
@@ -84,13 +88,8 @@ Test::dummy()
 void
 Test::test()
 {
-    std::cout << std::source_location::current() << " n " << m_n << std::endl;
-    ++m_n;
-}
-
-int Test::get()
-{
-    return m_n;
+    std::cout << std::source_location::current() << " val " << m_val << std::endl;
+    ++m_val;
 }
 
 static void
@@ -155,9 +154,9 @@ ptrTest()
             {
                 funct(test);
                 {
-                    std::cout << "---- copy cc " << std::endl;
+                    std::cout << "-- using copy cc " << std::endl;
                     auto test2{test};  // will use implicite copy
-                    std::cout << "---- after 2inst " << test << std::endl;
+                    std::cout << "-- after 2inst " << test << std::endl;
                     //test2 = test; uses assignment
                     {
                         auto lease1 = test2.lease();
@@ -172,7 +171,7 @@ ptrTest()
                         }
                     }
                 }
-                std::cout << "---- after test2 decayed  " << test << std::endl;
+                std::cout << "-- after test2 decayed  " << test << std::endl;
                 {
                     auto lease2 = test.lease();
                     if (lease2) {
@@ -182,10 +181,10 @@ ptrTest()
                         std::cout << "No access lease2" << std::endl;
                     }
                 }
-                std::cout << "---- closing test2" << test << std::endl;
+                std::cout << "-- closing test2" << test << std::endl;
             }
         }
-        std::cout << "--- testing valid " << (test ? "valid" : "invalid") << std::endl;
+        std::cout << "-- testing valid " << (test ? "valid" : "invalid") << std::endl;
     }
     std::cout << "ptr --------------"
               << " base " << baseFreed
@@ -246,6 +245,25 @@ releaseTest()
 }
 
 static bool
+coversionTest()
+{
+    baseFreed = 0;
+    testFreed = 0;
+    std::cout << "coversion ---------- " << std::endl;
+    psc::mem::active_ptr<Base> base;
+    // psc::mem::active_ptr<Unrelated> unrelated{base};  //this should not compile ...
+    auto unrelated = psc::mem::dynamic_pointer_cast<Unrelated>(base);
+    if (unrelated) {    // if this becomes active there is something wrong
+        return false;
+    }
+    std::cout << "coversion ---------- "
+              << " base " << baseFreed
+              << " test " << testFreed
+              << std::endl;
+    return baseFreed == 0 && testFreed == 0;
+}
+
+static bool
 livespanTest()
 {
     baseFreed = 0;
@@ -293,11 +311,14 @@ livespanTest()
 
 int
 main(int argc, char** argv) {
-    psc::mem::active_debug = true;
+    //psc::mem::active_debug = true; // if needed change active_debug to no const
     if (!simpleTest()) {
         return 1;
     }
     if (!ptrTest()) {
+        return 1;
+    }
+    if (!coversionTest()) {
         return 1;
     }
     if (!livespanTest()) {

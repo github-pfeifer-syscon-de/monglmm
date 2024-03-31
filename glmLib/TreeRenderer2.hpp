@@ -28,26 +28,100 @@
 namespace psc {
 namespace gl {
 
+class ColorScheme
+{
+public:
+    ColorScheme() = default;
+    virtual ~ColorScheme() = default;
+    Color pos2Color(float pos, float fullWidth, TreeNodeState stage, float load, bool isPrim)
+    {
+        Color c;
+        switch (stage) {
+        case TreeNodeState::Running:
+            c = runningColor(pos, fullWidth, load, isPrim);
+            break;
+        case TreeNodeState::Finished:
+        case TreeNodeState::Close:
+            c.r = 1.0f;
+            c.g = 0.0f;
+            c.b = 0.0f;
+            break;
+        default:
+            c.r = 0.0;    // started is greenish
+            c.g = 1.0f;
+            c.b = 0.0f;
+            break;
+        }
+        return c;
+    }
+protected:
+    virtual Color runningColor(float pos, float fullWidth, float load, bool isPrim) = 0;
+};
 
-class TreeRenderer2 {
+class ColorSchemeGradient
+: public ColorScheme
+{
+public:
+    ColorSchemeGradient() = default;
+    virtual ~ColorSchemeGradient() = default;
+protected:
+    Color runningColor(float pos, float fullWidth, float load, bool isPrim)
+    {
+        float coffs = 0.2f + (float)pos / (fullWidth * 1.2);   // make adjacent piece distinguishable by color (mid is 0 .. 2pi)
+        Color c;
+        c.r = 0.2f + load;        // if running show load as color, green ... blue
+        c.g = 1.0f - coffs;
+        c.b = coffs;
+        return c;
+    }
+
+};
+
+class ColorSchemePrimary
+: public ColorScheme
+{
+public:
+    ColorSchemePrimary() = default;
+    virtual ~ColorSchemePrimary() = default;
+protected:
+    Color runningColor(float pos, float fullWidth, float load, bool isPrim)
+    {
+        Color c;
+        c.r = 0.2f + load;        // if running show load as color, green ... blue
+        if (isPrim) {
+            c.g = 0.8f;
+            c.b = 0.2f;
+        }
+        else {
+            c.g = 0.2f;
+            c.b = 0.8f;
+        }
+        return c;
+    }
+
+};
+
+class TreeRenderer2
+{
 public:
     TreeRenderer2() = default;
     virtual ~TreeRenderer2() = default;
 
     virtual psc::mem::active_ptr<TreeGeometry2> create(
           const std::shared_ptr<TreeNode2>& _root
-        , NaviContext *_ctx
-        , TextContext *textCtx
+        , NaviContext* _ctx
+        , TextContext* textCtx
         , const psc::gl::ptrFont2& font) = 0;
     virtual double getDistIncrement() = 0;
 
-    void setFullWidth(double _fullWidth);
+    void setFullWidth(float _fullWidth);
     double getFullWidth();
 
-    Color pos2Color(double pos, TreeNodeState stage, float load);
+    Color pos2Color(double pos, TreeNodeState stage, float load, bool isPrim);
 
 private:
-    double m_fullWidth;
+    float m_fullWidth;
+    ColorSchemeGradient colorScheme;
 };
 
 

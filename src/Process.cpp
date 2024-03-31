@@ -28,6 +28,7 @@
 #include "Process.hpp"
 #include "Monitor.hpp"
 #include "NameValue.hpp"
+#include "StringUtils.hpp"
 
 Process::Process(std::string _path, long _pid, guint _size)
 : psc::gl::TreeNode2::TreeNode2()
@@ -85,12 +86,14 @@ Process::roll()
 }
 
 long
-Process::getPid() {
+Process::getPid()
+{
     return pid;
 }
 
 unsigned long
-Process::getCpuUsage() {
+Process::getCpuUsage()
+{
     if (lastCpuTime == 0l) {
         return 0l;
     }
@@ -106,14 +109,16 @@ Process::getCpuUsageBuf()
 }
 
 float
-Process::getLoad() {
+Process::getLoad()
+{
     double cpu = m_load;
     int c10 = (int)(cpu * 10.0);
     return (float)((float)c10 / 10.0f);    // to not force redraw of processes too often use some load granularity
 }
 
 unsigned long
-Process::getCpuUsageSum() {
+Process::getCpuUsageSum()
+{
     return cpuTime;
 }
 
@@ -138,7 +143,8 @@ Process::update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem) {
     //std::cout << name << " mem " <<  (double)getMemUsage() << " total " << (double)mem->getTotal() << std::endl;
 }
 
-void Process::update_stat() {
+void Process::update_stat()
+{
     std::string sstat = path + "/stat";
 
     std::ifstream  stat;
@@ -205,7 +211,7 @@ Process::update_status()
 	NameValue nameValue;
 	if (nameValue.read(sstat)) {
 		name = nameValue.getString("Name:");
-		std::string sstate = nameValue.getString("State:");
+		auto sstate = nameValue.getString("State:");
 		state = sstate[0];
 		ppid = nameValue.getUnsigned("PPid:");
 		vmPeakK = nameValue.getUnsigned("VmPeak:");
@@ -216,6 +222,15 @@ Process::update_status()
 		vmRssK = nameValue.getUnsigned("VmRSS:");
 		rssAnonK = nameValue.getUnsigned("RssAnon:");
 		rssFileK = nameValue.getUnsigned("RssFile:");
+        auto uid = nameValue.getString("Uid:");
+        std::vector<Glib::ustring> uids;
+        StringUtils::split(uid,'\t', uids);
+        if (uids.size() > 0) {  // Real, Effective, Saved and FileSystem UID
+            m_uid = std::stoi(uids[0]);
+        }
+        else {
+            m_uid = ROOT_UID;   // presume root ?
+        }
 	}
 	else {
         stage = psc::gl::TreeNodeState::Finished;     // do not ask again
@@ -228,6 +243,12 @@ Process::getDisplayName()
 {
     Glib::ustring wname(name);
     return wname;
+}
+
+bool
+Process::isPrimary()
+{
+    return m_uid == ROOT_UID;
 }
 
 void

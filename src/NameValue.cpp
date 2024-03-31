@@ -86,7 +86,7 @@ NameValue::getUnsigned(const std::string &name)
 			sval = sval.substr(0, pos);	// usually the number is followed by a unit so cut it
 		}
 		//std::cout << "Got trunc " << name << sval << std::endl;
-		ulVal = atol(sval.c_str());
+		ulVal = std::stoul(sval);
 	}
 	return ulVal;
 }

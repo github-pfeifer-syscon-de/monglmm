@@ -18,7 +18,6 @@
 
 #include <glib.h>
 #include <iostream>
-#include <math.h>
 #include <cmath>
 #include <vector>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -71,17 +70,19 @@ Geom2::Geom2(GLenum type, GeometryContext *_ctx)
 
 Geom2::~Geom2()
 {
-    remove();
+    // if we get here there should be no need for further actions as this should be unreachable by now
+    //remove();
+    geometries.clear(); // make errors more obvious
+    deleteVertexArray();
 }
 
+// consider this as deprecated
 void
 Geom2::remove()
 {
-    // geometries may belong to three categories
-    //   - standalone (these we shoud eliminate, has to be whightened for complex structures it may exist a
-    //                 external structure to attach points to, avoid duplicated references as these are hard to maintain if they change)
-    //   - belonging to a context
-    //   - belonging to a geometry
+    // probably prefer active_ptr::reset
+    // the structures for geometries was simplified:
+    //   - belonging to a geometry (to allow modifications additional reference from model)
     if (m_master) {
         //std::cout << "remove " << std::hex << this << " from master " << std::hex << m_master << std::endl;
         m_master->removeGeometry(this);
@@ -94,12 +95,14 @@ Geom2::remove()
     }
     //std::cout << "remove " << std::hex << this << " size " << geometries.size() << " remove " << (m_removeChildren ? "y" : "n") << std::endl;
     int n = 0;
-    for (auto p = geometries.begin(); p != geometries.end();  ++n) {
-        auto chld = *p;
+    for (auto p = geometries.begin(); p != geometries.end(); ++n) {
+        auto& chld = *p;
         //std::cout << "loop " << std::hex << this << " remove " << std::hex << chld << " pos " << n << std::endl;
-        auto lchld = chld.lease();
-        if (lchld) {
-            lchld->resetMaster();  // prevent iterator hassles, by preventing inner remove from list
+        {
+            auto lchld = chld.lease();
+            if (lchld) {
+                lchld->resetMaster();  // prevent iterator hassles, by preventing inner remove from list
+            }
         }
         if (m_removeChildren) {
             chld.reset();
@@ -136,12 +139,14 @@ Geom2::resetMaster()
 }
 
 void
-Geom2::setRemoveChildren(bool removeChildren) {
+Geom2::setRemoveChildren(bool removeChildren)
+{
     m_removeChildren = removeChildren;
 }
 
 bool
-Geom2::isRemoveChildren() {
+Geom2::isRemoveChildren()
+{
     return m_removeChildren;
 }
 
@@ -476,7 +481,7 @@ Geom2::display(NaviContext* context, const Matrix &projView)
     display(projView);
     updateClickBounds(mvp);
     for (auto it = geometries.begin(); it != geometries.end(); ) {
-        auto cgeo = *it;
+        auto& cgeo = *it;
         if (cgeo) {
             auto lgeo = cgeo.lease();
             if (lgeo) {
@@ -566,7 +571,7 @@ Geom2::removeGeometry(Geom2* geo)
 {
     //std::cout << "removeGeometry " << std::hex << geo << " from " << std::hex << this << " size "  << std::dec  << geometries.size() << std::endl;
     for (auto i = geometries.begin(); i != geometries.end(); ) {
-        auto cgeo = *i;
+        auto& cgeo = *i;
         if (cgeo.get() == geo) {
             geo->m_master = nullptr;
             i = geometries.erase(i);
@@ -878,7 +883,7 @@ Geom2::setVisible(bool visible)
 {
     Displayable::setVisible(visible);
     for (auto i = geometries.begin(); i != geometries.end(); ) {
-        auto g = *i;
+        auto& g = *i;
         if (g) {
             auto lg = g.lease();
             if (lg) {

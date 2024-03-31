@@ -40,6 +40,7 @@ public:
     void update_status();
     void update_stat();
     Glib::ustring getDisplayName() override;
+    bool isPrimary() override;
     std::shared_ptr<Buffer<double>> getCpuData();
     std::shared_ptr<Buffer<double>> getMemData();
     void setTouched(bool _touched);
@@ -56,6 +57,7 @@ public:
     unsigned long getCpuUsageBuf();
     unsigned long getCpuUsageSum();
     void killProcess();
+    static constexpr auto ROOT_UID = 0u;
 private:
     // internal
     bool touched;
@@ -174,6 +176,7 @@ private:
                         // process; see the description of RLIMIT_RSS in
                         // getrlimit(2).
     double m_load;      // load ratio 0..1
+    uint32_t m_uid;
 };
 
 typedef std::shared_ptr<Process> pProcess;

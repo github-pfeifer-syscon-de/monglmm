@@ -18,6 +18,9 @@
 #include <iostream>
 #include <atomic>
 #include <mutex>
+#include <iostream>
+#include <type_traits>
+#include <tuple>        // boolalpha
 
 // Nothing secfic just some playground, to check some stuff
 
@@ -58,6 +61,55 @@ private:
     std::mutex m_changeMutex;
 };
 
+
+
+struct A {
+public:
+    A() = default;
+    ~A() = default;
+    explicit A(const A& a) = delete;
+};
+
+struct B {
+public:
+    B() = default;
+    ~B() = default;
+    B(const B& b) = default;
+private:
+    B& operator=( B const& ) = default;
+};
+
+struct C
+: public A {
+public:
+    C() = default;
+    ~C() = default;
+    C(const C& b) = default;
+private:
+    C& operator=( C const& ) = default;
+};
+
+template< class Type >
+bool isAssignable() {
+    return std::is_assignable< Type,Type >::value;
+}
+
+template< class Type >
+bool isCopyAssignable() {
+    return std::is_copy_assignable< Type >::value;
+}
+
+template< class Type >
+bool isCopyConstructible() {
+    return std::is_copy_constructible< Type >::value;
+}
+
+
+template< class TypeOf, class Type >
+bool isBaseOf() {
+    return std::is_base_of< TypeOf, Type >::value;
+}
+
 int
 main(int argc, char** argv)
 {
@@ -72,12 +124,23 @@ main(int argc, char** argv)
     using baseTraits_t = std::allocator_traits<decltype(baseAlloc)>; // The matching trait
     baseTraits_t::destroy(baseAlloc, test);
     baseTraits_t::deallocate(baseAlloc, test, 1);
-    int* p  = new int[10];
-    for (int i = 0; i < 10; ++i) {
-        p[i] = 0;
-    }
+    //int* p  = new int[10];
+    //for (int i = 0; i < 10; ++i) {
+    //    p[i] = 0;
+    //}
     //char* c = reinterpret_cast<char*>(p);
-    delete[] p;
+    //delete[] p;
+
+    std::cout << "template -------------" << std::endl;
+    std::cout << std::boolalpha;
+    std::cout << "assign A " << isAssignable< A >() << std::endl;              // OK.
+    std::cout << "assign B " << isAssignable< B >() << std::endl;              // Uh oh.
+    std::cout << "copy assign A " << isCopyAssignable< A >() << std::endl;              // OK.
+    std::cout << "copy assign B " << isCopyAssignable< B >() << std::endl;              // Uh oh.
+    std::cout << "copy constr A " << isCopyConstructible< A >() << std::endl;              // OK.
+    std::cout << "copy constr B " << isCopyConstructible< B >() << std::endl;              // Uh oh.
+    std::cout << "base of A<-B " << isBaseOf< A,B >() << std::endl;              // OK.
+    std::cout << "base of A<-C " << isBaseOf< A,C >() << std::endl;              // Uh oh.
 
     std::cout << "end" << std::endl;
     return 0;
