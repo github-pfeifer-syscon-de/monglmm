@@ -24,7 +24,7 @@ LT_INIT
 PKG_CHECK_MODULES([GTHREAD], [gthread-2.0])
 
 PKG_CHECK_MODULES([GENERICGLM], [genericglm >= 0.2.7])
-PKG_CHECK_MODULES([GENERICIMG], [genericimg >= 0.1.0])
+PKG_CHECK_MODULES([GENERICIMG], [genericimg >= 0.3.0])
 
 PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4])
 
