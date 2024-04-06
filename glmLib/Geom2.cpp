@@ -597,10 +597,10 @@ Geom2::addSphere(float radius, unsigned int rings, unsigned int sectors)
     unsigned int r, s;
 
     // as these values are expensive and will get used often precalculate
-    double sinLon[sectors];
-    double cosLon[sectors];
-    double tCosLon[sectors];
-    double tSinLon[sectors];
+    auto sinLon{std::vector<double>(sectors)};
+    auto cosLon{std::vector<double>(sectors)};
+    auto tCosLon{std::vector<double>(sectors)};
+    auto tSinLon{std::vector<double>(sectors)};
     for(s = 0; s < sectors; s++) {
         double const sms = ((double)s / (double)(sectors-1));
         double const lon = 2.0 * M_PI * sms;

@@ -57,12 +57,17 @@ struct libg15_devices_t {
     caps \
 }
 
+struct sG15Worker
+{
+};
+
   /* allow for api changes */
 #define LIBG15_VERSION 1201
 
   enum
   {
-    G15_LOG_INFO = 1,
+    G15_LOG_DEBUG = 1,
+    G15_LOG_INFO,
     G15_LOG_WARN
   };
 
@@ -172,7 +177,9 @@ struct libg15_devices_t {
      * in the bad case you will get G15_ERROR_TRY_AGAIN -> try again
      */
     int getPressedKeys(unsigned int *pressed_keys);
-
+    void setLibG15Log(struct sG15Worker* _g15Worker);
+    // see also G15Worker.cpp
+    void log_callback(struct sG15Worker* g15, int level, const char* msg);
 
 #ifdef __cplusplus
 }

@@ -17,7 +17,6 @@
 #include <gtkmm.h>
 #include <iostream>
 #include <fontconfig/fontconfig.h>
-#include <string.h>
 #include <thread>
 #include <future>
 
@@ -61,6 +60,11 @@ G15Worker::isRunning()
     return running;
 }
 
+void
+G15Worker::setLog(const std::shared_ptr<psc::log::Log>& log)
+{
+    m_log = log;
+}
 
 // as the g15-function deals with x-bitmaps (network byte order ?)
 //   convert cairo image here
@@ -127,7 +131,7 @@ G15Worker::g15_update()
         int ret = writePixmapToLCD(data);
         if (ret != 0) {
             // In case of error reinitalize (disconnected device or alike)
-            fprintf(stderr, "G15 WritePixmap ret %d\n", ret);
+            m_log->error(Glib::ustring::sprintf("G15 WritePixmap ret %d", ret));
         }
         delete[] data;
 
@@ -150,11 +154,10 @@ int
 G15Worker::rundirect(const Glib::ustring &ucmd)
 {
     const char* cmd = ucmd.c_str();
-    fprintf(stderr, "Run %s\n", cmd);
+    m_log->info(Glib::ustring::sprintf("Run %s", ucmd));
     cmdErrorCode = system(cmd);
-    fprintf(stderr, "Run %s ret: %d\n", cmd, cmdErrorCode);
-    if (cmdErrorCode != 0)
-    {
+    m_log->info(Glib::ustring::sprintf("Run %s error %d", ucmd, cmdErrorCode));
+    if (cmdErrorCode != 0) {
         strncpy(m_cmd, cmd, sizeof(m_cmd)-1);
         if (m_pDispatcher != nullptr)
             m_pDispatcher->emit();
@@ -174,12 +177,14 @@ G15Worker::run(const Glib::ustring &cmd)
 }
 
 void
-G15Worker::do_work() {
-#ifdef DEBUG
-    libg15Debug(G15_LOG_INFO);
-#else
-    libg15Debug(G15_LOG_WARN);  //
-#endif
+G15Worker::do_work()
+{
+    libg15Debug(m_log->getLevel() <= psc::log::Level::Warn
+                ? G15_LOG_WARN
+                : m_log->getLevel() == psc::log::Level::Info
+                  ? G15_LOG_INFO
+                  : G15_LOG_DEBUG);
+    setLibG15Log(reinterpret_cast<sG15Worker*>(this));
     errorCode = initLibG15();
     if (errorCode == G15_NO_ERROR) {
         while (running)  {
@@ -238,7 +243,7 @@ G15Worker::do_work() {
                             netstart = FALSE;
                         }
                     }
-                    fprintf(stderr, "Key m1 %s ret: %d\n", netstart ? "y" : "n", ret);
+                    m_log->info(Glib::ustring::sprintf("Key m1 %s ret: %d", netstart ? "y" : "n", ret));
                     setLEDs(netstart ? 0x01 : 0x0);
                 }
 
@@ -256,14 +261,13 @@ G15Worker::do_work() {
             }
             else {
                 if (running) {
-                    fprintf(stderr, "Error reading g15 keys: %d\n", ret);
+                    m_log->warn(Glib::ustring::sprintf("Error reading g15 keys: %d", ret));
                     sleep(1);
                 }
             }
 
         }
         exitLibG15();
-        //fprintf(stderr, "Exiting g15worker\n");
     }
     else {
         if (errorCode != G15_ERROR_OPENING_USB_DEVICE) {
@@ -273,7 +277,7 @@ G15Worker::do_work() {
             if (m_pDispatcher != nullptr)
                 m_pDispatcher->emit();
         }
-        fprintf(stderr, "Error init g15 keys: %d\n", errorCode);
+        m_log->warn(Glib::ustring::sprintf("Error init g15 keys: %d", errorCode));
     }
     running = false;
 }
@@ -291,7 +295,8 @@ G15Worker::getCmdErrorCode()
 }
 
 char *
-G15Worker::getCmd() {
+G15Worker::getCmd()
+{
     return m_cmd;
 }
 
@@ -352,7 +357,8 @@ G15Worker::create_config()
     return g15_box;
 }
 
-void G15Worker::read_config(Glib::KeyFile *m_config)
+void
+G15Worker::read_config(Glib::KeyFile *m_config)
 {
     for (int i = 0; i < N_G15_CMD; ++i) {
         char key[16];
@@ -363,7 +369,8 @@ void G15Worker::read_config(Glib::KeyFile *m_config)
     config_setting_lookup_string(m_config, G15_GRP, "m1off", m1off);
 }
 
-void G15Worker::save_config(Glib::KeyFile *m_config)
+void
+G15Worker::save_config(Glib::KeyFile *m_config)
 {
     for (int i = 0; i < N_G15_CMD; ++i) {
         char key[16];
@@ -372,4 +379,27 @@ void G15Worker::save_config(Glib::KeyFile *m_config)
     }
     config_group_set_string(m_config, G15_GRP, "m1on", m1on);
     config_group_set_string(m_config, G15_GRP, "m1off", m1off);
+}
+
+void
+G15Worker::logMsg(int g15level, const char* msg)
+{
+    psc::log::Level level = psc::log::Level::Warn;
+    if (g15level == G15_LOG_DEBUG) {
+        level = psc::log::Level::Debug;
+    }
+    if (g15level == G15_LOG_INFO) {
+        level = psc::log::Level::Info;
+    }
+    m_log->log(level, msg);
+}
+
+// declared in libg15.h to be used from C
+extern "C" void
+log_callback(struct sG15Worker* sg15, int level, const char* msg)
+{
+    if (sg15) {
+        auto g15 = reinterpret_cast<G15Worker*>(sg15);
+        g15->logMsg(level, msg);
+    }
 }

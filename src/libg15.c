@@ -48,7 +48,7 @@ static uint32_t g15_interface;
 static pthread_mutex_t libusb_mutex;
 static int WRITE_TIMEOUT_MS = 1000;
 static int MAX_CLAIM_RETRY = 10;
-static FILE *errlog = NULL;
+static struct sG15Worker* g15Worker = NULL;
 
 #ifndef TRUE
 enum
@@ -133,29 +133,14 @@ static int g15_log(unsigned int level, const char *fmt, ...)
 {
     if (libg15_debugging_enabled
      && level >= libg15_debugging_enabled) {    // this might not be to anyones taste, but as we want still look for errors a log is best to identify some remaining issues
-        if (!errlog) {
-            const char* home = getenv("HOME");
+	if (g15Worker) {
             char log[128];
-            strncpy(log, home, sizeof(log) - 1);
-            strncat(log, "/log", sizeof(log) - 1);
-            mkdir(log, S_IRWXU);        // keep permissions to user
-            strncat(log, "/libg15.log", sizeof(log) - 1);
-            errlog = fopen(log, "w");   // create new log on each start
-        }
-        if (errlog) {
-            fprintf(errlog, "libg15 ");
-            if (level == G15_LOG_WARN) {
-                fprintf(errlog, "warn: ");
-            }
-            else {
-                fprintf(errlog, "info: ");
-            }
-            va_list argp;
+	    va_list argp;
             va_start(argp, fmt);
-            vfprintf(errlog, fmt, argp);
+	    vsnprintf(log, sizeof(log)-1, fmt, argp);	// only vsnprintf works here, snprintf will fail with varargs!
             va_end(argp);
-            fflush(errlog);
-        }
+	    log_callback(g15Worker, level, log);
+	}
     }
 
     return 0;
@@ -172,8 +157,8 @@ libusb_log_callback(libusb_context *ctx, enum libusb_log_level level, const char
 }
 
 /* enable or disable debugging */
-void libg15Debug(int option) {
-
+void libg15Debug(int option)
+{
     libg15_debugging_enabled = option;
     if (context == NULL) {      // will be set with open
         return;
@@ -186,7 +171,7 @@ void libg15Debug(int option) {
         level = LIBUSB_LOG_LEVEL_WARNING;
     int ret = libusb_set_option(context, LIBUSB_OPTION_LOG_LEVEL, level);
     if (ret != 0) {
-        g15_log(G15_LOG_WARN,"libusb_set_option log_level error %i\n", ret);
+        g15_log(G15_LOG_WARN,"libusb_set_option log_level error %d", ret);
     }
     libusb_set_log_cb(context, libusb_log_callback, LIBUSB_LOG_CB_CONTEXT);
 }
@@ -201,7 +186,7 @@ static void free_transfer(libg15_transfer *transfer)
         if (transfer->memory_type == TRANSFER_MEMORY_DEVICE) {
             int ret = libusb_dev_mem_free(keyboard_device, transfer->buffer, transfer->length);
             if (ret != 0) {
-                g15_log(G15_LOG_WARN, "libusb_dev_mem_free error %i %s length %i\n", ret, libusb_strerror(ret), transfer->length);
+                g15_log(G15_LOG_WARN, "libusb_dev_mem_free error %d %s length %d", ret, libusb_strerror(ret), transfer->length);
             }
         }
         else {
@@ -217,7 +202,7 @@ static int alloc_transfer(libg15_transfer *transfer, libusb_device_handle *devic
 
     transfer->buffer = libusb_dev_mem_alloc(device, transfer->length);   // do it the fancy way
     if (transfer->buffer == NULL) {
-        g15_log(G15_LOG_INFO, "libusb_dev_mem_alloc no DMA, will use standard memory.\n");
+        g15_log(G15_LOG_INFO, "libusb_dev_mem_alloc no DMA, will use standard memory.");
         transfer->buffer = malloc(transfer->length);
         transfer->memory_type = TRANSFER_MEMORY_MALLOC;
     }
@@ -248,7 +233,7 @@ int g15NumberOfConnectedDevices() {
     }
     //}
     //libusb_free_device_list(list, count);
-    g15_log(G15_LOG_INFO,"Found %i supported devices\n",found);
+    g15_log(G15_LOG_INFO,"Found %d supported devices", found);
     return found;
 }
 
@@ -258,10 +243,10 @@ static int initLibUsb()
         int ret = libusb_init(&context);
         if (ret != 0)
         {
-            g15_log(G15_LOG_WARN,"libusb init error %i", ret);
+            g15_log(G15_LOG_WARN,"libusb init error %d", ret);
             return G15_ERROR_OPENING_USB_DEVICE;
         }
-        g15_log(G15_LOG_INFO,"libusb init ok %i", ret);
+        g15_log(G15_LOG_DEBUG,"libusb init ok %d", ret);
         if (libg15_debugging_enabled > 0) {     // if debug was called before set it now
             libg15Debug(libg15_debugging_enabled);
         }
@@ -281,19 +266,19 @@ static int find_config(libusb_device_handle* handle, struct libusb_config_descri
         /* if endpoints are already known, finish up */
         if (g15_keys_endpoint && g15_lcd_endpoint)
             break;
-        g15_log(G15_LOG_INFO, "Device has %i alternate Settings\n", ifp->num_altsetting);
+        g15_log(G15_LOG_DEBUG, "Device has %d alternate Settings", ifp->num_altsetting);
 
         for (int alt = 0; alt < ifp->num_altsetting; alt++) {
             const struct libusb_interface_descriptor *as = &ifp->altsetting[alt];
             /* verify that the interface is for a HID device */
             if (as->bInterfaceClass == LIBUSB_CLASS_HID) {
-                g15_log(G15_LOG_INFO, "Interface %i has %i Endpoints\n", conf, as->bNumEndpoints);
+                g15_log(G15_LOG_DEBUG, "Interface 0x%x has %hhd Endpoints", conf, as->bNumEndpoints);
                 //usleep(50*1000);
                 int kernel_active = libusb_kernel_driver_active(handle, intf);
                 if (kernel_active == 1) {
                     ret = libusb_detach_kernel_driver(handle, intf);
                     if (ret != 0) {
-                         g15_log(G15_LOG_WARN,"Error %i %s trying to pry device from kernel, continue.\n", ret, libusb_strerror(ret));
+                         g15_log(G15_LOG_WARN,"Error %d %s trying to pry device from kernel, continue.", ret, libusb_strerror(ret));
                     }
                 }
 
@@ -302,7 +287,7 @@ static int find_config(libusb_device_handle* handle, struct libusb_config_descri
                     ret = libusb_set_configuration(handle, 1);
                     if (ret) {
                         const char *usb_err = libusb_strerror(ret);
-                        g15_log(G15_LOG_WARN,"Error %i %s setting the configuration, this is fatal\n", ret, usb_err);
+                        g15_log(G15_LOG_WARN,"Error %d %s setting the configuration, this is fatal", ret, usb_err);
                         return ret;
                     }
                 }
@@ -311,11 +296,11 @@ static int find_config(libusb_device_handle* handle, struct libusb_config_descri
                 while((ret = libusb_claim_interface(handle, intf)) && retries < MAX_CLAIM_RETRY) {
                     usleep(50*1000);
                     retries++;
-                    g15_log(G15_LOG_INFO,"Trying to claim interface %i\n", retries);
+                    g15_log(G15_LOG_INFO,"Trying to claim interface retry %d", retries);
                 }
 
                 if (ret) {
-                    g15_log(G15_LOG_WARN,"Error claiming interface, good day cruel world\n");
+                    g15_log(G15_LOG_WARN,"Error claiming interface, good day cruel world");
                     if (kernel_active == 1) {
                         libusb_attach_kernel_driver(handle, intf);
                     }
@@ -325,9 +310,9 @@ static int find_config(libusb_device_handle* handle, struct libusb_config_descri
 
                 for (int endp = 0; endp < as->bNumEndpoints; endp++){
                     const struct libusb_endpoint_descriptor *ep = &as->endpoint[endp];
-                    g15_log(G15_LOG_INFO, "Found %s endpoint %i with address 0x%X maxtransfersize=%i \n",
-                            0x80&ep->bEndpointAddress?"\"Extra Keys\"":"\"LCD\"",
-                            ep->bEndpointAddress&0x0f,ep->bEndpointAddress, ep->wMaxPacketSize);
+                    g15_log(G15_LOG_INFO, "Found %s endpoint %d with address 0x%x maxpacketsize=%d ",
+                            (0x80&ep->bEndpointAddress?"\"Extra Keys\"":"\"LCD\""),
+                            (int)(ep->bEndpointAddress&0x0f), (int)ep->bEndpointAddress, (int)ep->wMaxPacketSize);
 
                     if(0x80 & ep->bEndpointAddress) {
                         g15_keys_endpoint = ep->bEndpointAddress;
@@ -361,16 +346,16 @@ static libusb_device_handle *findAndOpenDevice(libg15_devices_t handled_device, 
     libusb_device_handle* handle = libusb_open_device_with_vid_pid(context, handled_device.vendorid, handled_device.productid);
     if (handle != NULL) {
         found_devicetype = device_index;
-        g15_log(G15_LOG_INFO,"Found %s opened it\n", handled_device.name);
+        g15_log(G15_LOG_INFO,"Found %s opened it", handled_device.name);
         libusb_device* dev = libusb_get_device(handle);
         struct libusb_device_descriptor desc;
         int ret = libusb_get_device_descriptor(dev, &desc);
         if (ret != 0) {
-            g15_log(G15_LOG_WARN, "Device %s error %i %s on get_device_descriptor\n",
+            g15_log(G15_LOG_WARN, "Device %s error %d %s on get_device_descriptor",
                     handled_device.name, ret, libusb_strerror(ret));
             return NULL;
         }
-        g15_log(G15_LOG_INFO, "Device has %i possible configurations\n",desc.bNumConfigurations);
+        g15_log(G15_LOG_INFO, "Device has %hhd possible configurations", desc.bNumConfigurations);
 
         /* if device is shared with another driver, such as the Z-10 speakers sharing with alsa, we have to disable some calls */
         if(g15DeviceCapabilities() & G15_DEVICE_IS_SHARED)
@@ -380,8 +365,8 @@ static libusb_device_handle *findAndOpenDevice(libg15_devices_t handled_device, 
             struct libusb_config_descriptor *cfg;
             ret = libusb_get_config_descriptor(dev, conf, &cfg);
             if (ret != 0) {
-                g15_log(G15_LOG_WARN, "Device %s error %i %s on get_config_descriptor\n",
-                        handled_device.name,ret, libusb_strerror(ret));
+                g15_log(G15_LOG_WARN, "Device %s error %d %s on get_config_descriptor",
+                        handled_device.name, ret, libusb_strerror(ret));
                 continue;
             }
 
@@ -391,7 +376,7 @@ static libusb_device_handle *findAndOpenDevice(libg15_devices_t handled_device, 
                 return NULL;
             }
         }
-        g15_log(G15_LOG_INFO, "Done opening the keyboard\n");
+        g15_log(G15_LOG_DEBUG, "Done opening the keyboard %p", handle);
         //usleep(500*1000); // sleep a bit for good measure
         return handle;
     }
@@ -405,13 +390,13 @@ static libusb_device_handle *findAndOpenDevice(libg15_devices_t handled_device, 
 static  libusb_device_handle * findAndOpenG15() {
     int i;
     for (i=0; g15_devices[i].name != NULL; i++){
-        g15_log(G15_LOG_INFO,"Trying to find %s\n",g15_devices[i].name);
+        g15_log(G15_LOG_DEBUG, "Trying to find 0x%hx", g15_devices[i].productid);
         keyboard_device = findAndOpenDevice(g15_devices[i], i);
         if (keyboard_device) {
             break;
         }
-        else
-            g15_log(G15_LOG_INFO,"%s not found\n",g15_devices[i].name);
+        //else
+        //    g15_log(G15_LOG_DEBUG, "not found 0x%hx", g15_devices[i].productid);
     }
     return keyboard_device;
 }
@@ -425,12 +410,10 @@ int initLibG15()
     if (retval)
         return retval;
 
-    g15_log(G15_LOG_INFO,"%s\n",PACKAGE_STRING);
-
-#ifdef SUN_LIBUSB
-    g15_log(G15_LOG_INFO,"Using Sun libusb.\n");
-#endif
-
+    g15_log(G15_LOG_DEBUG,PACKAGE_STRING);
+    //#ifdef SUN_LIBUSB	// this will to be supported...
+    //    g15_log(G15_LOG_INFO,"Using Sun libusb.");
+    //#endif
     //g15NumberOfConnectedDevices();  // this seems mostly useless,rather useable for debug
 
     keyboard_device = findAndOpenG15();
@@ -446,13 +429,13 @@ static void cancel_transfer(const char* key, libg15_transfer *transfer, libusb_t
     if (transfer->transfer != NULL) {
         transfer->free = TRANSFER_FREE;          // indicate we are about to complete
         if (transfer->active == TRANSFER_ACTIVE) { // with active transfer bring it down by event handling
-            g15_log(G15_LOG_WARN, "%s transfer active libusb_cancel_transfer status %i\n", key, transfer->transfer->status);
+            g15_log(G15_LOG_WARN, "%s transfer active libusb_cancel_transfer status %d", key, transfer->transfer->status);
             int ret = libusb_cancel_transfer(transfer->transfer);
             if (ret == LIBUSB_SUCCESS) {      // if this succeeds
                 handle_transfer_events(TRUE);    // give handling some chance to finish up
             }
             else {
-                g15_log(G15_LOG_WARN, "%s transfer active libusb_cancel_transfer ret %i\n", key, ret);
+                g15_log(G15_LOG_WARN, "%s transfer active libusb_cancel_transfer ret %d", key, ret);
                 transfer->active = TRANSFER_INACTIVE;   // so direct handling may work as alternative
             }
         }
@@ -473,7 +456,7 @@ int freeLibG15usb()
         cancel_transfer("lcd", &lcd_transfer, lcd_transfer_cb);
         retval = libusb_release_interface(keyboard_device, g15_interface);
         if (retval != LIBUSB_SUCCESS)  {
-            g15_log(G15_LOG_WARN, "libusb_release_interface ret %i\n", retval);
+            g15_log(G15_LOG_WARN, "libusb_release_interface ret %d", retval);
         }
         //usleep(50*1000);
 
@@ -481,7 +464,7 @@ int freeLibG15usb()
             libusb_close(keyboard_device);
         }
         keyboard_device = NULL;
-        g15_log(G15_LOG_INFO, "libusb_close device done\n");
+        g15_log(G15_LOG_DEBUG, "libusb_close device done ret %d", retval);
         return retval;
     }
     return -1;
@@ -502,10 +485,7 @@ int exitLibG15()
         libusb_exit(context);
         context = NULL;
     }
-    if (errlog) {
-        fclose(errlog);
-        errlog = NULL;
-    }
+    g15_log(G15_LOG_DEBUG, "exitLibG15 ret %d", retval);
     return retval;
 }
 
@@ -593,7 +573,7 @@ static void dumpPixmapIntoLCDFormat(unsigned char *lcd_buffer, unsigned char con
 int handle_usb_errors(const char *prefix, int ret) {
 
     const char *usb_err = libusb_strerror(ret);
-    g15_log(G15_LOG_WARN, "Usb error: %s %s (%i)\n", prefix, usb_err, ret);
+    g15_log(G15_LOG_WARN, "Usb error: %s %s (%d)", prefix, usb_err, ret);
     switch (ret) {
 // leagacy error codes, dont expect that many workarounds for modern usb ...
 //        case -ETIMEDOUT:
@@ -605,17 +585,17 @@ int handle_usb_errors(const char *prefix, int ret) {
 //                break;
 //            case -ENODEV:   /* the device went away - we probably should attempt to reattach */
 //            case -ENXIO:    /* host controller bug */
-//                g15_log(G15_LOG_INFO,"usb no dev error: %s %s (%i)\n",prefix,usb_err,ret);
+//                g15_log(G15_LOG_INFO,"usb no dev error: %s %s (%d)\n",prefix,usb_err,ret);
 //                //exitLibG15();
 //		int errval = freeLibG15usb();
-//		fprintf(stderr, "usb lost %s %s (%i) free %i\n", prefix, usb_err, ret, errval);
+//		fprintf(stderr, "usb lost %s %s (%d) free %d\n", prefix, usb_err, ret, errval);
 //		// leave open to next access
 //		break;
 //            case -EINVAL: /* invalid request */
 //            case -EAGAIN: /* try again */
 //            case -EFBIG: /* too many frames to handle */
 //            case -EMSGSIZE: /* msgsize is invalid */
-//                 g15_log(G15_LOG_INFO,"usb error: %s %s (%i)\n",prefix,usb_err,ret);
+//                 g15_log(G15_LOG_INFO,"usb error: %s %s (%d)\n",prefix,usb_err,ret);
 //                 break;
 //            case -EPIPE: /* endpoint is stalled */
 //                 g15_log(G15_LOG_INFO,"usb error: %s EPIPE! clearing...\n",prefix);
@@ -627,7 +607,7 @@ int handle_usb_errors(const char *prefix, int ret) {
                 key_transfer.active = TRANSFER_INACTIVE;    // as exiting by event handling wont work
                 lcd_transfer.active = TRANSFER_INACTIVE;    //   and this seems like a logical consequence
                 int errval = freeLibG15usb();        // free device
-		g15_log(G15_LOG_INFO, "usb lost free %i\n", errval);
+		g15_log(G15_LOG_INFO, "usb lost free %d", errval);
                 break;
     }
     return ret;
@@ -651,7 +631,7 @@ void key_transfer_cb(struct libusb_transfer *transfer)
 {
     libg15_transfer *usr_transfer = transfer->user_data;
 
-    //fprintf(stderr,"libusb_transfer_cb status %i len %i\n", transfer->status, transfer->actual_length);
+    //fprintf(stderr,"libusb_transfer_cb status %d len %d\n", transfer->status, transfer->actual_length);
     if (transfer->status == LIBUSB_TRANSFER_CANCELLED
      || transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
         if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE
@@ -662,7 +642,7 @@ void key_transfer_cb(struct libusb_transfer *transfer)
     }
     else {
         if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
-            //fprintf(stderr,"handling len %i\n", actual_buffer_length);
+            //fprintf(stderr,"handling len %d\n", actual_buffer_length);
             unsigned char *buf = usr_transfer->buffer;
             unsigned int pressed_keys = 0u;
             switch(transfer->actual_length) {
@@ -673,7 +653,7 @@ void key_transfer_cb(struct libusb_transfer *transfer)
                   pressed_keys = processKeyEvent9Byte(buf);
                   break;
                 default:
-                    g15_log(G15_LOG_INFO, "Unrecognized keyboard packet [%i]: %x, %x, %x, %x, %x, %x, %x\n", transfer->actual_length, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6]);
+                    g15_log(G15_LOG_INFO, "Unrecognized keyboard packet [%d]: %x, %x, %x, %x, %x, %x, %x", transfer->actual_length, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6]);
                     //if(buffer[0] == 1) {
                     //    if (actual_buffer_length == 7) {	// with a ret of 7 we get scan-code buffer[1] g5 = 62, g6 = 63
                     //                                  //   and as the device will forget the next packet if set the lcd, read next
@@ -749,7 +729,7 @@ int writePixmapToLCD(unsigned char const *data)
              && lcd_transfer.active == TRANSFER_ACTIVE) {   // if not yet finished
                 handle_transfer_events(FALSE);  // finish up previous transfer
                 if (lcd_transfer.active == TRANSFER_ACTIVE) {   // if hanging
-                    g15_log(G15_LOG_WARN, "last lcd transfer still active: %i status %i\n", lcd_transfer.active, lcd_transfer.transfer->status);
+                    g15_log(G15_LOG_WARN, "last lcd transfer still active: %d status %d", lcd_transfer.active, lcd_transfer.transfer->status);
                     libusb_cancel_transfer(lcd_transfer.transfer);
                     handle_transfer_events(FALSE);  // try to handle these
                 }
@@ -767,7 +747,7 @@ int writePixmapToLCD(unsigned char const *data)
                 }
             }
             else {
-                g15_log(G15_LOG_WARN, "previous transfer unfinished\n");
+                g15_log(G15_LOG_WARN, "previous transfer unfinished");
                 g15ret = G15_ERROR_WRITING_PIXMAP;      // something seems serious wrong
             }
         }
@@ -916,7 +896,7 @@ static unsigned int processKeyEvent9Byte(unsigned char *buffer)
 
     unsigned int pressed_keys = 0u;
 
-    g15_log(G15_LOG_INFO, "Keyboard: %x, %x, %x, %x, %x, %x, %x, %x, %x\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8]);
+    g15_log(G15_LOG_INFO, "Keyboard: %x, %x, %x, %x, %x, %x, %x, %x, %x", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7], buffer[8]);
 
     if (buffer[0] == 0x02)
     {
@@ -1007,7 +987,7 @@ static unsigned int processKeyEvent5Byte(unsigned char *buffer)
 
     unsigned int pressed_keys = 0u;
 
-    g15_log(G15_LOG_INFO, "Keyboard: %x, %x, %x, %x, %x\n", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
+    g15_log(G15_LOG_INFO, "Keyboard: %x, %x, %x, %x, %x", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
 
     if (buffer[0] == 0x02)
     {
@@ -1088,7 +1068,7 @@ static void handle_transfer_events(bool skipCancelled)
         tv.tv_usec = 10 * 1000;   // 10ms timeout
         int ret = libusb_handle_events_timeout(context, &tv);
         if (ret != LIBUSB_SUCCESS) {
-            g15_log(G15_LOG_WARN, "g15 libusb_handle_events_timeout %i %s\n", ret, libusb_strerror(ret));
+            g15_log(G15_LOG_WARN, "g15 libusb_handle_events_timeout %d %s", ret, libusb_strerror(ret));
         }
     }
 }
@@ -1128,10 +1108,14 @@ int getPressedKeys(unsigned int *pressed_keys)
             ret = G15_NO_ERROR;
         }
         else {
-            g15_log(G15_LOG_WARN, "Unexpected status %i on keyboard read\n", key_transfer.transfer->status);
+            g15_log(G15_LOG_WARN, "Unexpected status %d on keyboard read", key_transfer.transfer->status);
             ret = G15_ERROR_READING_USB_DEVICE;
         }
     }
     return ret;
 }
 
+void setLibG15Log(struct sG15Worker* _g15Worker)
+{
+    g15Worker = _g15Worker;
+}

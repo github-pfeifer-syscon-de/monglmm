@@ -56,10 +56,10 @@ class Glyph2;
 } /* namespace psc */
 } /* namespace gl */
 
-static psc::gl::Glyph2 *pGlyph;
+static psc::gl::Glyph2 *pGlyph2;
 
 
-const char* getPrimitiveType(GLenum type)
+const char* getPrimitiveType2(GLenum type)
 {
     switch(type)
     {
@@ -142,7 +142,7 @@ tessVertexCB(const GLvoid *data)
 
     switch(whichTess) {
     case GL_TRIANGLES :
-        pGlyph->addFillPoint(pos, c, n);
+        pGlyph2->addFillPoint(pos, c, n);
         break;
     case GL_TRIANGLE_FAN:   // to use uniform geometry convert to triangles
         if (lastTessIndex < 2) {
@@ -150,9 +150,9 @@ tessVertexCB(const GLvoid *data)
             ++lastTessIndex;
         }
         else {
-            pGlyph->addFillPoint(lastTess[0], c, n);
-            pGlyph->addFillPoint(lastTess[1], c, n);
-            pGlyph->addFillPoint(pos, c, n);
+            pGlyph2->addFillPoint(lastTess[0], c, n);
+            pGlyph2->addFillPoint(lastTess[1], c, n);
+            pGlyph2->addFillPoint(pos, c, n);
 
             // with a fan point 0 stays
             lastTess[1] = pos;
@@ -164,16 +164,16 @@ tessVertexCB(const GLvoid *data)
             ++lastTessIndex;
         }
         else {
-            pGlyph->addFillPoint(lastTess[0], c, n);
-            pGlyph->addFillPoint(lastTess[1], c, n);
-            pGlyph->addFillPoint(pos, c, n);
+            pGlyph2->addFillPoint(lastTess[0], c, n);
+            pGlyph2->addFillPoint(lastTess[1], c, n);
+            pGlyph2->addFillPoint(pos, c, n);
 
             lastTess[0] = lastTess[1];
             lastTess[1] = pos;
         }
         break;
     default:
-        std::cerr << "Undefined " << getPrimitiveType(whichTess) << std::endl;
+        std::cerr << "Undefined " << getPrimitiveType2(whichTess) << std::endl;
     }
 
     // DEBUG //
@@ -291,7 +291,7 @@ cubic_to( const FT_Vector *control1, const FT_Vector *control2, const FT_Vector 
 void
 Glyph2::buildLineTriangels(FT_Library library, FT_Face face, FT_UInt glyph_index)
 {
-    pGlyph = this;
+    pGlyph2 = this;
     FT_Outline* outline = &face->glyph->outline;
     p2t::Polygons polys;
     #ifdef DIRECT_SCAN
@@ -514,7 +514,7 @@ Glyph2::tesselate(p2t::Polygons outline)
                 for (int i = 0; i < 3; ++i) {
                     p2t::Point* p = tri->GetPoint(i);
                     Position pos(p->x, p->y, 0.0);
-                    pGlyph->addFillPoint(pos, c, n);
+                    pGlyph2->addFillPoint(pos, c, n);
                 }
             }
             nest->clearTemp();

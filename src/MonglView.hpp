@@ -22,6 +22,7 @@
 #include <future>
 #include <vector>
 #include <memory>
+#include <Log.hpp>
 
 #include "libgtop_helper.h"
 #include "Geometry.hpp"
@@ -110,18 +111,19 @@ private:
     Gdk::RGBA m_background_color;
     std::shared_ptr<Monitor> m_temp;
     std::shared_ptr<NetInfo> m_netInfo;
+    std::shared_ptr<psc::log::Log> m_log;
+    static constexpr auto CONFIG_LOGLEVEL = "logLevel";
+    static constexpr auto MIN_UPDATE_PERIOD = 1;              /* Seconds (minimum)    */
+    static constexpr auto MAX_UPDATE_PERIOD = 60;              /* Seconds (maximum)    */
+    static constexpr auto CONFIG_UPDATE_INTERVAL = "UpdateInterval";
+    static constexpr auto CONFIG_TEXT_COLOR = "TextColor";
+    static constexpr auto CONFIG_BACKGOUNDCOLOR = "BackgroundColor";
+    static constexpr auto CONFIG_PROCESSTYPE = "processType";
+    static constexpr auto CONFIG_GRP_MAIN = "Main";
+    static constexpr auto TEXT_DEFAULT_COLOR = "#AAAAAA";
+    static constexpr auto BACKGROUND_DEFAULT_COLOR = "#0F0F1F";
+
 };
 
 static const  guint n_values = 100;
 
-
-#define MIN_UPDATE_PERIOD    1              /* Seconds (minimum)    */
-#define MAX_UPDATE_PERIOD   60              /* Seconds (maximum)    */
-#define CONFIG_UPDATE_INTERVAL "UpdateInterval"
-#define CONFIG_TEXT_COLOR "TextColor"
-#define CONFIG_BACKGOUNDCOLOR "BackgroundColor"
-#define CONFIG_PROCESSTYPE "processType"
-#define CONFIG_GRP_MAIN "Main"
-
-#define TEXT_DEFAULT_COLOR "#AAAAAA"
-#define BACKGROUND_DEFAULT_COLOR "#0F0F1F"

@@ -19,6 +19,7 @@
 
 #include <gtkmm.h>
 #include <memory>
+#include <Log.hpp>
 
 #include "Page.hpp"
 
@@ -41,7 +42,8 @@ public:
     void read_config(Glib::KeyFile *m_config);
     void save_config(Glib::KeyFile *m_config);
     bool isRunning();
-
+    void setLog(const std::shared_ptr<psc::log::Log>& log);
+    void logMsg(int g15level, const char *msg);
 private:
     void g15_update();
     int rundirect(const Glib::ustring &cmd);
@@ -59,4 +61,6 @@ private:
     Glib::ustring gcmd[N_G15_CMD];
     Glib::ustring m1on;
     Glib::ustring m1off;
+    std::shared_ptr<psc::log::Log> m_log;
 };
+

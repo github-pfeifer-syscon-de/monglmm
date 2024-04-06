@@ -249,14 +249,27 @@ coversionTest()
 {
     baseFreed = 0;
     testFreed = 0;
-    std::cout << "coversion ---------- " << std::endl;
-    psc::mem::active_ptr<Base> base;
-    // psc::mem::active_ptr<Unrelated> unrelated{base};  //this should not compile ...
-    auto unrelated = psc::mem::dynamic_pointer_cast<Unrelated>(base);
-    if (unrelated) {    // if this becomes active there is something wrong
-        return false;
+    std::cout << "conversion ---------- " << std::endl;
+    {
+        psc::mem::active_ptr<Base> base;
+        auto active_ptr1 = psc::mem::make_active<Test>(11);
+        // psc::mem::active_ptr<Unrelated> unrelated{base};  //this should not compile ...
+        auto unrelated = psc::mem::dynamic_pointer_cast<Unrelated>(base);
+        if (unrelated) {    // if this becomes active there is something wrong
+            return false;
+        }
+        auto lemty = unrelated.lease(); // check access to "empty" ptr
+        if (lemty) {
+            return false;
+        }
+        base = active_ptr1;     // implicit conversion
+        auto lemty2 = active_ptr1.lease(); // check access to value ptr
+        if (!lemty2) {
+            std::cout << "second 2 no access" << std::endl;
+            return false;
+        }
     }
-    std::cout << "coversion ---------- "
+    std::cout << "conversion ---------- "
               << " base " << baseFreed
               << " test " << testFreed
               << std::endl;

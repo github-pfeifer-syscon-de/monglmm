@@ -56,6 +56,7 @@ MonglView::MonglView(Gtk::Application* application)
 , m_filesyses{std::make_shared<Filesyses>()}
 , m_diskInfos{std::make_shared<DiskInfos>()}
 , m_application{application}
+, m_log{std::make_shared<psc::log::Log>("monglmm")}
 {
 
     read_config();
@@ -74,6 +75,11 @@ MonglView::MonglView(Gtk::Application* application)
         if (config_setting_lookup_string(m_config, CONFIG_GRP_MAIN, CONFIG_PROCESSTYPE,
                                   uProcessType)) {
             m_processes.setTreeType(uProcessType);
+        }
+        Glib::ustring uLogLevel;
+        if (config_setting_lookup_string(m_config, CONFIG_GRP_MAIN, CONFIG_LOGLEVEL,
+                                  uLogLevel)) {
+            m_log->setLevel(psc::log::Log::getLevel(uLogLevel));
         }
 
     }
@@ -147,7 +153,7 @@ MonglView::init_shaders(Glib::Error &error)
         ret = gctx->createProgram(vertexVersioned.c_str(), fragmVersioned.c_str(), error);
     }
     catch (Glib::Error &err) {
-        std::cerr << "error " << err.code() << " " << err.what() << " loading resources!" <<  std::endl;
+        m_log->error(Glib::ustring::sprintf("init shader error %d %s loading resources!",  err.code(), err.what()));
         ret = FALSE;
     }
     if (!ret) {
@@ -209,9 +215,9 @@ void
 MonglView::on_notification_from_worker_thread()
 {
 #ifdef LIBG15
-    char tmp[64];
-    snprintf(tmp, sizeof(tmp), "Error %s Init %d cmd %d", worker->getCmd(),
-			worker->getErrorCode(), worker->getCmdErrorCode());
+    auto tmp = Glib::ustring::sprintf("Error %s Init %d cmd %d"
+                    , worker->getCmd(), worker->getErrorCode(), worker->getCmdErrorCode());
+    m_log->error(tmp);
     Gtk::MessageDialog msg = Gtk::MessageDialog(tmp, false, Gtk::MessageType::MESSAGE_ERROR);
     msg.run();
 #endif
@@ -225,6 +231,7 @@ MonglView::update_timer()
 
     m_timer = Glib::signal_timeout().connect_seconds(
                     sigc::mem_fun(*this, &MonglView::monitors_update), m_updateInterval);
+    m_log->info(Glib::ustring::sprintf("Using update interval %d", m_updateInterval));
 }
 
 void
@@ -292,6 +299,7 @@ MonglView::init(Gtk::GLArea *glArea)
         if (m_config != nullptr) {
             worker->read_config(m_config);
         }
+        worker->setLog(m_log);
         worker->do_work();
     });
 #endif
@@ -342,11 +350,10 @@ MonglView::unrealize()
     }
 }
 
-static void
-get_config_name(char *tmp, size_t len)
+static Glib::ustring
+get_config_name()
 {
-    const gchar *cfgdir = g_get_user_config_dir();
-    snprintf(tmp, len, "%s/%s", cfgdir, "mongl.conf");
+    return Glib::canonicalize_filename("mongl.conf", g_get_user_config_dir());
 }
 
 
@@ -354,18 +361,16 @@ void
 MonglView::read_config()
 {
     m_config = new Glib::KeyFile();
-    gchar gcfg[80];
-    get_config_name(gcfg, sizeof (gcfg));
+    auto gcfg = get_config_name();
     try {
         if (!m_config->load_from_file(gcfg, Glib::KEY_FILE_NONE)) {
-            std::cerr << "Error loading " << gcfg << std::endl;
+            m_log->error(Glib::ustring::sprintf("Error loading %s", gcfg));
         }
     }
     catch (const Glib::FileError& exc) {
         // may happen if didn't create a file (yet) but we can go on
-        std::cerr << "File Error loading " << gcfg << " if its missing, it will be created?" << std::endl;
+        m_log->error(Glib::ustring::sprintf("File Error %s loading %s if its missing, it will be created?", exc.what(), gcfg));
     }
-    //("read_config", err);
 }
 
 void
@@ -381,11 +386,9 @@ MonglView::save_config()
     }
 
     if (m_config) {
-        gchar gcfg[128];
-        get_config_name(gcfg, sizeof(gcfg));
-        if (!m_config->save_to_file(gcfg))
-        {
-             std::cerr << "Error saving " << gcfg << std::endl;
+        auto gcfg = get_config_name();
+        if (!m_config->save_to_file(gcfg)) {
+            m_log->error(Glib::ustring::sprintf("Error saving %s ", gcfg));
         }
     }
 }
@@ -449,7 +452,7 @@ MonglView::drawContent()
         m_graph_shaderContext->unuse();
     }
     else {
-        std::cerr << "No shader context on display" << std::endl;
+        m_log->error("No shader context on display");
     }
 }
 
@@ -615,11 +618,11 @@ MonglView::on_process_kill() {
         auto process = dynamic_cast<Process*>(m_selectedTreeNode);
         if (process != nullptr) {
             // woud be nice to use use some dialog for that
-            std::cout << "Kill!" << process->getName() << " " << process->getPid()  << std::endl;
+            m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
             process->killProcess();
         }
         else {
-            std::cout << "No process!" << std::endl;
+            m_log->warn("No process to kill!");
         }
     }
 }
