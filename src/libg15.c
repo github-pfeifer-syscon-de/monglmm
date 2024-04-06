@@ -310,7 +310,7 @@ static int find_config(libusb_device_handle* handle, struct libusb_config_descri
 
                 for (int endp = 0; endp < as->bNumEndpoints; endp++){
                     const struct libusb_endpoint_descriptor *ep = &as->endpoint[endp];
-                    g15_log(G15_LOG_INFO, "Found %s endpoint %d with address 0x%x maxpacketsize=%d ",
+                    g15_log(G15_LOG_DEBUG, "Found %s endpoint %d with address 0x%x maxpacketsize=%d ",
                             (0x80&ep->bEndpointAddress?"\"Extra Keys\"":"\"LCD\""),
                             (int)(ep->bEndpointAddress&0x0f), (int)ep->bEndpointAddress, (int)ep->wMaxPacketSize);
 
@@ -355,7 +355,7 @@ static libusb_device_handle *findAndOpenDevice(libg15_devices_t handled_device, 
                     handled_device.name, ret, libusb_strerror(ret));
             return NULL;
         }
-        g15_log(G15_LOG_INFO, "Device has %hhd possible configurations", desc.bNumConfigurations);
+        g15_log(G15_LOG_DEBUG, "Device has %hhd possible configurations", desc.bNumConfigurations);
 
         /* if device is shared with another driver, such as the Z-10 speakers sharing with alsa, we have to disable some calls */
         if(g15DeviceCapabilities() & G15_DEVICE_IS_SHARED)
