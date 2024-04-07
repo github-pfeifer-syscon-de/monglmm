@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <fstream>
+#include <Log.hpp>
 
 #include "Monitor.hpp"
 #include "MonglView.hpp"
@@ -56,7 +57,7 @@ MonglView::MonglView(Gtk::Application* application)
 , m_filesyses{std::make_shared<Filesyses>()}
 , m_diskInfos{std::make_shared<DiskInfos>()}
 , m_application{application}
-, m_log{std::make_shared<psc::log::Log>("monglmm")}
+, m_log{psc::log::Log::create("monglmm")}
 {
 
     read_config();
