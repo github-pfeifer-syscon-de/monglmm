@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <vector>
-#include <source_location>
+#include <Log.hpp>
 
 #include "Processes.hpp"
 #include "TreeNode2.hpp"
@@ -167,7 +167,7 @@ Processes::buildTree()
         }
         else {
             // as update and redraw happen asynchronously this will happen on first call
-            std::cerr << "No process 1 to root proc tree!" << std::endl;
+	    psc::log::Log::logNow(psc::log::Level::Error, "No process 1 to root proc tree!");
         }
     }
 }
@@ -369,14 +369,12 @@ Processes::display(
                 //std::cout << "Processes display tree end" << std::endl;
             }
             else {
-                std::cout << std::source_location::current()
-                          << " no tree root to display!" << std::endl;
+	         psc::log::Log::logNow(psc::log::Level::Error, "No tree root to display!");
             }
         }
         else {
-            std::cout << std::source_location::current()
-                      << " unknown tree renderer " << static_cast<std::underlying_type<TreeType>::type>(m_treeType)
-                      << std::endl;
+	    psc::log::Log::logNow(psc::log::Level::Error, Glib::ustring::sprintf("Unknown tree renderer %d", static_cast<std::underlying_type<TreeType>::type>(m_treeType)));
+                     
         }
         // as geometries are added to context they will be displayed automatically
         //m_procRoot->displayRecursive(persView, mvp);

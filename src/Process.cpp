@@ -23,12 +23,13 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <Log.hpp>
+#include <StringUtils.hpp>
 
 #include "ShaderContext.hpp"
 #include "Process.hpp"
 #include "Monitor.hpp"
 #include "NameValue.hpp"
-#include "StringUtils.hpp"
 
 Process::Process(std::string _path, long _pid, guint _size)
 : psc::gl::TreeNode2::TreeNode2()
@@ -191,7 +192,8 @@ void Process::update_stat()
     }
     catch (std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
-            std::cerr << sstat << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message() << std::endl;
+	  psc::log::Log::logNow(psc::log::Level::Notice, Glib::ustring::sprintf("Proc read %s what %s msg %s", sstat, e.what(), e.code().message()));
+            //std::cerr << sstat << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message() << std::endl;
             stage = psc::gl::TreeNodeState::Finished;     // do not ask again
         }
     }
@@ -233,7 +235,7 @@ Process::update_status()
         }
 	}
 	else {
-        stage = psc::gl::TreeNodeState::Finished;     // do not ask again
+            stage = psc::gl::TreeNodeState::Finished;     // do not ask again
 	}
 }
 
