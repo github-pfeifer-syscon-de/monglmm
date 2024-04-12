@@ -26,15 +26,13 @@ PKG_CHECK_MODULES([GTHREAD], [gthread-2.0])
 PKG_CHECK_MODULES([GENERICGLM], [genericglm >= 0.2.7])
 PKG_CHECK_MODULES([GENERICIMG], [genericimg >= 0.3.1])
 
-PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4])
+dnl don't repeat previous dependencies
+dnl PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4])
+dnl PKG_CHECK_MODULES([GTKMM], [gtkmm-3.0])
+dnl PKG_CHECK_MODULES(LIBFONTCONFIG, [fontconfig])
+dnl PKG_CHECK_MODULES(GLU, [glu])
 
-PKG_CHECK_MODULES([GTKMM], [gtkmm-3.0])
-
-dnl include for testing font stuff
-PKG_CHECK_MODULES(LIBFONTCONFIG, [fontconfig])
-PKG_CHECK_MODULES(GLU, [glu])
-
-AC_ARG_WITH([glibtop], AS_HELP_STRING([--with-glibtop], [Build for glibtop (limited suuport) otherwise proc/sys will be used, linux only]))
+AC_ARG_WITH([glibtop], AS_HELP_STRING([--with-glibtop], [Build for glibtop (limited suport) otherwise proc/sys will be used, linux only]))
 
 AS_IF([test "x$with_glibtop" = "xyes"], [
     PKG_CHECK_MODULES(LIBGTOP, [libgtop-2.0], [AC_DEFINE([LIBGTOP], [1], [Using libgtop])])

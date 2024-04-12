@@ -7,7 +7,6 @@ AM_CPPFLAGS = \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)."\" \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
 	-I../glmLib \
-	$(GTKMM_CFLAGS) \
 	$(GTHREAD_CFLAGS) \
 	$(GENERICGLM_CFLAGS) \
 	$(GENERICIMG_CFLAGS) \
@@ -16,8 +15,6 @@ AM_CPPFLAGS = \
 	$(LIBUSB_CFLAGS) \
 	$(VCSM_CFLAGS) \
 	$(BCM_HOST_CFLAGS) \
-	$(LIBFONTCONFIG_CFLAGS) \
-	$(GLU_CFLAGS) \
 	$(LMSENSORS_CFLAGS)
 
 AM_CFLAGS= \
@@ -25,8 +22,6 @@ AM_CFLAGS= \
 
 AM_CXXFLAGS = \
 	-Wall
-
-
 
 bin_PROGRAMS = monglmm
 
@@ -135,16 +130,12 @@ monglmm_LDADD = \
 	$(MONGLMM_LIBS) \
 	$(GENERICGLM_LIBS) \
 	$(GENERICIMG_LIBS) \
-	$(GLIBMM_LIBS) \
-	$(GTKMM_LIBS) \
 	$(GTHREAD_LIBS) \
 	$(EPOXY_LIBS) \
 	$(LIBGTOP_LIBS) \
 	$(LIBUSB_LIBS) \
 	$(VCSM_LIBS) \
 	$(BCM_HOST_LIBS) \
-	$(LIBFONTCONFIG_LIBS) \
-	$(GLU_LIBS) \
 	$(LMSENSORS_LIBS)
 
 
