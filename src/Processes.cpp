@@ -217,10 +217,10 @@ Processes::updateCpu(GraphShaderContext* pGraph_shaderContext,
     if (!m_cpuGeo[0]) {
         for (uint32_t i = 0; i < Processes::TOP_PROC; ++i) {
             m_cpuGeo[i] = createBox(pGraph_shaderContext, colors[i]);
+            pGraph_shaderContext->addGeometry(m_cpuGeo[i]);
             auto lcpuGeo = m_cpuGeo[i].lease();
             if (lcpuGeo) {
                 lcpuGeo->setPosition(p);
-                //pGraph_shaderContext->addGeometry(m_cpuGeo[i]);
                 m_textCpu[i] = psc::mem::make_active<psc::gl::Text2>(GL_TRIANGLES, pGraph_shaderContext, pFont);
                 auto ltextCpu = m_textCpu[i].lease();
                 if (ltextCpu) {
@@ -277,10 +277,10 @@ Processes::updateMem(GraphShaderContext* pGraph_shaderContext,
     if (!m_memGeo[0]) {
         for (uint32_t i = 0; i < Processes::TOP_PROC; ++i) {
             m_memGeo[i] = createBox(pGraph_shaderContext, colors[i]);
+            pGraph_shaderContext->addGeometry(m_memGeo[i]);
             auto lmemGeo = m_memGeo[i].lease();
             if (lmemGeo) {
                 lmemGeo->setPosition(p);
-                //pGraph_shaderContext->addGeometry(m_memGeo[i]);
                 m_textMem[i] = psc::mem::make_active<psc::gl::Text2>(GL_TRIANGLES, pGraph_shaderContext, pFont);
                 auto lTextMem = m_textMem[i].lease();
                 if (lTextMem) {
@@ -374,7 +374,7 @@ Processes::display(
         }
         else {
 	    psc::log::Log::logNow(psc::log::Level::Error, Glib::ustring::sprintf("Unknown tree renderer %d", static_cast<std::underlying_type<TreeType>::type>(m_treeType)));
-                     
+
         }
         // as geometries are added to context they will be displayed automatically
         //m_procRoot->displayRecursive(persView, mvp);

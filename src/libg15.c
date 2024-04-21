@@ -18,6 +18,7 @@
     (c) 2006-2007 The G15tools Project - g15tools.sf.net
 
     $Revision: 292 $ -  $Date: 2008-11-11 08:51:25 -0500 (Tue, 11 Nov 2008) $ $Author: aneurysm9 $
+     see https://sourceforge.net/projects/g15tools/
 */
 
 #include <pthread.h>

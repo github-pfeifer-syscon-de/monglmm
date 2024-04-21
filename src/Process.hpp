@@ -24,7 +24,7 @@
 #include <memory>
 #include <TreeNode2.hpp>
 
-#include "Geometry.hpp"
+#include "Geom2.hpp"
 #include "Monitor.hpp"
 
 class Process

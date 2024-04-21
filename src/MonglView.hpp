@@ -23,17 +23,16 @@
 #include <vector>
 #include <memory>
 #include <Log.hpp>
+#include <Geom2.hpp>
+#include <Matrix.hpp>
+#include <NaviGlArea.hpp>
+#include <Scene.hpp>
+#include <Font2.hpp>
 
 #include "libgtop_helper.h"
-#include "Geometry.hpp"
-#include "Matrix.hpp"
 #include "GraphShaderContext.hpp"
-#include <Font.hpp>
-#include <Font2.hpp>
 #include "Processes.hpp"
 #include "Monitor.hpp"
-#include "NaviGlArea.hpp"
-#include "Scene.hpp"
 #include "Filesyses.hpp"
 #include "DiskInfos.hpp"
 #include "TextContext.hpp"
@@ -63,8 +62,8 @@ public:
     void save_config();
 
     Gtk::Dialog* monitors_config ();
-    Geometry *on_click_select(GdkEventButton* event, float mx, float my) override;
-    bool selectionChanged(Geometry *prev_selected, Geometry *selected) override;
+    psc::gl::aptrGeom2 on_click_select(GdkEventButton* event, float mx, float my) override;
+    bool selectionChanged(const psc::gl::aptrGeom2& prev_selected, const psc::gl::aptrGeom2& selected) override;
     bool on_click(GdkEventButton* event, float mx, float my) override;
     void create_popup();
     void on_process_kill();
@@ -75,7 +74,6 @@ protected:
 private:
     GraphShaderContext *m_graph_shaderContext;
     TextContext *m_textContext;
-    Font *m_font;
     psc::gl::ptrFont2 m_font2;
 
     sigc::connection    m_timer;               /* Timer for regular updates     */
@@ -101,7 +99,6 @@ private:
     void drawContent();
     Processes m_processes;
     NaviGlArea *naviGlArea;
-    psc::gl::TreeNode2* m_selectedTreeNode;
     Gtk::Menu m_popupMenu;
     std::shared_ptr<Filesyses> m_filesyses;
     std::shared_ptr<DiskInfos> m_diskInfos;
@@ -125,5 +122,5 @@ private:
 
 };
 
-static const  guint n_values = 100;
+static const guint n_values = 100;
 

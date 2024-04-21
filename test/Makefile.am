@@ -1,11 +1,10 @@
 
-TESTS = funky_test ptr_test simple_test
+TESTS = funky_test simple_test
 
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)."\" \
-	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
-	-I../glmLib
+	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\"
 
 AM_CFLAGS= \
 	-Wall
@@ -13,7 +12,7 @@ AM_CFLAGS= \
 AM_CXXFLAGS = \
 	-Wall
 
-check_PROGRAMS = funky_test ptr_test simple_test
+check_PROGRAMS = funky_test simple_test
 
 simple_test_SOURCES = \
     Simple.cpp
@@ -21,9 +20,3 @@ simple_test_SOURCES = \
 funky_test_SOURCES = \
     Prim.cpp \
     funky_main.cpp
-
-ptr_test_SOURCES = \
-    ptr_main.cpp
-
-ptr_test_LDADD = \
-    ../glmLib/libglm.a

@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <fstream>
 #include <Log.hpp>
+#include <TreeGeometry2.hpp>
 
 #include "Monitor.hpp"
 #include "MonglView.hpp"
@@ -46,13 +47,11 @@ MonglView::MonglView(Gtk::Application* application)
 : Scene()
 , m_graph_shaderContext{nullptr}
 , m_textContext{nullptr}
-, m_font{nullptr}
 , m_updateInterval{MIN_UPDATE_PERIOD}
 , m_glibtop{nullptr}
 , m_diagrams()
 , m_Dispatcher()
 , m_processes{n_values}
-, m_selectedTreeNode{nullptr}
 , m_popupMenu()
 , m_filesyses{std::make_shared<Filesyses>()}
 , m_diskInfos{std::make_shared<DiskInfos>()}
@@ -245,7 +244,6 @@ MonglView::init(Gtk::GLArea *glArea)
     clear.g = m_background_color.get_green();
     clear.b = m_background_color.get_blue();
     naviGlArea->set_clear_color(clear);
-    m_font = new Font("sans-serif");
     m_font2 = std::make_shared<psc::gl::Font2>("sans-serif");
 
     /* initialize the monitors */
@@ -276,6 +274,7 @@ MonglView::init(Gtk::GLArea *glArea)
             m->load_settings(m_config);
         }
         std::shared_ptr<DiagramMonitor> d = std::make_shared<DiagramMonitor>(m, m_graph_shaderContext, m_textContext);
+        m_graph_shaderContext->addGeometry(d->getBase());
         m_diagrams.push_back(d);
         d->setFont(m_font2);
         d->setPosition(pos);
@@ -337,10 +336,6 @@ MonglView::unrealize()
     m_diskInfos.reset();
     m_netInfo.reset();
     // This belongs to the destructor, but then we have no widget to reference GLContext from
-    if (m_font != nullptr) {
-        delete m_font;
-        m_font = nullptr;
-    }
     if (m_graph_shaderContext != nullptr) {
         delete m_graph_shaderContext;
         m_graph_shaderContext = nullptr;
@@ -419,32 +414,32 @@ MonglView::drawContent()
 
         m_graph_shaderContext->setLight();
         if (m_netInfo) {
-            auto geomRoot = m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font2);
-            auto geomRootLease = geomRoot.lease();
-            if (geomRootLease) {
-                geomRootLease->display(m_graph_shaderContext, m_projView);
-            }
+            m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font2);
         }
-        if (m_filesyses) {
-            auto geos = m_filesyses->getGeometries();
-            for (auto& geo : geos) {
-                auto lgeo = geo.lease();
-                if (lgeo) {
-                    lgeo->display(m_graph_shaderContext, m_projView);
-                }
-            }
-        }
-        for (auto& d : m_diagrams) {
-            if (d) {
-                auto base = d->getBase();
-                auto lbase = base.lease();
-                if (lbase) {
-                    lbase->display(m_graph_shaderContext, m_projView);
-                }
-            }
-        }
+
         // update after processe as it depends on it
         m_processes.display(m_graph_shaderContext, m_textContext, m_font2, m_diagrams[0], m_diagrams[1], m_projView);
+
+//        if (m_filesyses) {
+//            auto geos = m_filesyses->getGeometries();
+//            for (auto& geo : geos) {
+//                auto lgeo = geo.lease();
+//                if (lgeo) {
+//                    lgeo->display(m_graph_shaderContext, m_projView);
+//                }
+//            }
+//        }
+//        for (auto& d : m_diagrams) {
+//            if (d) {
+//                auto base = d->getBase();
+//                auto lbase = base.lease();
+//                if (lbase) {
+//                    lbase->display(m_graph_shaderContext, m_projView);
+//                }
+//            }
+//        }
+//
+//
 
         m_graph_shaderContext->display(m_projView);
 
@@ -615,17 +610,17 @@ MonglView::create_popup()
 
 void
 MonglView::on_process_kill() {
-    if (m_selectedTreeNode != nullptr) {
-        auto process = dynamic_cast<Process*>(m_selectedTreeNode);
-        if (process != nullptr) {
-            // woud be nice to use use some dialog for that
-            m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
-            process->killProcess();
-        }
-        else {
-            m_log->warn("No process to kill!");
-        }
-    }
+//    if (m_selectedTreeNode != nullptr) {
+//        auto process = dynamic_cast<Process*>(m_selectedTreeNode);
+//        if (process != nullptr) {
+//            // woud be nice to use use some dialog for that
+//            m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
+//            process->killProcess();
+//        }
+//        else {
+//            m_log->warn("No process to kill!");
+//        }
+//    }
 }
 
 void
@@ -634,33 +629,27 @@ MonglView::restore() {
     naviGlArea->queue_render();
 }
 
-Geometry *
+psc::gl::aptrGeom2
 MonglView::on_click_select(GdkEventButton* event, float mx, float my)
 {
-    Geometry *selected = m_graph_shaderContext->hit(mx, my);
+    auto selected = m_graph_shaderContext->hit2(mx, my);
     return selected;
 }
 
 bool
-MonglView::selectionChanged(Geometry *prev_selected, Geometry *selected) {
-//    if (prev_selected != nullptr) {
-//        auto ltreeGeo = dynamic_cast<TreeGeometry*>(prev_selected);
-//        if (ltreeGeo != nullptr) {
-//            TreeNode *treeNode = ltreeGeo->getTreeNode();
-//            if (treeNode != nullptr) {
-//                treeNode->setSelected(false);
-//            }
-//        }
-//    }
-//    auto treeGeo = dynamic_cast<TreeGeometry*>(selected);
-//    if (treeGeo != nullptr) {
-//        TreeNode *treeNode = treeGeo->getTreeNode();
-//        if (treeNode != nullptr) {
-//            treeNode->setSelected(true);
-//            m_selectedTreeNode = treeNode;    // better keep ref for treeNode as these live longer...
-//        }
-//    }
-    return FALSE;
+MonglView::selectionChanged(const psc::gl::aptrGeom2& prev_selected, const psc::gl::aptrGeom2& selected)
+{
+    if (prev_selected) {
+        auto treeGeo = psc::mem::dynamic_pointer_cast<psc::gl::TreeGeometry2>(prev_selected);
+        if (auto ltreeGeo = treeGeo.lease()) {
+            ltreeGeo->setTextVisible(false);
+        }
+    }
+    auto treeGeo = psc::mem::dynamic_pointer_cast<psc::gl::TreeGeometry2>(selected);
+    if (auto ltreeGeo = treeGeo.lease()) {
+        ltreeGeo->setTextVisible(true);
+    }
+    return false;
 }
 
 void

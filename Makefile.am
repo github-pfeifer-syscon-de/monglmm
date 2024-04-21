@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = glmLib test res src
+SUBDIRS = test res src
 
 dist_doc_DATA = \
 	README \

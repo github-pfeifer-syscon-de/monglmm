@@ -321,7 +321,7 @@ NetInfo::draw(NaviContext *pGraph_shaderContext,
     if (!m_root) {
         m_root = std::make_shared<NetNode>("@", "@");   // u1f310 might be an alternative but is not commonly supported
         auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont, nullptr);
-        //pGraph_shaderContext->addGeometry(treeGeo.get()); // only add this as main elements to context, children are rendered by default
+        pGraph_shaderContext->addGeometry(treeGeo);     // only add this as main elements to context, children are rendered by default
         auto treeGeoLease = treeGeo.lease();
         if (treeGeoLease) {
             Position pos{1.5f, 2.3f, 0.0f};

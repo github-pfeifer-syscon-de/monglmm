@@ -18,10 +18,11 @@
 
 #pragma once
 
-#include "NaviContext.hpp"
+#include <NaviContext.hpp>
 
 
-class GraphShaderContext : public NaviContext
+class GraphShaderContext
+: public NaviContext
 {
 public:
     GraphShaderContext();

@@ -6,7 +6,6 @@ AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)."\" \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
-	-I../glmLib \
 	$(GTHREAD_CFLAGS) \
 	$(GENERICGLM_CFLAGS) \
 	$(GENERICIMG_CFLAGS) \
@@ -126,7 +125,6 @@ endif
 monglmm_LDFLAGS =
 
 monglmm_LDADD = \
-	../glmLib/libglm.a \
 	$(MONGLMM_LIBS) \
 	$(GENERICGLM_LIBS) \
 	$(GENERICIMG_LIBS) \

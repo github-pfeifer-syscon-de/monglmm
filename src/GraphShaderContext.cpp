@@ -18,11 +18,10 @@
 #include <GenericGlmCompat.hpp>
 #include <iostream>
 #include <glibmm.h>
-#include <math.h>
-
-#include "glarea-error.h"
-#include "ShaderContext.hpp"
-#include "GraphShaderContext.hpp"
+#include <cmath>
+#include <glarea-error.h>
+#include <Geom2.hpp>
+#include <GraphShaderContext.hpp>
 
 GraphShaderContext::GraphShaderContext()
 : NaviContext::NaviContext{}
@@ -52,7 +51,7 @@ void
 GraphShaderContext::setLight()
 {
     glUniform3fv(m_light_location, 1, &light[0]);
-    checkError("glUniform3fv (light)");
+    psc::gl::checkError("glUniform3fv (light)");
 }
 
 bool GraphShaderContext::useNormal() {

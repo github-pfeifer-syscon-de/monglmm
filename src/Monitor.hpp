@@ -22,7 +22,7 @@
 #include <memory>
 
 #include "libgtop_helper.h"
-#include "Geometry.hpp"
+#include "Geom2.hpp"
 #include "Page.hpp"
 #include "Buffer.hpp"
 
@@ -66,7 +66,7 @@ public:
     static std::string formatScale(double value, const char *suffix, double scale = 1024.0);
     static void add_widget2box(Gtk::Box *dest, const char *lbl, Gtk::Widget *toAdd, gfloat y_scale);
     virtual void close();
-    virtual guint defaultValues();  // number of values used by default 
+    virtual guint defaultValues();  // number of values used by default
 
     guint getSize() {
         return m_size;

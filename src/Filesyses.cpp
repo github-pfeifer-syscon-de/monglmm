@@ -23,8 +23,8 @@
 #include <fstream>
 #include <gtkmm.h>
 #include <cmath>
+#include <TextContext.hpp>
 
-#include "TextContext.hpp"
 #include "Filesyses.hpp"
 #include "DiskInfos.hpp"
 #include "Monitor.hpp"
@@ -49,11 +49,10 @@ Filesyses::update(
         auto geo = diskInfo->getGeometry();
         if (diskInfo->isChanged(updateInterval)) {
             geo = createDiskGeometry(diskInfo, pGraph_shaderContext, textCtx, pFont, persView, updateInterval);
-            //pGraph_shaderContext->addGeometry(geo);
+            pGraph_shaderContext->addGeometry(geo);
         }
         if (geo) {
-            auto lgeo = geo.lease();
-            if (lgeo) {
+            if (auto lgeo = geo.lease()) {
                 lgeo->setPosition(pd);   // always update position, as we may have changes (e.g. unmount)
                 lgeo->setScale(scale);
             }
