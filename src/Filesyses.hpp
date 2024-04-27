@@ -35,17 +35,23 @@ public:
     virtual ~Filesyses() = default;
 
     void update(
-        GraphShaderContext *pGraph_shaderContext,
-        TextContext* textCtx,
-        const psc::gl::ptrFont2& pFont,
-        Matrix &persView,
-        gint updateInterval);
+          GraphShaderContext *pGraph_shaderContext
+        , TextContext* textCtx
+        , const psc::gl::ptrFont2& pFont
+        , Matrix &persView
+        , gint updateInterval);
 
-    std::vector<psc::gl::aptrGeom2> getGeometries();
     void updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height) override;
     void setDiskInfos(const std::shared_ptr<DiskInfos>& diskInfos);
-
-    psc::gl::aptrGeom2 createDiskGeometry(const std::shared_ptr<DiskInfo>& diskInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, const psc::gl::ptrFont2& font, Matrix &persView, gint updateInterval);
+protected:
+    void updateDiskGeometry(
+          const psc::gl::aptrGeom2& geo
+        , const std::shared_ptr<DiskInfo>& partInfo
+        , GraphShaderContext *_ctx
+        , TextContext *_txtCtx
+        , const psc::gl::ptrFont2& font
+        , Matrix &persView
+        , gint updateInterval);
 
 private:
     float getOffset(const std::shared_ptr<DiskInfo>& partInfo, guint64 diffTime, gint updateInterval);

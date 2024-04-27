@@ -20,11 +20,11 @@
 #include <glib-2.0/glib.h>
 #include <string>
 #include <sys/statvfs.h>
-
-#include "libgtop_helper.h"
 #include <Geom2.hpp>
 #include <Text2.hpp>
 
+
+#include "libgtop_helper.h"
 /*
  1 - major number
  2 - minor mumber
@@ -99,9 +99,7 @@ public:
     double getUsage();
 
     void setGeometry(const psc::gl::aptrGeom2& _geometry);
-    auto getGeometry() const {
-        return m_geometry;
-    }
+    psc::gl::aptrGeom2 getGeometry() const;
     void setDevText(const psc::gl::aptrText2& _devTxt) {
         m_devTxt = _devTxt;
     }

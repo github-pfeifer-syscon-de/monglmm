@@ -23,12 +23,14 @@
 #include <fstream>
 #include <gtkmm.h>
 #include <cmath>
+#include <source_location>
 #include <TextContext.hpp>
+#include <StringUtils.hpp>
 
 #include "Filesyses.hpp"
 #include "DiskInfos.hpp"
 #include "Monitor.hpp"
-#include "StringUtils.hpp"
+
 
 Filesyses::Filesyses()
 {
@@ -42,14 +44,20 @@ Filesyses::update(
     Matrix &persView,
     gint updateInterval) {
     Position pd(-3.3f, 3.0f, 0.0f);
-    auto fsMap = m_diskInfos->getFilesyses();
+    auto& fsMap = m_diskInfos->getFilesyses();
     float scale = std::min(1.0f, 3.0f / (float)fsMap.size());  // no upscaling
-    for (auto p : fsMap) {
-        auto diskInfo = p.second;
+    for (auto& p : fsMap) {
+        auto& diskInfo = p.second;
         auto geo = diskInfo->getGeometry();
-        if (diskInfo->isChanged(updateInterval)) {
-            geo = createDiskGeometry(diskInfo, pGraph_shaderContext, textCtx, pFont, persView, updateInterval);
+        bool update = false;
+        if (!geo) {
+            geo = psc::mem::make_active<psc::gl::Geom2>(GL_TRIANGLES, pGraph_shaderContext);
             pGraph_shaderContext->addGeometry(geo);
+            diskInfo->setGeometry(geo);
+            update = true;
+        }
+        if (update|| diskInfo->isChanged(updateInterval)) {
+            updateDiskGeometry(geo, diskInfo, pGraph_shaderContext, textCtx, pFont, persView, updateInterval);
         }
         if (geo) {
             if (auto lgeo = geo.lease()) {
@@ -59,21 +67,6 @@ Filesyses::update(
         }
         pd.y -= scale * 2.0f;
     }
-}
-
-std::vector<psc::gl::aptrGeom2>
-Filesyses::getGeometries()
-{
-    std::vector<psc::gl::aptrGeom2> geometries;
-    auto fsMap = m_diskInfos->getFilesyses();
-    for (auto p : fsMap) {
-        auto diskInfo = p.second;
-        auto geo = diskInfo->getGeometry();
-        if (geo) {
-            geometries.push_back(geo);
-        }
-    }
-    return geometries;
 }
 
 void
@@ -119,8 +112,15 @@ Filesyses::getOffset(const std::shared_ptr<DiskInfo>& partInfo, guint64 diffTime
     return r;
 }
 
-psc::gl::aptrGeom2
-Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphShaderContext *_ctx, TextContext *_txtCtx, const psc::gl::ptrFont2& font, Matrix &persView, gint updateInterval) {
+void
+Filesyses::updateDiskGeometry(
+          const psc::gl::aptrGeom2& geo
+        , const std::shared_ptr<DiskInfo>& partInfo
+        , GraphShaderContext *_ctx
+        , TextContext *_txtCtx
+        , const psc::gl::ptrFont2& font
+        , Matrix &persView
+        , gint updateInterval) {
     double usage = partInfo->getUsage();
     partInfo->setLastUsage(usage);
     partInfo->setLastReadTime(partInfo->getActualReadTime());
@@ -130,10 +130,11 @@ Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphSh
     //std::cout << this->dev << " Read " << (m_diffReadTime) << " greenOffs " << greenOffs << std::endl;
     //std::cout << this->dev << " Write " << (m_diffWriteTime) << " redOffs " << redOffs << std::endl;
 
-    auto geo = psc::mem::make_active<psc::gl::Geom2>(GL_TRIANGLES, _ctx);
     auto lgeo = geo.lease();
     if (lgeo) {
-        lgeo->setName(Glib::ustring::sprintf("disk %s ", partInfo->getMount()));
+        lgeo->deleteVertexArray();
+        auto geoName = Glib::ustring::sprintf("disk %s", partInfo->getMount());
+        lgeo->setName(geoName);
         Color cu(0.5f + redOffs, 0.5f + greenOffs, 0.5f);   // idle gray, read green, write red
         lgeo->addCylinder(FS_RADIUS, 0.0f, usage, &cu);
         Color cf(0.2f, 0.9f, 0.2f);
@@ -144,6 +145,7 @@ Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphSh
             auto devTxt = psc::mem::make_active<psc::gl::Text2>(GL_TRIANGLES, _ctx, font);
             auto ldevTxt = devTxt.lease();
             if (ldevTxt) {
+                ldevTxt->setName(geoName + " dev");
                 ldevTxt->setTextContext(_txtCtx);
                 ldevTxt->setScale(0.0060f);
                 Position p(-0.3f , +1.2f, 0.3f);
@@ -158,6 +160,7 @@ Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphSh
             auto mountTxt = psc::mem::make_active<psc::gl::Text2>(GL_TRIANGLES, _ctx, font);
             auto lmountTxt = mountTxt.lease();
             if (lmountTxt) {
+                lmountTxt->setName(geoName + " mnt");
                 lmountTxt->setTextContext(_txtCtx);
                 lmountTxt->setScale(0.0060f);
                 Position p(-0.3f, +1.0f, 0.3f);
@@ -181,6 +184,4 @@ Filesyses::createDiskGeometry(const std::shared_ptr<DiskInfo>& partInfo, GraphSh
         }
         lgeo->addGeometry(mountTxt);
     }
-    partInfo->setGeometry(geo);
-    return geo;
 }

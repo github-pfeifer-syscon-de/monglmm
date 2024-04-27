@@ -142,8 +142,15 @@ DiskInfo::refreshFilesys(glibtop * glibtop)
 
 
 void
-DiskInfo::setGeometry(const psc::gl::aptrGeom2& _geometry) {
+DiskInfo::setGeometry(const psc::gl::aptrGeom2& _geometry)
+{
     m_geometry = _geometry;
+}
+
+psc::gl::aptrGeom2
+DiskInfo::getGeometry() const
+{
+    return m_geometry;
 }
 
 double
