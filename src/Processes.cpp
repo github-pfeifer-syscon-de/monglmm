@@ -27,14 +27,12 @@
 #include <stdio.h>
 #include <vector>
 #include <Log.hpp>
+#include <TreeNode2.hpp>
+#include <LineShapeRenderer2.hpp>
+#include <SunDiscRenderer2.hpp>
+#include <FallShapeRenderer2.hpp>
 
 #include "Processes.hpp"
-#include "TreeNode2.hpp"
-#include "Diagram.hpp"
-#include "LineShapeRenderer2.hpp"
-#include "SunDiscRenderer2.hpp"
-#include "FallShapeRenderer2.hpp"
-
 
 Processes::Processes(uint32_t _size)
 : m_size{_size}
@@ -48,10 +46,10 @@ Processes::~Processes()
     resetProc();
     // as m_procRoot is a additional structure needs no cleanup (linking existing processes)
     for (uint32_t i = 0; i < m_memGeo.size(); ++i) {
-        m_memGeo[i].reset();
-        m_cpuGeo[i].reset();
-        m_textCpu[i].reset();
-        m_textMem[i].reset();
+        m_memGeo[i].resetAll();
+        m_cpuGeo[i].resetAll();
+        m_textCpu[i].resetAll();
+        m_textMem[i].resetAll();
     }
     mProcesses.clear();
 }
@@ -167,7 +165,7 @@ Processes::buildTree()
         }
         else {
             // as update and redraw happen asynchronously this will happen on first call
-	    psc::log::Log::logNow(psc::log::Level::Error, "No process 1 to root proc tree!");
+            psc::log::Log::logAdd(psc::log::Level::Error, "No process 1 to root proc tree!");
         }
     }
 }
@@ -369,11 +367,11 @@ Processes::display(
                 //std::cout << "Processes display tree end" << std::endl;
             }
             else {
-	         psc::log::Log::logNow(psc::log::Level::Error, "No tree root to display!");
+	         psc::log::Log::logAdd(psc::log::Level::Error, "No tree root to display!");
             }
         }
         else {
-	    psc::log::Log::logNow(psc::log::Level::Error, Glib::ustring::sprintf("Unknown tree renderer %d", static_cast<std::underlying_type<TreeType>::type>(m_treeType)));
+	    psc::log::Log::logAdd(psc::log::Level::Error, Glib::ustring::sprintf("Unknown tree renderer %d", static_cast<std::underlying_type<TreeType>::type>(m_treeType)));
 
         }
         // as geometries are added to context they will be displayed automatically
@@ -391,7 +389,7 @@ Processes::createBox(GeometryContext *shaderContext, Gdk::RGBA &color)
         Color c(color.get_red(), color.get_green(), color.get_blue());
         lGeom->addCube(0.07f, c);
         lGeom->create_vao();
-        checkError("Error create vao data (process)");
+        psc::gl::checkError("Error create vao data (process)");
     }
     return pGeometry;
 }

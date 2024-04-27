@@ -25,6 +25,7 @@
 #include <fstream>
 #include <Log.hpp>
 #include <TreeGeometry2.hpp>
+#include <Font2.hpp>
 
 #include "Monitor.hpp"
 #include "MonglView.hpp"
@@ -36,7 +37,6 @@
 #include "NetMonitor.hpp"
 #include "ClkMonitor.hpp"
 #include "GraphShaderContext.hpp"
-#include "Font.hpp"
 #include "InfoPage.hpp"
 #include "Processes.hpp"
 #include "StringUtils.hpp"
@@ -406,7 +406,7 @@ MonglView::drawContent()
     if (m_graph_shaderContext != nullptr) {
         /* load our program */
         m_graph_shaderContext->use();
-        checkError("useProgram");
+        psc::gl::checkError("useProgram");
 
         //glCullFace(GL_BACK);  // seems that not all triangles are correct, but as we don't have many...
         //glEnable(GL_CULL_FACE);
@@ -443,7 +443,7 @@ MonglView::drawContent()
 
         m_graph_shaderContext->display(m_projView);
 
-        checkError("display process");
+        psc::gl::checkError("display process");
 
         m_graph_shaderContext->unuse();
     }

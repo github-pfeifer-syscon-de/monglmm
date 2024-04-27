@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <stdlib.h>
 #include <cstdlib>
+#include <cstring>
 
 #include "libgtop_helper.h"
 #ifdef LIBGTOP
@@ -52,17 +53,17 @@ DiskInfo::~DiskInfo()
 void
 DiskInfo::removeGeometry()
 {
-    m_devTxt.reset();
-    m_mountTxt.reset();
-    m_geometry.reset();
+    m_devTxt.resetAll();
+    m_mountTxt.resetAll();
+    m_geometry.resetAll();
 }
 
 void
 DiskInfo::reinit()
 {
    // So we wont pickup sum on reactivation ???
-   memset(&previous_disk_stat, 0, sizeof(struct disk_stat));
-   memset(&fsd, 0, sizeof(struct statvfs));
+   std::memset(&previous_disk_stat, 0, sizeof(struct disk_stat));
+   std::memset(&fsd, 0, sizeof(struct statvfs));
 }
 
 bool
