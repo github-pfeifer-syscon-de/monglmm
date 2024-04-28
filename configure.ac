@@ -21,7 +21,7 @@ LT_INIT
 
 PKG_CHECK_MODULES([GTHREAD], [gthread-2.0])
 
-PKG_CHECK_MODULES([GENERICGLM], [genericglm >= 0.3.0])
+PKG_CHECK_MODULES([GENERICGLM], [genericglm >= 0.3.1])
 PKG_CHECK_MODULES([GENERICIMG], [genericimg >= 0.3.1])
 
 dnl don't repeat previous dependencies
