@@ -18,27 +18,90 @@
 
 #include <iostream>
 #include <source_location>
-#include <Prim.hpp>
+#include <active_ptr.hpp>
+#include <type_traits>
+#include <typeinfo>
+#ifndef _MSC_VER
+#   include <cxxabi.h>
+#endif
 
 #include "funky_main.hpp"
 
 
 
 
-static void
-primTest()
-{
-    //Prim prim{1000000l};
-    //prim.eratosthenes();
-    //prim.dijkstra();
-    //dijkstraSimple(1000000);
-}
+struct A {
 
+    virtual void name()
+    {
+        std::cout << "A" << std::endl;
+    }
+};
+
+struct B
+: public A {
+    virtual void name() override
+    {
+        std::cout << "B" << std::endl;
+    }
+
+};
+
+template<typename T>
+struct TypeName {
+    constexpr static std::string_view fullname_intern() {
+        #if defined(__clang__) || defined(__GNUC__)
+            return __PRETTY_FUNCTION__;
+        #elif defined(_MSC_VER)
+            return __FUNCSIG__;
+        #else
+            #error "Unsupported compiler"
+        #endif
+    }
+    constexpr static std::string_view name() {
+        size_t prefix_len = TypeName<void>::fullname_intern().find("void");
+        size_t multiple   = TypeName<void>::fullname_intern().size() - TypeName<int>::fullname_intern().size();
+        size_t dummy_len  = TypeName<void>::fullname_intern().size() - 4*multiple;
+        size_t target_len = (fullname_intern().size() - dummy_len)/multiple;
+        std::string_view rv = fullname_intern().substr(prefix_len, target_len);
+        if (rv.rfind(' ') == rv.npos)
+            return rv;
+        return rv; //.substr(rv.rfind(' ')+1);
+    }
+
+    using type = T;
+    constexpr static std::string_view value = name();
+};
+
+static void
+simpleTest()
+{
+    std::cout << "simple" << std::endl;
+    auto b = psc::mem::make_active<B>();
+    if (auto lb = b.lease()) {
+        lb->name();
+    }
+    std::cout << typeid(b).name() << std::endl;
+    auto p_a = psc::mem::dynamic_pointer_cast<A>(b);
+    if (auto lp_a = p_a.lease()) {
+        lp_a->name();
+        std::cout << typeid(lp_a).name() << std::endl;
+        //auto demang = abi::__cxa_demangle(typeid(lp_a.get()).name(), nullptr,
+        //                                   nullptr, nullptr);
+        //std::cout << demang << std::endl;
+        std::cout << TypeName<decltype(p_a)>::value << std::endl;
+        auto b = dynamic_cast<B*>(p_a.get());
+        std::cout << TypeName<decltype(b)>::value << std::endl;
+
+        //free(demang);
+    }
+    std::cout << typeid(p_a).name() << std::endl;
+    std::cout << "~simple" << std::endl;
+}
 
 int
 main(int argc, char** argv) {
-    //primTest();
-    //simpleTest();
+    simpleTest();
 
     return 0;
 }

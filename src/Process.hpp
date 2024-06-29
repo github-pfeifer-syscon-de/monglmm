@@ -185,10 +185,10 @@ class CompareByMem  {
     public:
     bool operator()(const pProcess &a, const pProcess &b) {
         if (!a) {
-            return FALSE;
+            return false;
         }
         if (!b) {
-            return TRUE;
+            return true;
         }
         return a->getMemUsage() > b->getMemUsage();
     }
@@ -198,10 +198,10 @@ class CompareByCpu  {
     public:
     bool operator()(const pProcess &a, const pProcess &b) {
         if (!a) {
-            return FALSE;
+            return false;
         }
         if (!b) {
-            return TRUE;
+            return true;
         }
         // getCpuUsage -> last value
         // getCpuUsageBuf -> sum buffered values but less actual

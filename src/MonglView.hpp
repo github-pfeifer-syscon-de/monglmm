@@ -119,8 +119,7 @@ private:
     static constexpr auto CONFIG_GRP_MAIN = "Main";
     static constexpr auto TEXT_DEFAULT_COLOR = "#AAAAAA";
     static constexpr auto BACKGROUND_DEFAULT_COLOR = "#0F0F1F";
-
+    static constexpr auto DIAGRAM_GAP = 0.2f;
+    static constexpr auto n_values = 100u;
 };
-
-static const guint n_values = 100;
 

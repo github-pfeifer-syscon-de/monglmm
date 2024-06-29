@@ -41,7 +41,6 @@
 #include "Processes.hpp"
 #include "StringUtils.hpp"
 
-#define DIAGRAM_GAP 0.2f
 
 MonglView::MonglView(Gtk::Application* application)
 : Scene()
@@ -609,18 +608,31 @@ MonglView::create_popup()
 }
 
 void
-MonglView::on_process_kill() {
-//    if (m_selectedTreeNode != nullptr) {
-//        auto process = dynamic_cast<Process*>(m_selectedTreeNode);
-//        if (process != nullptr) {
-//            // woud be nice to use use some dialog for that
-//            m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
-//            process->killProcess();
-//        }
-//        else {
-//            m_log->warn("No process to kill!");
-//        }
-//    }
+MonglView::on_process_kill()
+{
+    auto selectGeom2 = getSelected();
+    if (selectGeom2) {
+        auto treeGeom = psc::mem::dynamic_pointer_cast<psc::gl::TreeGeometry2>(selectGeom2);
+        if (treeGeom) {
+            if (auto lTreeGeom = treeGeom.lease()) {
+                std::shared_ptr<psc::gl::TreeNode2> treeNode{lTreeGeom->getTreeNode()};
+                if (treeNode) {
+                    auto process = std::dynamic_pointer_cast<Process>(treeNode);
+                    if (process) {
+                        // it would be nice to ask for confirmation e.g. use dialog
+                        m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
+                        process->killProcess();
+                    }
+                    else {
+                        m_log->warn("No process to kill!");
+                    }
+                }
+            }
+        }
+    }
+    else {
+        std::cout << "No selection!" << std::endl;
+    }
 }
 
 void

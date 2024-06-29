@@ -100,7 +100,7 @@ Processes::update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem)
         }
         while ((ent = readdir(dir)) != nullptr) {
             if (ent->d_type == DT_DIR) {
-                long pid = atol(ent->d_name);
+                long pid = std::atol(ent->d_name);
                 if (pid > 0) {
                     auto p = mProcesses.find(pid);
                     pProcess proc;
@@ -358,16 +358,25 @@ Processes::display(
             break;
         }
         if (treeRenderer) {
+            auto lastRootGeom = m_procRoot->getTreeGeometry();
             auto geo = treeRenderer->create(m_procRoot, pGraph_shaderContext, _txtCtx, pFont);
+            if (lastRootGeom != geo) {
+                if (lastRootGeom) {
+                    pGraph_shaderContext->removeGeometry(lastRootGeom.get());
+                }
+                // add to context to allow selection!
+                pGraph_shaderContext->addGeometry(geo);
+            }
             auto lgeo = geo.lease();
             if (lgeo) {
                 lgeo->setPosition(pos);
                 //std::cout << "Processes display tree start" << std::endl;
-                lgeo->display(pGraph_shaderContext, persView);
+                // will be displayed with context
+                //lgeo->display(pGraph_shaderContext, persView);
                 //std::cout << "Processes display tree end" << std::endl;
             }
             else {
-	         psc::log::Log::logAdd(psc::log::Level::Error, "No tree root to display!");
+                psc::log::Log::logAdd(psc::log::Level::Error, "No tree root to display!");
             }
         }
         else {
@@ -385,7 +394,7 @@ Processes::createBox(GeometryContext *shaderContext, Gdk::RGBA &color)
     auto pGeometry = psc::mem::make_active<psc::gl::Geom2>(GL_TRIANGLES, shaderContext);
     auto lGeom = pGeometry.lease();
     if (lGeom) {
-        lGeom->setRemoveChildren(false);
+        //lGeom->setRemoveChildren(false);
         Color c(color.get_red(), color.get_green(), color.get_blue());
         lGeom->addCube(0.07f, c);
         lGeom->create_vao();

@@ -26,7 +26,6 @@
 #include <Log.hpp>
 #include <StringUtils.hpp>
 
-#include "ShaderContext.hpp"
 #include "Process.hpp"
 #include "Monitor.hpp"
 #include "NameValue.hpp"
