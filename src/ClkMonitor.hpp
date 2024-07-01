@@ -35,7 +35,7 @@ public:
 
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
 
     unsigned long getTotal() override;
     std::string getPrimMax() override;
@@ -51,17 +51,9 @@ private:
     double maxMHz;
     void decodeMaxClock(std::string &cpu);
     Gdk::RGBA *colors[CLOCKS];
+    static constexpr auto HW_PRIMARY_DEFAULT_COLOR = "#0000FF";
+    static constexpr auto HW_SECONDARY_DEFAULT_COLOR = "#00FF00";
+    static constexpr auto CONFIG_DISPLAY_HW = "DisplayHW";
+    static constexpr auto CONFIG_HW_COLOR = "HWColor";
+    static constexpr auto CONFIG_SEONDARY_HW_COLOR = "HWSecondaryColor";
 };
-
-
-
-
-
-#define HW_PRIMARY_DEFAULT_COLOR "#0000FF"
-#define HW_SECONDARY_DEFAULT_COLOR "#00FF00"
-
-#define CONFIG_DISPLAY_HW "DisplayHW"
-#define CONFIG_HW_COLOR "HWColor"
-#define CONFIG_SEONDARY_HW_COLOR "HWSecondaryColor"
-
-

@@ -36,6 +36,8 @@ namespace Glib {
     class KeyFile;
 }
 
+class MonglView;
+
 class Monitor : public Page
 {
 public:
@@ -48,7 +50,7 @@ public:
 
     virtual void save_settings(Glib::KeyFile * setting)  = 0;
 
-    virtual Gtk::Box* create_config_page()  = 0;
+    virtual Gtk::Box* create_config_page(MonglView *monglView)  = 0;
 
     virtual void roll();
     virtual void reinit();
@@ -108,6 +110,8 @@ void config_group_set_int(Glib::KeyFile *  settings, const char *grp, const char
 void config_group_set_string(Glib::KeyFile * settings, const char *grp, const char *name, const Glib::ustring &tmp);
 
 void config_group_set_color(Glib::KeyFile * settings, const char *grp, const char *name, const Gdk::RGBA &color);
+
+gboolean config_setting_lookup_boolean(const Glib::KeyFile * settings, const char *grp, const char *name, bool useIfUndef);
 
 gboolean has_setting(const Glib::KeyFile * settings, const char *grp, const char *name);
 

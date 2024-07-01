@@ -49,6 +49,7 @@ MonglView::MonglView(Gtk::Application* application)
 , m_updateInterval{MIN_UPDATE_PERIOD}
 , m_glibtop{nullptr}
 , m_diagrams()
+, m_config{nullptr}
 , m_Dispatcher()
 , m_processes{n_values}
 , m_popupMenu()
@@ -186,7 +187,8 @@ MonglView::monitors_update()
     if (m_filesyses) {
         m_filesyses->update(m_graph_shaderContext, m_textContext, m_font2, m_projView, m_updateInterval);
     }
-    if (m_netInfo) {
+    bool showNetConnections = config_setting_lookup_boolean(m_config, CONFIG_GRP_MAIN, CONFIG_SHOW_NET_CONNECT, true);
+    if (m_netInfo && showNetConnections) {
         m_netInfo->update();
     }
     naviGlArea->queue_render();
@@ -378,9 +380,6 @@ MonglView::save_config()
         for (auto d : m_diagrams) {
             d->save_settings(m_config);
         }
-    }
-
-    if (m_config) {
         auto gcfg = get_config_name();
         if (!m_config->save_to_file(gcfg)) {
             m_log->error(Glib::ustring::sprintf("Error saving %s ", gcfg));
@@ -388,6 +387,11 @@ MonglView::save_config()
     }
 }
 
+Glib::KeyFile*
+MonglView::getConfig()
+{
+    return m_config;
+}
 
 void
 MonglView::drawContent()
@@ -413,9 +417,9 @@ MonglView::drawContent()
 
         m_graph_shaderContext->setLight();
         if (m_netInfo) {
-            m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font2);
+            bool showNetConnections = config_setting_lookup_boolean(m_config, CONFIG_GRP_MAIN, CONFIG_SHOW_NET_CONNECT, true);
+            m_netInfo->draw(m_graph_shaderContext, m_textContext, m_font2, showNetConnections);
         }
-
         // update after processe as it depends on it
         m_processes.display(m_graph_shaderContext, m_textContext, m_font2, m_diagrams[0], m_diagrams[1], m_projView);
 
@@ -502,6 +506,16 @@ MonglView::process_type_changed(Gtk::ComboBoxText* process_type)
     naviGlArea->queue_render();
 }
 
+void
+MonglView::net_connections_show_changed(Gtk::CheckButton* showNetConn)
+{
+    bool bshowNetConn = showNetConn->get_active();
+    if (m_config) {
+        m_config->set_boolean(CONFIG_GRP_MAIN, CONFIG_SHOW_NET_CONNECT, bshowNetConn);
+    }
+    naviGlArea->queue_render();
+}
+
 Gtk::Dialog *
 MonglView::monitors_config()
 {
@@ -558,7 +572,7 @@ MonglView::monitors_config()
 
 
     for (auto d : m_diagrams) {
-        Gtk::Box* box = d->create_config_page();
+        Gtk::Box* box = d->create_config_page(this);
         notebook->append_page(*box, d->getMonitor()->m_name, FALSE);
     }
 #ifdef LIBG15

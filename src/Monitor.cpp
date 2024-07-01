@@ -89,9 +89,9 @@ config_setting_lookup_string(const Glib::KeyFile * settings, const char *grp, co
 {
     if (has_setting(settings, grp, name)) {
         tmp = settings->get_string(grp, name);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 gboolean
@@ -100,18 +100,25 @@ config_setting_lookup_color(const Glib::KeyFile * settings, const char *grp, con
     if (has_setting(settings, grp, name)) {
         Glib::ustring str = settings->get_string(grp, name);
         color = Gdk::RGBA(str);
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
+}
+
+gboolean
+config_setting_lookup_boolean(const Glib::KeyFile * settings, const char *grp, const char *name, bool useIfUndef)
+{
+    if (has_setting(settings, grp, name)) {
+        useIfUndef = settings->get_boolean(grp, name);
+    }
+    return useIfUndef;
 }
 
 gboolean
 has_setting(const Glib::KeyFile * settings, const char *grp, const char *name)
 {
-    if (settings->has_group(grp))
-    {
-        if (settings->has_key(grp, name))
-        {
+    if (settings != nullptr && settings->has_group(grp)) {
+        if (settings->has_key(grp, name)) {
             return true;
         }
     }

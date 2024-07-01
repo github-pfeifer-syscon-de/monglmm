@@ -24,6 +24,8 @@
 #include "Diagram2.hpp"
 #include "libgtop_helper.h"
 
+class MonglView;
+
 class DiagramMonitor : public psc::gl::Diagram2 {
 public:
     DiagramMonitor(std::shared_ptr<Monitor> _monitor, NaviContext *_naviContext, TextContext *_textCtx);
@@ -31,7 +33,7 @@ public:
 
     void update(gint updateInterval, glibtop *glibtop);
     void save_settings(Glib::KeyFile *keyFile);
-    Gtk::Box* create_config_page();
+    Gtk::Box* create_config_page(MonglView *monglView);
     void close();
 
     std::shared_ptr<Monitor> getMonitor() {

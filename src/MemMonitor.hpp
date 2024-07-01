@@ -32,7 +32,7 @@ public:
 
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
 
     void updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height) override;
 

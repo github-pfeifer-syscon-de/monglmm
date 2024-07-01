@@ -38,7 +38,7 @@ public:
 
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
 
     void reinit() override;
     unsigned long getTotal() override;
@@ -58,13 +58,11 @@ private:
     std::shared_ptr<GpuCounter> m_counterPrim;
     std::shared_ptr<GpuCounter> m_counterSec;
     Gtk::GLArea *m_glArea;
+    static constexpr auto GPU_PRIMARY_DEFAULT_COLOR = "#00FF00";
+    static constexpr auto GPU_SECONDARY_DEFAULT_COLOR = "#FF0000";
+    static constexpr auto CONFIG_DISPLAY_GPU = "DisplayGPU";
+    static constexpr auto CONFIG_GPU_COLOR = "GPUprimaryColor";
+    static constexpr auto CONFIG_GPU_SECONDARY_COLOR = "GPUsecondaryColor";
+    static constexpr auto CONFIG_GPU_CONFIG_PRIMARY_NAME = "GPUprimaryName";
+    static constexpr auto CONFIG_GPU_CONFIG_SECONDARY_NAME = "GPUsecondaryName";
 };
-
-#define GPU_PRIMARY_DEFAULT_COLOR "#00FF00"
-#define GPU_SECONDARY_DEFAULT_COLOR "#FF0000"
-
-#define CONFIG_DISPLAY_GPU "DisplayGPU"
-#define CONFIG_GPU_COLOR "GPUprimaryColor"
-#define CONFIG_GPU_SECONDARY_COLOR "GPUsecondaryColor"
-#define CONFIG_GPU_CONFIG_PRIMARY_NAME "GPUprimaryName"
-#define CONFIG_GPU_CONFIG_SECONDARY_NAME "GPUsecondaryName"

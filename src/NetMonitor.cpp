@@ -95,7 +95,7 @@ NetMonitor::net_device_changed(Gtk::Entry *device_entry)
 
 
 Gtk::Box *
-NetMonitor::create_config_page()
+NetMonitor::create_config_page(MonglView *monglView)
 {
     auto net_box = create_default_config_page(
             _("Display NET usage"),
@@ -109,6 +109,17 @@ NetMonitor::create_config_page()
 	sigc::bind<Gtk::Entry *>(
 	    sigc::mem_fun(*this, &NetMonitor::net_device_changed),
 	device_entry));
+
+    auto showNetConnect = Gtk::manage(new Gtk::CheckButton());
+    auto config = monglView->getConfig();
+    bool showNetConnections = config_setting_lookup_boolean(config, MonglView::CONFIG_GRP_MAIN, MonglView::CONFIG_SHOW_NET_CONNECT, true);
+    showNetConnect->set_active(showNetConnections);
+    showNetConnect->set_label(_("Show"));
+    add_widget2box(net_box, _("Connections"), showNetConnect, 1.0f);
+    showNetConnect->signal_toggled().connect(
+	sigc::bind<Gtk::CheckButton *>(
+	    sigc::mem_fun(*monglView, &MonglView::net_connections_show_changed)
+        , showNetConnect));
 
     return net_box;
 }

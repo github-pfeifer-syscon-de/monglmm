@@ -38,7 +38,7 @@ public:
 
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
     unsigned long getTotal() override;
     std::string getPrimMax() override;
     std::string getSecMax() override;
@@ -55,11 +55,7 @@ private:
     std::vector<std::shared_ptr<Sensor>> m_actSensors;
 
     std::vector<Gdk::RGBA> m_colors;
+    static constexpr auto CONFIG_DISPLAY_TEMP = "DisplayTemp";
+    static constexpr auto CONFIG_TEMP_COLOR = "TempColor";
+    static constexpr auto CONFIG_TEMP_SENSOR = "TempSensor";
 };
-
-
-#define CONFIG_DISPLAY_TEMP "DisplayTemp"
-#define CONFIG_TEMP_COLOR "TempColor"
-#define CONFIG_TEMP_SENSOR "TempSensor"
-
-

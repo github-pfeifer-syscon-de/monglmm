@@ -34,7 +34,7 @@ public:
 
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
 
     unsigned long getTotal() override;
     std::string getPrimMax() override;
@@ -44,17 +44,10 @@ private:
     double cpu_uns;
     double cpu_total;
     double m_cpu_total;
+
+    static constexpr auto CPU_PRIMARY_DEFAULT_COLOR = "#0000FF";
+    static constexpr auto CPU_SECONDARY_DEFAULT_COLOR = "#00FF00";
+    static constexpr auto CONFIG_DISPLAY_CPU = "DisplayCPU";
+    static constexpr auto CONFIG_CPU_COLOR = "CPUColor";
+    static constexpr auto  CONFIG_SEONDARY_CPU_COLOR = "CPUSecondaryColor";
 };
-
-
-
-
-
-#define CPU_PRIMARY_DEFAULT_COLOR "#0000FF"
-#define CPU_SECONDARY_DEFAULT_COLOR "#00FF00"
-
-#define CONFIG_DISPLAY_CPU "DisplayCPU"
-#define CONFIG_CPU_COLOR "CPUColor"
-#define CONFIG_SEONDARY_CPU_COLOR "CPUSecondaryColor"
-
-

@@ -315,22 +315,35 @@ NetInfo::update()
 
 
 psc::gl::aptrGeom2
-NetInfo::draw(NaviContext *pGraph_shaderContext,
-                TextContext *txtCtx, const psc::gl::ptrFont2& pFont)
+NetInfo::draw(NaviContext *pGraph_shaderContext
+            , TextContext *txtCtx, const psc::gl::ptrFont2& pFont
+            , bool showNetInfo)
 {
-    if (!m_root) {
-        m_root = std::make_shared<NetNode>("@", "@");   // u1f310 might be an alternative but is not commonly supported
-        auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont, nullptr);
-        pGraph_shaderContext->addGeometry(treeGeo);     // only add this as main elements to context, children are rendered by default
-        auto treeGeoLease = treeGeo.lease();
-        if (treeGeoLease) {
-            Position pos{1.5f, 2.3f, 0.0f};
-            treeGeoLease->setPosition(pos);
+    psc::gl::aptrGeom2 treeGeo;
+    if (showNetInfo) {
+        if (!m_root) {
+            m_root = std::make_shared<NetNode>("@", "@");   // u1f310 might be an alternative but is not commonly supported
+            auto treeGeo = m_root->getTreeGeometry(pGraph_shaderContext, txtCtx, pFont, nullptr);
+            pGraph_shaderContext->addGeometry(treeGeo);     // only add this as main elements to context, children are rendered by default
+            auto treeGeoLease = treeGeo.lease();
+            if (treeGeoLease) {
+                Position pos{1.5f, 2.3f, 0.0f};
+                treeGeoLease->setPosition(pos);
+            }
+        }
+        handle(m_root, m_netConnections, 1);
+        m_root->render(pGraph_shaderContext, txtCtx, pFont, nullptr);
+        treeGeo = m_root->getGeo();
+    }
+    else {
+        if (m_root) {
+            treeGeo = m_root->getGeo();
+            if (treeGeo) {
+                pGraph_shaderContext->removeGeometry(treeGeo.get());
+            }
+            m_root.reset(); // recreate if needed
         }
     }
-    handle(m_root, m_netConnections, 1);
-    m_root->render(pGraph_shaderContext, txtCtx, pFont, nullptr);
-    auto treeGeo = m_root->getGeo();
     return treeGeo;
 }
 

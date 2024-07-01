@@ -19,6 +19,7 @@
 #include <glibmm.h>
 #include <iostream>
 
+#include "MonglView.hpp"
 #include "StringUtils.hpp"
 #include "DiagramMonitor.hpp"
 
@@ -55,9 +56,9 @@ DiagramMonitor::save_settings(Glib::KeyFile *config)
 
 
 Gtk::Box*
-DiagramMonitor::create_config_page()
+DiagramMonitor::create_config_page(MonglView *monglView)
 {
-    return m_monitor->create_config_page();
+    return m_monitor->create_config_page(monglView);
 }
 
 

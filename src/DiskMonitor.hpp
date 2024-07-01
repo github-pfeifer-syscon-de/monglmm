@@ -35,7 +35,7 @@ public:
 
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
 
     void reinit() override;
     unsigned long getTotal() override;
@@ -46,14 +46,10 @@ public:
 private:
     void disk_device_changed(Gtk::ComboBox *device_combo);
     std::shared_ptr<DiskInfos> m_diskInfos;
+    static constexpr auto DISK_PRIMARY_DEFAULT_COLOR = "#00FF00";
+    static constexpr auto DISK_SECONDARY_DEFAULT_COLOR = "#FF0000";
+    static constexpr auto CONFIG_DISPLAY_DISK = "DisplayDISK";
+    static constexpr auto CONFIG_DISK_COLOR = "DISKColor";
+    static constexpr auto CONFIG_DISK_SECONDARY_COLOR = "DISKsecondaryColor";
+    static constexpr auto CONFIG_DISK_DEVICE = "DISKdevice";
 };
-
-#define DISK_PRIMARY_DEFAULT_COLOR "#00FF00"
-#define DISK_SECONDARY_DEFAULT_COLOR "#FF0000"
-
-#define CONFIG_DISPLAY_DISK "DisplayDISK"
-#define CONFIG_DISK_COLOR "DISKColor"
-#define CONFIG_DISK_SECONDARY_COLOR "DISKsecondaryColor"
-#define CONFIG_DISK_DEVICE "DISKdevice"
-
-

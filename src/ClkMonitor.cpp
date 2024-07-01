@@ -69,7 +69,7 @@ ClkMonitor::getTotal() {
 }
 
 Gtk::Box *
-ClkMonitor::create_config_page()
+ClkMonitor::create_config_page(MonglView *monglView)
 {
     auto hw_box = create_default_config_page(
             _("Display Clk usage"),

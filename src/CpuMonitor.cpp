@@ -59,7 +59,7 @@ CpuMonitor::getTotal() {
 }
 
 Gtk::Box *
-CpuMonitor::create_config_page()
+CpuMonitor::create_config_page(MonglView *monglView)
 {
     auto cpu_box = create_default_config_page(
             _("Display CPU usage"),

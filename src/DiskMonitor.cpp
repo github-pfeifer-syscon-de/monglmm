@@ -56,7 +56,7 @@ DiskMonitor::disk_device_changed(Gtk::ComboBox *device_combo)
 
 
 Gtk::Box *
-DiskMonitor::create_config_page()
+DiskMonitor::create_config_page(MonglView *monglView)
 {
     auto disk_box = create_default_config_page(
             _("Display DISK usage"),

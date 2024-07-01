@@ -58,7 +58,7 @@ unsigned long MemMonitor::getTotal() {
 }
 
 Gtk::Box *
-MemMonitor::create_config_page()
+MemMonitor::create_config_page(MonglView *monglView)
 {
     auto mem_box = create_default_config_page(
             _("Display RAM usage"),
@@ -111,7 +111,7 @@ MemMonitor::defaultValues()
 	return 3;
 }
 
-unsigned long 
+unsigned long
 MemMonitor::getUsedMemory()
 {
 	// see https://stackoverflow.com/questions/41224738/how-to-calculate-system-memory-usage-from-proc-meminfo-like-htop

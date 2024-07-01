@@ -32,7 +32,7 @@ public:
     void load_settings(const Glib::KeyFile * setting) override;
     void save_settings(Glib::KeyFile * setting) override;
 
-    Gtk::Box* create_config_page() override;
+    Gtk::Box* create_config_page(MonglView *monglView) override;
 
     void reinit() override;
     unsigned long getTotal() override;
@@ -42,15 +42,15 @@ public:
     void updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height) override;
 private:
     void net_device_changed(Gtk::Entry *device_entry) ;
-
+    
+    static constexpr auto CONFIG_DISPLAY_NET = "DisplayNET";
+    static constexpr auto CONFIG_NET_COLOR = "NETColor";
+    static constexpr auto CONFIG_NET_SECONDARY_COLOR = "NETsecondaryColor";
+    static constexpr auto CONFIG_NET_DEVICE = "NETdevice";
+    static constexpr auto NET_PRIMARY_DEFAULT_COLOR = "#00FF00";
+    static constexpr auto NET_SECONDARY_DEFAULT_COLOR = "#FF0000";
 };
 
 
-#define NET_PRIMARY_DEFAULT_COLOR "#00FF00"
-#define NET_SECONDARY_DEFAULT_COLOR "#FF0000"
 
-#define CONFIG_DISPLAY_NET "DisplayNET"
-#define CONFIG_NET_COLOR "NETColor"
-#define CONFIG_NET_SECONDARY_COLOR "NETsecondaryColor"
-#define CONFIG_NET_DEVICE "NETdevice"
 

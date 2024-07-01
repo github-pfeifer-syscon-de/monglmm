@@ -73,7 +73,7 @@ TempMonitor::getTotal() {
 }
 
 Gtk::Box *
-TempMonitor::create_config_page()
+TempMonitor::create_config_page(MonglView *monglView)
 {
     auto hw_box = create_config_page(
             _("Temperature"));

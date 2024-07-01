@@ -69,6 +69,10 @@ public:
     void on_process_kill();
     void restore();
     void close();
+    Glib::KeyFile* getConfig();
+    static constexpr auto CONFIG_SHOW_NET_CONNECT = "showNetConnections";
+    static constexpr auto CONFIG_GRP_MAIN = "Main";
+    void net_connections_show_changed(Gtk::CheckButton* showNetConn);
 protected:
 
 private:
@@ -83,7 +87,7 @@ private:
     glibtop *m_glibtop;                        /* portable way to get infos (needs .configure --with-glibtop) */
     std::vector<std::shared_ptr<DiagramMonitor>> m_diagrams;
 
-    Glib::KeyFile *m_config;
+    Glib::KeyFile* m_config;
 
     G15Worker *worker;
     std::thread *m_WorkerThread;
@@ -116,7 +120,6 @@ private:
     static constexpr auto CONFIG_TEXT_COLOR = "TextColor";
     static constexpr auto CONFIG_BACKGOUNDCOLOR = "BackgroundColor";
     static constexpr auto CONFIG_PROCESSTYPE = "processType";
-    static constexpr auto CONFIG_GRP_MAIN = "Main";
     static constexpr auto TEXT_DEFAULT_COLOR = "#AAAAAA";
     static constexpr auto BACKGROUND_DEFAULT_COLOR = "#0F0F1F";
     static constexpr auto DIAGRAM_GAP = 0.2f;

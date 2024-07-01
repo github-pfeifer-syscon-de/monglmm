@@ -34,8 +34,9 @@ public:
     virtual ~NetInfo();
 
     void update();
-    psc::gl::aptrGeom2 draw(NaviContext *pGraph_shaderContext,
-                TextContext *_txtCtx, const psc::gl::ptrFont2& pFont);
+    psc::gl::aptrGeom2 draw(NaviContext *pGraph_shaderContext
+                , TextContext *_txtCtx, const psc::gl::ptrFont2& pFont
+                , bool showNetInfo);
     void setServiceName(std::shared_ptr<NetConnection>& netConn);
     static constexpr auto NODE_INDENT = 0.2f;
     static constexpr auto NODE_LINESPACE = -0.2f;

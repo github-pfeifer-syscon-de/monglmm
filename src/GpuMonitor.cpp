@@ -75,7 +75,7 @@ GpuMonitor::reinit()
 }
 
 Gtk::Box *
-GpuMonitor::create_config_page()
+GpuMonitor::create_config_page(MonglView *monglView)
 {
     auto gpu_box = create_config_page(
             _("Display GPU usage"));
