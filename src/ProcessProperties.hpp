@@ -43,18 +43,19 @@ class ProcessProperties
 : public Gtk::Dialog
 {
 public:
-    ProcessProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& builder, const std::shared_ptr<Process>& process);
+    ProcessProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& builder, const std::shared_ptr<Process>& process, int32_t update_interval);
     explicit ProcessProperties(const ProcessProperties& orig) = delete;
-    virtual ~ProcessProperties() = default;
+    virtual ~ProcessProperties();
 protected:
     static PropertyColumns m_propertyColumns;
     void addRow(const Glib::ustring& name, const Glib::ustring& value);
-    void refresh();
+    bool refresh();
     Glib::ustring formatSize(unsigned long value);
 
 private:
     std::shared_ptr<Process> m_process;
     Glib::RefPtr<Gtk::ListStore> m_properties;
-    Glib::RefPtr<Gtk::TreeView> m_propTree;
+    sigc::connection    m_timer;               /* Timer for regular updates     */
+
 };
 

@@ -227,14 +227,23 @@ Process::update_status()
         std::vector<Glib::ustring> uids;
         StringUtils::split(uid,'\t', uids);
         if (uids.size() > 0) {  // Real, Effective, Saved and FileSystem UID
-            m_uid = std::stoi(uids[0]);
+            m_uid = static_cast<uint32_t>(std::stoul(uids[0]));
         }
         else {
             m_uid = ROOT_UID;   // presume root ?
         }
+        auto gid = nameValue.getString("Gid:");
+        std::vector<Glib::ustring> gids;
+        StringUtils::split(gid,'\t', gids);
+        if (gids.size() > 0) {  // ??? Real, Effective, Saved and FileSystem GID
+            m_gid = static_cast<uint32_t>(std::stoul(gids[0]));
+        }
+        else {
+            m_uid = ROOT_GID;   // presume root ?
+        }
 	}
 	else {
-            stage = psc::gl::TreeNodeState::Finished;     // do not ask again
+        stage = psc::gl::TreeNodeState::Finished;     // do not ask again
 	}
 }
 

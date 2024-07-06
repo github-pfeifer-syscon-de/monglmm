@@ -640,7 +640,7 @@ MonglView::on_process_properties()
                             refBuilder->add_from_resource(
                                 m_application->get_resource_base_path() + "/process_properties.ui");
                             ProcessProperties* procProp = nullptr;
-                            refBuilder->get_widget_derived("proc-prop-dlg", procProp, process);
+                            refBuilder->get_widget_derived("proc-prop-dlg", procProp, process, m_updateInterval);
                             if (procProp) {
                                 //Glib::RefPtr<Gdk::Pixbuf> pix = Gdk::Pixbuf::create_from_resource(
                                 //        m_application->get_resource_base_path() +"/monglmm.png");

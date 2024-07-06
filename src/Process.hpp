@@ -48,7 +48,7 @@ public:
     const char* getName() override;
     psc::gl::TreeNodeState getStage() override;
     float getLoad() override;
-    inline float getRawLoad() {
+    inline double getRawLoad() {
         return m_load;
     }
     inline long getVmPeakK() {
@@ -75,6 +75,19 @@ public:
     inline long getRssFileK() {
         return rssFileK;
     }
+    inline long getThreads() {
+        return num_threads;
+    }
+    inline uint32_t getUid() {
+        return m_uid;
+    }
+    inline uint32_t getGid() {
+        return m_gid;
+    }
+
+    inline char getState() {
+        return state;
+    }
     void setStage(psc::gl::TreeNodeState _stage);
     bool isActive();
     long getMemUsage();
@@ -85,6 +98,7 @@ public:
     unsigned long getCpuUsageSum();
     void killProcess();
     static constexpr auto ROOT_UID = 0u;
+    static constexpr auto ROOT_GID = 0u;
 private:
     // internal
     bool touched;
@@ -204,6 +218,7 @@ private:
                         // getrlimit(2).
     double m_load;      // load ratio 0..1
     uint32_t m_uid;
+    uint32_t m_gid;
 };
 
 typedef std::shared_ptr<Process> pProcess;
