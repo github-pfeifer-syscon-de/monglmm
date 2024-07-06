@@ -40,6 +40,7 @@
 #include "InfoPage.hpp"
 #include "Processes.hpp"
 #include "StringUtils.hpp"
+#include "ProcessProperties.hpp"
 
 
 MonglView::MonglView(Gtk::Application* application)
@@ -608,10 +609,10 @@ MonglView::create_popup()
 {
     // loading from resources did not work on connecting events ....
     //   and this is suggested by https://developer.gnome.org/gtkmm-tutorial/stable/sec-treeview-examples.html.en
-    auto itemKill = Gtk::make_managed<Gtk::MenuItem>("_Kill", true);
-    itemKill->signal_activate().connect(
-            sigc::mem_fun(*this, &MonglView::on_process_kill) );
-    m_popupMenu.append(*itemKill);
+    auto itemProp = Gtk::make_managed<Gtk::MenuItem>("_Properties", true);
+    itemProp->signal_activate().connect(
+            sigc::mem_fun(*this, &MonglView::on_process_properties) );
+    m_popupMenu.append(*itemProp);
 
     auto itemRestore = Gtk::make_managed<Gtk::MenuItem>("_Restore", true);
     itemRestore->signal_activate().connect(
@@ -622,7 +623,7 @@ MonglView::create_popup()
 }
 
 void
-MonglView::on_process_kill()
+MonglView::on_process_properties()
 {
     auto selectGeom2 = getSelected();
     if (selectGeom2) {
@@ -633,19 +634,48 @@ MonglView::on_process_kill()
                 if (treeNode) {
                     auto process = std::dynamic_pointer_cast<Process>(treeNode);
                     if (process) {
-                        // it would be nice to ask for confirmation e.g. use dialog
-                        m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
-                        process->killProcess();
+
+                        auto refBuilder = Gtk::Builder::create();
+                        try {
+                            refBuilder->add_from_resource(
+                                m_application->get_resource_base_path() + "/process_properties.ui");
+                            ProcessProperties* procProp = nullptr;
+                            refBuilder->get_widget_derived("proc-prop-dlg", procProp, process);
+                            if (procProp) {
+                                //Glib::RefPtr<Gdk::Pixbuf> pix = Gdk::Pixbuf::create_from_resource(
+                                //        m_application->get_resource_base_path() +"/monglmm.png");
+                                //procProp->set_logo(pix);
+                                procProp->set_transient_for(*m_application->get_active_window());
+                                int ret = procProp->run();
+                                if (ret == Gtk::RESPONSE_OK) {
+                                    m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
+                                    process->killProcess();
+                                }
+                                procProp->hide();
+                                delete procProp;
+                            }
+                            else {
+                                std::cerr << "MonglView::on_process_properties(): No \"proc-prop-dlg\" object in process_properties.ui"
+                                    << std::endl;
+                            }
+                        }
+                        catch (const Glib::Error& ex) {
+                            std::cerr << "MonglView::on_process_properties(): " << ex.what() << std::endl;
+                        }
                     }
                     else {
-                        m_log->warn("No process to kill!");
+                        Gtk::MessageDialog messagedialog(*m_application->get_active_window(), "Works only for processes...", false, Gtk::MessageType::MESSAGE_INFO);
+                        messagedialog.run();
+                        messagedialog.hide();
                     }
                 }
             }
         }
     }
     else {
-        std::cout << "No selection!" << std::endl;
+        Gtk::MessageDialog messagedialog(*m_application->get_active_window(), "No selection!", false, Gtk::MessageType::MESSAGE_INFO);
+        messagedialog.run();
+        messagedialog.hide();
     }
 }
 

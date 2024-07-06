@@ -87,5 +87,4 @@ MonglAppWindow::on_action_about()
     } catch (const Glib::Error& ex) {
         std::cerr << "MonglAppWindow::on_action_about(): " << ex.what() << std::endl;
     }
-
 }

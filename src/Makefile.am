@@ -87,6 +87,8 @@ monglmm_SOURCES =  \
 	NetConnection.hpp \
 	NetNode.cpp \
 	NetNode.hpp \
+	ProcessProperties.cpp \
+	ProcessProperties.hpp \
 	NetInfo.cpp \
 	NetInfo.hpp
 

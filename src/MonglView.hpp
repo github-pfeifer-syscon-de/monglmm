@@ -66,7 +66,7 @@ public:
     bool selectionChanged(const psc::gl::aptrGeom2& prev_selected, const psc::gl::aptrGeom2& selected) override;
     bool on_click(GdkEventButton* event, float mx, float my) override;
     void create_popup();
-    void on_process_kill();
+    void on_process_properties();
     void restore();
     void close();
     Glib::KeyFile* getConfig();

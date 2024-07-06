@@ -48,6 +48,33 @@ public:
     const char* getName() override;
     psc::gl::TreeNodeState getStage() override;
     float getLoad() override;
+    inline float getRawLoad() {
+        return m_load;
+    }
+    inline long getVmPeakK() {
+        return vmPeakK;
+    }
+    inline long getVmSizeK() {
+        return vmSizeK;
+    }
+    inline long getVmDataK() {
+        return vmDataK;
+    }
+    inline long getVmStackK() {
+        return vmStackK;
+    }
+    inline long getVmExecK() {
+        return vmExecK;
+    }
+    inline long getVmRssK() {
+        return vmRssK;
+    }
+    inline long getRssAnonK() {
+        return rssAnonK;
+    }
+    inline long getRssFileK() {
+        return rssFileK;
+    }
     void setStage(psc::gl::TreeNodeState _stage);
     bool isActive();
     long getMemUsage();
