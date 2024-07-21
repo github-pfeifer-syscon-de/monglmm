@@ -634,33 +634,12 @@ MonglView::on_process_properties()
                 if (treeNode) {
                     auto process = std::dynamic_pointer_cast<Process>(treeNode);
                     if (process) {
-
-                        auto refBuilder = Gtk::Builder::create();
-                        try {
-                            refBuilder->add_from_resource(
-                                m_application->get_resource_base_path() + "/process_properties.ui");
-                            ProcessProperties* procProp = nullptr;
-                            refBuilder->get_widget_derived("proc-prop-dlg", procProp, process, m_updateInterval);
-                            if (procProp) {
-                                //Glib::RefPtr<Gdk::Pixbuf> pix = Gdk::Pixbuf::create_from_resource(
-                                //        m_application->get_resource_base_path() +"/monglmm.png");
-                                //procProp->set_logo(pix);
-                                procProp->set_transient_for(*m_application->get_active_window());
-                                int ret = procProp->run();
-                                if (ret == Gtk::RESPONSE_OK) {
-                                    m_log->info(Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
-                                    process->killProcess();
-                                }
-                                procProp->hide();
-                                delete procProp;
-                            }
-                            else {
-                                std::cerr << "MonglView::on_process_properties(): No \"proc-prop-dlg\" object in process_properties.ui"
-                                    << std::endl;
-                            }
-                        }
-                        catch (const Glib::Error& ex) {
-                            std::cerr << "MonglView::on_process_properties(): " << ex.what() << std::endl;
+                        ProcessProperties* procProp = ProcessProperties::show(process->getPid(), m_config, m_updateInterval);
+                        if (procProp) {
+                            procProp->run();
+                            save_config();
+                            procProp->hide();
+                            delete procProp;
                         }
                     }
                     else {

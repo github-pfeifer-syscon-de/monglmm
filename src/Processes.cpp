@@ -15,27 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string>
 #include <iostream>
-#include <cstdlib>
-#include <iomanip>
-#include <fstream>
-#include <filesystem>
-#include <sys/types.h>
-#include <dirent.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <vector>
-#include <Log.hpp>
 #include <TreeNode2.hpp>
 #include <LineShapeRenderer2.hpp>
 #include <SunDiscRenderer2.hpp>
 #include <FallShapeRenderer2.hpp>
+#include <Log.hpp>
 
 #include "Processes.hpp"
 
 Processes::Processes(uint32_t _size)
-: m_size{_size}
+: ProcessesBase{}
+, m_size{_size}
 , m_treeType{TreeType::ARC}
 {
 }
@@ -51,7 +42,6 @@ Processes::~Processes()
         m_textCpu[i].resetAll();
         m_textMem[i].resetAll();
     }
-    mProcesses.clear();
 }
 
 void
@@ -87,87 +77,12 @@ Processes::printInfo()
 void
 Processes::update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem)
 {
-    DIR *dir;
-    struct dirent *ent;
-    if ((dir = opendir(sdir)) != nullptr) {
-        /* find all the processes in /proc */
-        for (auto& p : mProcesses) {
-            auto& proc = p.second;
-            if (proc->isActive()) {
-                proc->setStage(psc::gl::TreeNodeState::Running);
-            }
-            proc->setTouched(false);
-        }
-        while ((ent = readdir(dir)) != nullptr) {
-            if (ent->d_type == DT_DIR) {
-                long pid = std::atol(ent->d_name);
-                if (pid > 0) {
-                    auto p = mProcesses.find(pid);
-                    pProcess proc;
-                    if (p != mProcesses.end()) {
-                        proc = p->second;
-                    }
-                    else {
-                        auto path = Glib::ustring::sprintf("%s/%ld", sdir, pid);
-                        proc = std::make_shared<Process>(path, pid, m_size);
-                        mProcesses.insert(std::pair(pid, proc));
-                    }
-                    proc->update(cpu, mem);
-                }
-            }
-        }
-        closedir(dir);
-        for (auto p = mProcesses.begin(); p != mProcesses.end(); ) {
-            auto& proc = p->second;
-            if (!proc->isTouched()) {   // if we didn't touch the entry process died
-                if (proc->getStage() < psc::gl::TreeNodeState::Close) {    // close in 2 steps to show status
-                    proc->setStage(psc::gl::TreeNodeState::Close);
-                    ++p;
-                }
-                else {
-                    auto parent = proc->getParent();
-                    if (parent) {   // remove any reference
-                        parent->remove(proc.get());
-                    }
-                    p = mProcesses.erase(p);    // make unreachable, the inc needs to be post increment (the doc says it is incremented internally this might be right in the case of a vector) !!!
-                }
-            }
-            else {
-                ++p;
-            }
-        }
+    ProcessesBase::update();
+    for (auto& p : mProcesses) {
+        auto proc = p.second;
+        proc->update(cpu, mem);
     }
     findMax(m_topMem, m_topCpu);
-    buildTree();
-}
-
-void
-Processes::buildTree()
-{
-    for (auto& p : mProcesses) {
-        auto& proc = p.second;      // as process assignments might change rebuild tree
-
-        long ppid = proc->getPpid();
-        auto pp = mProcesses.find(ppid);
-        if (pp != mProcesses.end()) {
-            pProcess pproc = pp->second;
-            proc->setParent(pproc.get(), proc);
-        }
-        else {
-            // some kernel internal porcess have ppid 0 dont expect much impact by them ?
-            //std::cout << "Process " << ppid << " not founnd!" << std::endl;
-        }
-    }
-    if (!m_procRoot) {
-        auto pr = mProcesses.find(ROOT_PID);  // seems as we can be sure proc 1 is the root
-        if (pr != mProcesses.end()) {
-            m_procRoot = pr->second;
-        }
-        else {
-            // as update and redraw happen asynchronously this will happen on first call
-            psc::log::Log::logAdd(psc::log::Level::Error, "No process 1 to root proc tree!");
-        }
-    }
 }
 
 void
@@ -424,6 +339,12 @@ Processes::restore()
             }
         }
     }
+}
+
+pProcess
+Processes::createProcess(std::string path, long pid)
+{
+    return std::make_shared<Process>(path, pid, m_size);
 }
 
 void

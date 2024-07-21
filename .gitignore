@@ -79,3 +79,9 @@
 /test/ptr_test.trs
 /glmLib/.deps/libglm_a-LineShapeTreeGeometry2.Tpo
 /test/simple_test.log
+/test/NameValue.hpp
+/test/NameValue.cpp
+/test/Process.cpp
+/test/Process.hpp
+/test/Monitor.cpp
+/test/Monitor.hpp

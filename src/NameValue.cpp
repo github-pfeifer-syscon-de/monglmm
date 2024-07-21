@@ -19,9 +19,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <StringUtils.hpp>
 
 #include "NameValue.hpp"
-#include "StringUtils.hpp"
 
 NameValue::NameValue()
 : m_values()

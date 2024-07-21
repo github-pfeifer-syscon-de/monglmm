@@ -51,7 +51,6 @@ public:
     virtual ~NetConnection() = default;
 
     std::shared_ptr<NetAddress> getLocalAddr();
-    std::string getLocalName();
     uint32_t getLocalPort() const;
     std::shared_ptr<NetAddress> getRemoteAddr();
     uint32_t getRemotePort() const;
@@ -75,3 +74,4 @@ private:
     bool m_incomming{false};
 };
 
+typedef std::shared_ptr<NetConnection> pNetConnect;

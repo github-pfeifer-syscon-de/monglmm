@@ -51,6 +51,8 @@ monglmm_SOURCES =  \
 	Page.cpp \
 	Processes.hpp \
 	Processes.cpp \
+	ProcessesBase.hpp \
+	ProcessesBase.cpp \
 	resources.c \
 	InfoPage.cpp \
 	InfoPage.hpp \
@@ -87,8 +89,12 @@ monglmm_SOURCES =  \
 	NetConnection.hpp \
 	NetNode.cpp \
 	NetNode.hpp \
+	NetworkProperties.cpp \
+	NetworkProperties.hpp \
 	ProcessProperties.cpp \
 	ProcessProperties.hpp \
+	BaseNetInfo.cpp \
+	BaseNetInfo.hpp \
 	NetInfo.cpp \
 	NetInfo.hpp
 

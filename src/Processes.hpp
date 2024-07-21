@@ -21,18 +21,14 @@
 
 #pragma once
 
-#include <map>
-#include <iostream>
 #include <memory>
 #include <array>
 
 #include "GraphShaderContext.hpp"
-#include "Process.hpp"
 #include "Font2.hpp"
 #include "DiagramMonitor.hpp"
 #include "Text2.hpp"
-
-static const long ROOT_PID = 1l;
+#include "ProcessesBase.hpp"
 
 enum class TreeType {
     ARC = 'a',  // see also Processes::fromString
@@ -40,7 +36,9 @@ enum class TreeType {
     LINE = 'l'
 };
 
-class Processes {
+// This is the virual part of Processes
+class Processes
+: public ProcessesBase {
 public:
     Processes(guint _size);
     virtual ~Processes();
@@ -58,7 +56,6 @@ public:
             std::shared_ptr<DiagramMonitor> mem,
             Matrix &persView);
     void setTreeType(const Glib::ustring &uProcessType);
-    void buildTree();
     void restore();
 
 
@@ -76,9 +73,9 @@ public:
 protected:
     void updateCpu(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, const psc::gl::ptrFont2& pFont, std::shared_ptr<DiagramMonitor> cpu, Matrix &persView, Position &p);
     void updateMem(GraphShaderContext *pGraph_shaderContext, TextContext *_txtCtx, const psc::gl::ptrFont2& pFont, std::shared_ptr<DiagramMonitor> mem, Matrix &persView, Position &p);
+    pProcess createProcess(std::string path, long pid) override;
 
 private:
-    std::map<long, pProcess> mProcesses;
     std::array<pProcess, TOP_PROC> m_topMem;    // proc highest mem usage
     std::array<pProcess, TOP_PROC> m_topCpu;  // proc highest cpu usage
     std::array<psc::gl::aptrGeom2, TOP_PROC> m_memGeo;
@@ -86,8 +83,6 @@ private:
     std::array<psc::gl::aptrText2, TOP_PROC> m_textCpu;
     std::array<psc::gl::aptrText2, TOP_PROC> m_textMem;
     psc::gl::aptrGeom2 createBox(GeometryContext *shaderContext, Gdk::RGBA &color);
-    pProcess m_procRoot;
-    constexpr static auto sdir = "/proc";
     guint m_size;
     TreeType m_treeType;
 };

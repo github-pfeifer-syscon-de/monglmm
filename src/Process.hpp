@@ -35,10 +35,9 @@ public:
 
     void roll();
     void setPid(long pid);
-    long getPid();
-    void update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem);
-    void update_status();
-    void update_stat();
+    long getPid() const;
+    void update();  // update basic data
+    void update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem);    // update history
     Glib::ustring getDisplayName() override;
     bool isPrimary() override;
     std::shared_ptr<Buffer<double>> getCpuData();
@@ -48,57 +47,59 @@ public:
     const char* getName() override;
     psc::gl::TreeNodeState getStage() override;
     float getLoad() override;
-    inline double getRawLoad() {
+    inline double getRawLoad() const {
         return m_load;
     }
-    inline long getVmPeakK() {
+    inline long getVmPeakK() const {
         return vmPeakK;
     }
-    inline long getVmSizeK() {
+    inline long getVmSizeK() const {
         return vmSizeK;
     }
-    inline long getVmDataK() {
+    inline long getVmDataK() const {
         return vmDataK;
     }
-    inline long getVmStackK() {
+    inline long getVmStackK() const {
         return vmStackK;
     }
-    inline long getVmExecK() {
+    inline long getVmExecK() const {
         return vmExecK;
     }
-    inline long getVmRssK() {
+    inline long getVmRssK() const {
         return vmRssK;
     }
-    inline long getRssAnonK() {
+    inline long getRssAnonK() const {
         return rssAnonK;
     }
-    inline long getRssFileK() {
+    inline long getRssFileK() const {
         return rssFileK;
     }
-    inline long getThreads() {
+    inline long getThreads() const {
         return num_threads;
     }
-    inline uint32_t getUid() {
+    inline uint32_t getUid() const {
         return m_uid;
     }
-    inline uint32_t getGid() {
+    inline uint32_t getGid() const {
         return m_gid;
     }
-
-    inline char getState() {
+    inline char getState() const {
         return state;
     }
     void setStage(psc::gl::TreeNodeState _stage);
     bool isActive();
     long getMemUsage();
     long getMemGraph();
-    long getPpid();
+    long getPpid() const;
     unsigned long getCpuUsage();
     unsigned long getCpuUsageBuf();
     unsigned long getCpuUsageSum();
     void killProcess();
     static constexpr auto ROOT_UID = 0u;
     static constexpr auto ROOT_GID = 0u;
+    void update_status();
+    void update_stat();
+
 private:
     // internal
     bool touched;

@@ -20,26 +20,26 @@
 
 #include <list>
 #include <memory>
-#include <map>
 #include <Font2.hpp>
 
 #include "NetConnection.hpp"
 #include "NetNode.hpp"
+#include "BaseNetInfo.hpp"
 
 class NetInfo
+: public BaseNetInfo
 {
 public:
-    NetInfo();
+    NetInfo() = default;
     explicit NetInfo(const NetInfo& orig) = delete;
-    virtual ~NetInfo();
+    virtual ~NetInfo() = default;
 
-    void update();
     psc::gl::aptrGeom2 draw(NaviContext *pGraph_shaderContext
                 , TextContext *_txtCtx, const psc::gl::ptrFont2& pFont
                 , bool showNetInfo);
-    void setServiceName(std::shared_ptr<NetConnection>& netConn);
     static constexpr auto NODE_INDENT = 0.2f;
     static constexpr auto NODE_LINESPACE = -0.2f;
+    void update();
 
 protected:
     std::map<std::string, std::list<std::shared_ptr<NetConnection>>>
@@ -47,15 +47,16 @@ protected:
     void handle(const std::shared_ptr<NetNode>& node,
             const std::list<std::shared_ptr<NetConnection>>& list,
             uint32_t index);
-    void read(const char* name, std::list<std::shared_ptr<NetConnection>>& netConnections);
     std::shared_ptr<NetNode> createNode(
         const std::shared_ptr<NetConnection>& firstEntry
         ,const std::shared_ptr<NetNode>& node
         ,uint32_t index);
+    std::string getBasePath() override;
+    std::list<std::shared_ptr<NetConnection>> m_netConnections;
+
 private:
     std::shared_ptr<NetNode> m_root;
-    std::map<uint32_t, std::string> m_portNames;
-    std::list<std::shared_ptr<NetConnection>> m_netConnections;
+
 };
 
 

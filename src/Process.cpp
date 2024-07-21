@@ -86,7 +86,7 @@ Process::roll()
 }
 
 long
-Process::getPid()
+Process::getPid() const
 {
     return pid;
 }
@@ -123,13 +123,21 @@ Process::getCpuUsageSum()
 }
 
 void
-Process::update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem) {
+Process::update() 
+{
     touched = true;
     if (!isActive()) {
         return;
     }
     update_status();
     update_stat();
+}
+
+void
+Process::update(std::shared_ptr<Monitor> cpu, std::shared_ptr<Monitor> mem) {
+    if (!isActive()) {
+        return;
+    }
     roll();
     // Show factor of total
     if (cpu->getTotal() > 0l) {
@@ -330,7 +338,7 @@ Process::getMemGraph()
 	return rssAnonK;
 }
 
-long Process::getPpid()
+long Process::getPpid() const
 {
 	return ppid;
 }

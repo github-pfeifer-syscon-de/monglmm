@@ -22,6 +22,8 @@
 #include <type_traits>
 #include <tuple>        // boolalpha
 
+#include "Process.hpp"
+
 // Nothing secfic just some playground, to check some stuff
 
 class Base
@@ -110,10 +112,10 @@ bool isBaseOf() {
     return std::is_base_of< TypeOf, Type >::value;
 }
 
-int
-main(int argc, char** argv)
+// this is more or lest some sratchpad
+static bool
+type_test()
 {
-    std::cout << "simple" << std::endl;
     std::allocator<Test> alloc;
     using traits_t = std::allocator_traits<decltype(alloc)>; // The matching trait
     Test* test = traits_t::allocate(alloc, 1);         // with count
@@ -141,7 +143,34 @@ main(int argc, char** argv)
     std::cout << "copy constr B " << isCopyConstructible< B >() << std::endl;              // Uh oh.
     std::cout << "base of A<-B " << isBaseOf< A,B >() << std::endl;              // OK.
     std::cout << "base of A<-C " << isBaseOf< A,C >() << std::endl;              // Uh oh.
+    return true;
+}
 
+static bool
+property_test()
+{
+    std::cout << "property_test" << std::endl;
+    pid_t pid = getpid();
+    std::cout << "pid " << pid << std::endl;
+    Process process{Glib::ustring::sprintf("/proc/%d", pid), pid, 100};
+    process.update_status();
+    process.update_stat();
+    std::cout << "name " << process.getDisplayName() << std::endl;
+    std::cout << "vmRssK " << process.getVmRssK() << "k" << std::endl;
+    // the glib formating is not working as this needs a app
+    return true;
+}
+
+int
+main(int argc, char** argv)
+{
+    std::cout << "simple" << std::endl;
+    if (!type_test()) {
+        return 1;
+    }
+    if (!property_test()) {
+        return 1;
+    }
     std::cout << "end" << std::endl;
     return 0;
 }
