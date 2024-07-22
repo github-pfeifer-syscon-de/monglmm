@@ -77,7 +77,7 @@ ProcessProperties::ProcessProperties(BaseObjectType* cobject, const Glib::RefPtr
 void
 ProcessProperties::on_response(int response_id)
 {
-    // signal-hide does not work as the dialog will be hidden and we wont get a usable size
+    // signal-hide does not work as the dialog will be hidden when function is called, and we won't get a usable size
     if (m_timer.connected()) {
         m_timer.disconnect(); // No more updating
     }

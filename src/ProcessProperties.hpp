@@ -86,7 +86,7 @@ public:
     Gtk::TreeModelColumn<Glib::ustring> m_user;
     Gtk::TreeModelColumn<Glib::ustring> m_group;
     Gtk::TreeModelColumn<Glib::ustring> m_state;
-    Gtk::TreeModelColumn<std::shared_ptr<Process>> m_process;
+    Gtk::TreeModelColumn<pProcess> m_process;
 
     ProcessColumns()
     {

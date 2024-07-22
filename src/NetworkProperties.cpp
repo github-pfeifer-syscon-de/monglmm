@@ -22,6 +22,10 @@
 
 #include "NetworkProperties.hpp"
 
+// using the processId was a idea i had when i discovered that
+//   these infos where available in a subdirectory from process,
+//   but as it seems these are just the global infos...
+//   but maybe there is an option, or these will be available in the future
 NetworkProperties::NetworkProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& builder, const long processId, Glib::KeyFile* keyFile, int32_t update_interval)
 : Gtk::Dialog{cobject}
 , m_processNetInfo{std::make_shared<ProcessNetInfo>(Glib::ustring::sprintf("/proc/%ld/net", processId))}
@@ -99,8 +103,6 @@ NetworkProperties::refresh()
         }
     }
     return true;
-//    }
-//    return false;   // if not found no use of keep updating
 }
 
 NetworkProperties*
