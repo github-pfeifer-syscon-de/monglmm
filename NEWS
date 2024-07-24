@@ -30,6 +30,7 @@ Version 0.1
      for openGL queries are supported (which only show application local values (primitives/samples), so --with-gles makes best use of resources)
      the suport for other GPU values depends on GL extensions support for AMDperfCounters which seems being quite commonly used
 
-20.7.24 added detail view for processes (classical Gui),
-      select process then double click to show the depending processes en détail as tree,
-      also some basic network connection infos.
+20.7.24 added detail view for processes ("classic" Gui),
+      select a process then double click to show the depending processes en détail
+	(as far as the values from proc are sufficient) as tree,
+      allows also some basic network connection infos.
