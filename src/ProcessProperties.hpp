@@ -47,20 +47,39 @@ public:
      }
 };
 
-class SizeConverter
+class KSizeConverter
 : public psc::ui::CustomConverter<glong>
 {
 public:
-    SizeConverter(Gtk::TreeModelColumn<glong>& col)
+    KSizeConverter(Gtk::TreeModelColumn<glong>& col)
     : psc::ui::CustomConverter<glong>(col)
     {
     }
-    virtual ~SizeConverter() = default;
+    virtual ~KSizeConverter() = default;
 
     void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override {
         glong value = 0;
         iter->get_value(m_col.index(), value);
         auto size = Glib::format_size(value*1024l, Glib::FormatSizeFlags::FORMAT_SIZE_IEC_UNITS);   //  based on 1024, FORMAT_SIZE_DEFAULT on 1000
+        auto textRend = static_cast<Gtk::CellRendererText*>(rend);
+        textRend->property_text() = size;
+     }
+};
+
+class USizeConverter
+: public psc::ui::CustomConverter<gulong>
+{
+public:
+    USizeConverter(Gtk::TreeModelColumn<gulong>& col)
+    : psc::ui::CustomConverter<gulong>(col)
+    {
+    }
+    virtual ~USizeConverter() = default;
+
+    void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override {
+        gulong value = 0;
+        iter->get_value(m_col.index(), value);
+        auto size = Glib::format_size(value, Glib::FormatSizeFlags::FORMAT_SIZE_IEC_UNITS);
         auto textRend = static_cast<Gtk::CellRendererText*>(rend);
         textRend->property_text() = size;
      }
@@ -94,21 +113,21 @@ public:
         add<glong>("Pid", m_pid, 1.0f);
         auto loadConverter = std::make_shared<LoadConverter>(m_load);
         add<double>("Load", loadConverter, 1.0f);
-        auto sizeVmpeakConverter = std::make_shared<SizeConverter>(m_vmPeak);
+        auto sizeVmpeakConverter = std::make_shared<KSizeConverter>(m_vmPeak);
         add<glong>("VMPeak", sizeVmpeakConverter, 1.0f);
-        auto sizeVmsizeConverter = std::make_shared<SizeConverter>(m_vmSize);
+        auto sizeVmsizeConverter = std::make_shared<KSizeConverter>(m_vmSize);
         add<glong>("VMSize", sizeVmsizeConverter, 1.0f);
-        auto sizeVmdataConverter = std::make_shared<SizeConverter>(m_vmData);
+        auto sizeVmdataConverter = std::make_shared<KSizeConverter>(m_vmData);
         add<glong>("VMData", sizeVmdataConverter, 1.0f);
-        auto sizeVmstackConverter = std::make_shared<SizeConverter>(m_vmStack);
+        auto sizeVmstackConverter = std::make_shared<KSizeConverter>(m_vmStack);
         add<glong>("VMStack", sizeVmstackConverter, 1.0f);
-        auto sizeVmexecConverter = std::make_shared<SizeConverter>(m_vmExec);
+        auto sizeVmexecConverter = std::make_shared<KSizeConverter>(m_vmExec);
         add<glong>("VMExec", sizeVmexecConverter, 1.0f);
-        auto sizeVmrssConverter = std::make_shared<SizeConverter>(m_vmRss);
+        auto sizeVmrssConverter = std::make_shared<KSizeConverter>(m_vmRss);
         add<glong>("VMRss", sizeVmrssConverter, 1.0f);
-        auto sizeRssAnonConverter = std::make_shared<SizeConverter>(m_rssAnon);
+        auto sizeRssAnonConverter = std::make_shared<KSizeConverter>(m_rssAnon);
         add<glong>("RSSAnon", sizeRssAnonConverter, 1.0f);
-        auto sizeRssFileConverter = std::make_shared<SizeConverter>(m_rssFile);
+        auto sizeRssFileConverter = std::make_shared<KSizeConverter>(m_rssFile);
         add<glong>("RSSFile", sizeRssFileConverter, 1.0f);
         add<glong>("Threads", m_threads, 1.0f);
         add<Glib::ustring>("User", m_user, 1.0f);

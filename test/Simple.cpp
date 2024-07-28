@@ -155,6 +155,9 @@ property_test()
     Process process{Glib::ustring::sprintf("/proc/%d", pid), pid, 100};
     process.update_status();
     process.update_stat();
+    if (process.getStage() == psc::gl::TreeNodeState::Finished) {
+        return false;
+    }
     std::cout << "name " << process.getDisplayName() << std::endl;
     std::cout << "vmRssK " << process.getVmRssK() << "k" << std::endl;
     // the glib formating is not working as this needs a app
@@ -169,7 +172,7 @@ main(int argc, char** argv)
         return 1;
     }
     if (!property_test()) {
-        return 1;
+        return 2;
     }
     std::cout << "end" << std::endl;
     return 0;

@@ -22,8 +22,9 @@
 
 class NameValue {
 public:
-    NameValue();
-    virtual ~NameValue();
+    NameValue() = default;
+    explicit NameValue(const NameValue& orig) = delete;
+    virtual ~NameValue() = default;
     bool read(const std::string &name);
     unsigned long getUnsigned(const std::string &name);
     std::string getString(const std::string &name);

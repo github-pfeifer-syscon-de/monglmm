@@ -123,7 +123,7 @@ Process::getCpuUsageSum()
 }
 
 void
-Process::update() 
+Process::update()
 {
     touched = true;
     if (!isActive()) {
@@ -131,6 +131,7 @@ Process::update()
     }
     update_status();
     update_stat();
+    // tried to make ../nnn/io stats available but these are not worth the effort as they produce various errors (with already taking the effort to read them at once)
 }
 
 void

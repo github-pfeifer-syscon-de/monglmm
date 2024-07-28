@@ -43,10 +43,6 @@
             <property name="can-focus">True</property>
             <property name="shadow-type">in</property>
             <child>
-              <object class="GtkViewport">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-                <child>
                   <object class="GtkTreeView" id="properties">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
@@ -54,8 +50,6 @@
                       <object class="GtkTreeSelection"/>
                     </child>
                   </object>
-                </child>
-              </object>
             </child>
           </object>
           <packing>

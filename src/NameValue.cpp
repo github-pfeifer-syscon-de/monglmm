@@ -23,20 +23,10 @@
 
 #include "NameValue.hpp"
 
-NameValue::NameValue()
-: m_values()
-{
-}
-
-
-NameValue::~NameValue()
-{
-}
 
 bool
 NameValue::read(const std::string &name)
 {
-
     std::ifstream  stat;
     std::string  str;
 	m_values.clear();
@@ -60,8 +50,7 @@ NameValue::read(const std::string &name)
             }
         }
     }
-    catch (std::ios_base::failure &e)
-    {
+    catch (std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
             std::cerr << name << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message() << std::endl;
 			ret = false;
