@@ -89,7 +89,6 @@ AX_CHECK_SED()
 
 AC_CONFIG_FILES([
 Makefile
-test/Makefile
 src/Makefile
 res/Makefile
 ])
