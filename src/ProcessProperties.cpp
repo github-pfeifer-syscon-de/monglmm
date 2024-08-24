@@ -95,7 +95,7 @@ ProcessProperties::stopProcess()
             auto row = *iter;
             auto process = row.get_value(m_propertyColumns->m_process);
             if (process) {
-                psc::log::Log::logAdd(psc::log::Level::Info, Glib::ustring::sprintf("Kill %s %d!", process->getName(), process->getPid()));
+                psc::log::Log::logAdd(psc::log::Level::Info, std::format("Kill {0} {1}!", process->getName(), process->getPid()));
                 process->killProcess();
                 ++iter;
             }
@@ -134,7 +134,8 @@ ProcessProperties::addProcess(const Gtk::TreeModel::iterator& i, pProcess& proce
     row.set_value(m_propertyColumns->m_threads, process->getThreads());
     row.set_value(m_propertyColumns->m_user, getUid2Name(process->getUid()));
     row.set_value(m_propertyColumns->m_group, getGid2Name(process->getGid()));
-    row.set_value(m_propertyColumns->m_state, Glib::ustring::sprintf("%c", process->getState()));
+    Glib::ustring state{std::format("{0}", process->getState())};
+    row.set_value(m_propertyColumns->m_state, state);
     row.set_value(m_propertyColumns->m_process, process);
     for (auto& child : process->getChildren()) {
         auto processChild = dynamic_pointer_cast<Process>(child) ;
@@ -143,7 +144,7 @@ ProcessProperties::addProcess(const Gtk::TreeModel::iterator& i, pProcess& proce
             addProcess(n, processChild);
         }
         else {
-            psc::log::Log::logAdd(psc::log::Level::Notice, Glib::ustring::sprintf("Traversing process %s", typeid(child).name()));
+            psc::log::Log::logAdd(psc::log::Level::Notice, std::format("Traversing process {0}", typeid(child).name()));
         }
     }
 }
@@ -208,7 +209,7 @@ ProcessProperties::getUid2Name(uint32_t uid)
     if (pws != nullptr) {
         userName = Glib::ustring(pws->pw_name);
     }
-    userName += Glib::ustring::sprintf(" (%d)", uid);
+    userName += std::format(" ({0})", uid);
     m_users.insert(std::pair(uid, userName));
     return userName;
 }
@@ -225,7 +226,7 @@ ProcessProperties::getGid2Name(uint32_t gid)
     if (grp != nullptr) {
         groupName = Glib::ustring(grp->gr_name);
     }
-    groupName += Glib::ustring::sprintf(" (%d)", gid);
+    groupName += std::format(" ({0})", gid);
     m_groups.insert(std::pair(gid, groupName));
     return groupName;
 }

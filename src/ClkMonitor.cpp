@@ -27,6 +27,7 @@
 #include <glib/gi18n.h>
 #include <cstdlib>
 #include <errno.h>
+#include <StringUtils.hpp>
 
 
 #include "G15Worker.hpp"
@@ -407,13 +408,12 @@ ClkMonitor::getColor(unsigned int diagram)
 void
 ClkMonitor::updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height)
 {
-    char temp[64];
-
     for (guint c = 0; c < MIN(cpus,4); ++c) {
+        std::string temp;
         cr->move_to(1.0, (c+1)*10);
-        sprintf(temp, "%.1fMHz", clkMHz[c]);
+        std::format_to(std::back_inserter(temp), "{0:.1f}MHz", clkMHz[c]);
         if (c == 0) {
-            sprintf(&temp[strlen(temp)], "  Cpus %d", cpus);
+            std::format_to(std::back_inserter(temp), "  Cpus {}", cpus);
         }
         cr->show_text(temp);
     }

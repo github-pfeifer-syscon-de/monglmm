@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <vector>
 #include <Log.hpp>
+#include <StringUtils.hpp>
 
 
 #include "ProcessesBase.hpp"
@@ -76,7 +77,7 @@ ProcessesBase::update()
                         proc = p->second;
                     }
                     else {
-                        auto path = Glib::ustring::sprintf("%s/%ld", sdir, pid);
+                        auto path = std::format("{0}/{1}", sdir, pid);
                         proc = createProcess(path, pid);
                         mProcesses.insert(std::pair(pid, proc));
                     }

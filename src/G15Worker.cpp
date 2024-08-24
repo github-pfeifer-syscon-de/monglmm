@@ -19,6 +19,7 @@
 #include <fontconfig/fontconfig.h>
 #include <thread>
 #include <future>
+#include <StringUtils.hpp>
 
 #include "libg15.h"
 
@@ -131,7 +132,7 @@ G15Worker::g15_update()
         int ret = writePixmapToLCD(data);
         if (ret != 0) {
             // In case of error reinitalize (disconnected device or alike)
-            m_log->error(Glib::ustring::sprintf("G15 WritePixmap ret %d", ret));
+            m_log->error(std::format("G15 WritePixmap ret {0}", ret));
         }
         delete[] data;
 
@@ -154,9 +155,9 @@ int
 G15Worker::rundirect(const Glib::ustring &ucmd)
 {
     const char* cmd = ucmd.c_str();
-    m_log->info(Glib::ustring::sprintf("Run %s", ucmd));
+    m_log->info(std::format("Run {0}", ucmd));
     cmdErrorCode = system(cmd);
-    m_log->info(Glib::ustring::sprintf("Run %s error %d", ucmd, cmdErrorCode));
+    m_log->info(std::format("Run {0} error {1}", ucmd, cmdErrorCode));
     if (cmdErrorCode != 0) {
         strncpy(m_cmd, cmd, sizeof(m_cmd)-1);
         if (m_pDispatcher != nullptr)
@@ -243,7 +244,7 @@ G15Worker::do_work()
                             netstart = FALSE;
                         }
                     }
-                    m_log->info(Glib::ustring::sprintf("Key m1 %s ret: %d", netstart ? "y" : "n", ret));
+                    m_log->info(std::format("Key m1 {0} ret: {1}", netstart ? "y" : "n", ret));
                     setLEDs(netstart ? 0x01 : 0x0);
                 }
 
@@ -261,7 +262,7 @@ G15Worker::do_work()
             }
             else {
                 if (running) {
-                    m_log->warn(Glib::ustring::sprintf("Error reading g15 keys: %d", ret));
+                    m_log->warn(std::format("Error reading g15 keys: {0}", ret));
                     sleep(1);
                 }
             }
@@ -277,7 +278,7 @@ G15Worker::do_work()
             if (m_pDispatcher != nullptr)
                 m_pDispatcher->emit();
         }
-        m_log->warn(Glib::ustring::sprintf("Error init g15 keys: %d", errorCode));
+        m_log->warn(std::format("Error init g15 keys: {0}", errorCode));
     }
     running = false;
 }

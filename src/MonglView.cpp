@@ -26,6 +26,7 @@
 #include <Log.hpp>
 #include <TreeGeometry2.hpp>
 #include <Font2.hpp>
+#include <StringUtils.hpp>
 
 #include "Monitor.hpp"
 #include "MonglView.hpp"
@@ -39,7 +40,6 @@
 #include "GraphShaderContext.hpp"
 #include "InfoPage.hpp"
 #include "Processes.hpp"
-#include "StringUtils.hpp"
 #include "ProcessProperties.hpp"
 
 
@@ -154,7 +154,7 @@ MonglView::init_shaders(Glib::Error &error)
         ret = gctx->createProgram(vertexVersioned.c_str(), fragmVersioned.c_str(), error);
     }
     catch (Glib::Error &err) {
-        m_log->error(Glib::ustring::sprintf("init shader error %d %s loading resources!",  err.code(), err.what()));
+        m_log->error(std::format("init shader error {0} {1} loading resources!",  err.code(), err.what()));
         ret = FALSE;
     }
     if (!ret) {
@@ -217,7 +217,7 @@ void
 MonglView::on_notification_from_worker_thread()
 {
 #ifdef LIBG15
-    auto tmp = Glib::ustring::sprintf("Error %s Init %d cmd %d"
+    auto tmp = std::format("Error {0} Init {1} cmd {2}"
                     , worker->getCmd(), worker->getErrorCode(), worker->getCmdErrorCode());
     m_log->error(tmp);
     Gtk::MessageDialog msg = Gtk::MessageDialog(tmp, false, Gtk::MessageType::MESSAGE_ERROR);
@@ -233,7 +233,7 @@ MonglView::update_timer()
 
     m_timer = Glib::signal_timeout().connect_seconds(
                     sigc::mem_fun(*this, &MonglView::monitors_update), m_updateInterval);
-    m_log->info(Glib::ustring::sprintf("Using update interval %d", m_updateInterval));
+    m_log->info(std::format("Using update interval {0}s", m_updateInterval));
 }
 
 void
@@ -362,12 +362,12 @@ MonglView::read_config()
     auto gcfg = get_config_name();
     try {
         if (!m_config->load_from_file(gcfg, Glib::KEY_FILE_NONE)) {
-            m_log->error(Glib::ustring::sprintf("Error loading %s", gcfg));
+            m_log->error(std::format("Error loading config {0}", gcfg));
         }
     }
     catch (const Glib::FileError& exc) {
         // may happen if didn't create a file (yet) but we can go on
-        m_log->error(Glib::ustring::sprintf("File Error %s loading %s if its missing, it will be created?", exc.what(), gcfg));
+        m_log->error(std::format("File Error {0} loading {1} if its missing, it will be created?", exc.what(), gcfg));
     }
 }
 
@@ -383,7 +383,7 @@ MonglView::save_config()
         }
         auto gcfg = get_config_name();
         if (!m_config->save_to_file(gcfg)) {
-            m_log->error(Glib::ustring::sprintf("Error saving %s ", gcfg));
+            m_log->error(std::format("Error saving {0} ", gcfg));
         }
     }
 }

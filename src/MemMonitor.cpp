@@ -136,12 +136,12 @@ MemMonitor::printInfo()
 void
 MemMonitor::updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height)
 {
-    char temp[64];
+    std::string temp;
 //    sprintf(temp, "Fr: 0x%x", result);
 //    cr->move_to(100.0, 10.0);
 //    cr->show_text(temp);
 
-    sprintf(temp, "Mem:%.1fG", (double)mem_total / 1024.0 / 1024.0);
+    temp = std::format("Mem:{0:.1f}G", (double)mem_total / 1024.0 / 1024.0);
     cr->move_to(1.0, 10.0);
     cr->show_text(temp);
 //
@@ -153,11 +153,12 @@ MemMonitor::updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint heigh
 //    cr->move_to(1.0, 30.0);
 //    cr->show_text(temp);
 
-    sprintf(temp, "Use:%.1fG", (double)getUsedMemory() / 1024.0 / 1024.0);
+
+    temp = std::format("Use:{0:.1f}G", (double)getUsedMemory() / 1024.0 / 1024.0);
     cr->move_to(0.0, 20.0);
     cr->show_text(temp);
 
-    sprintf(temp, "Swap:%.1fG", (double)(swap_total - swap_free) / 1024.0 / 1024.0);
+    temp = std::format("Swap:{0:.1f}G", (double)(swap_total - swap_free) / 1024.0 / 1024.0);
     cr->move_to(0.0, 30.0);
     cr->show_text(temp);
 

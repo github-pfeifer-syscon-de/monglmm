@@ -160,7 +160,7 @@ BaseNetInfo::getServiceName(uint32_t port)
         serviceName = (*entry).second;
     }
     else {  // show as number
-        serviceName = Glib::ustring::sprintf("%d", port);
+        serviceName = std::format("{0:d}", port);
     }
     return serviceName;
 }
