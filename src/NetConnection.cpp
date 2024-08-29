@@ -167,7 +167,7 @@ NetConnection::getWellKnownPort()
 std::string
 NetConnection::getGroupSuffix()
 {
-    return std::format("{0}{1}",
+    return Glib::ustring::sprintf("%c%d",
             (isIncomming() ? '<' : '>')
             , getWellKnownPort());
 }
@@ -221,7 +221,7 @@ NetConnection::ip(uint32_t iip)
     auto h1 = (iip & 0x0000ff00u) >> 8u;
     auto l2 = (iip & 0x00ff0000u) >> 16u;
     auto l1 = (iip & 0xff000000u) >> 24u;
-    auto sip = std::format("{0:d}.{1:d}.{2:d}.{3:d}", h2, h1, l2, l1);
+    auto sip = Glib::ustring::sprintf("%d.%d.%d.%d", h2, h1, l2, l1);
     //std::cout << "ip " << std::hex << iip << std::dec
     //          << " sip " << sip << std::endl;
     return sip;

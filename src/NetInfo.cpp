@@ -64,7 +64,7 @@ NetInfo::createNode(
     bool matching = false;
     auto key = newName;
     if (nameSplit.size() == index) {
-        newName = std::format("{0}:{1}", newName, connection->getServiceName());    // , firstEntry->isIncomming() ? '<' : '>'
+        newName = Glib::ustring::sprintf("%s:%s", newName, connection->getServiceName());    // , firstEntry->isIncomming() ? '<' : '>'
         key = newName + connection->getGroupSuffix();
         matching = true;
     }

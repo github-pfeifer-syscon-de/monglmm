@@ -41,7 +41,7 @@ public:
      void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override {
         double in;
         iter->get_value(m_col.index(), in);
-        auto val = std::format("{0:5.1f}%", in*100.0);
+        auto val = Glib::ustring::sprintf("%5.1lf%%", in*100.0);
         auto textRend = static_cast<Gtk::CellRendererText*>(rend);
         textRend->property_text() = val;
      }
@@ -58,10 +58,9 @@ public:
     virtual ~KSizeConverter() = default;
 
     void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override {
-        glong valueK = 0;
-        iter->get_value(m_col.index(), valueK);
-        gulong value = static_cast<gulong>(std::max(valueK, 0l)) * 1024ul;
-        auto size = Glib::format_size(value, Glib::FormatSizeFlags::FORMAT_SIZE_IEC_UNITS);   //  based on 1024, FORMAT_SIZE_DEFAULT on 1000
+        glong value = 0;
+        iter->get_value(m_col.index(), value);
+        auto size = Glib::format_size(value*1024l, Glib::FormatSizeFlags::FORMAT_SIZE_IEC_UNITS);   //  based on 1024, FORMAT_SIZE_DEFAULT on 1000
         auto textRend = static_cast<Gtk::CellRendererText*>(rend);
         textRend->property_text() = size;
      }

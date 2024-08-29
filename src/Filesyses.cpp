@@ -133,7 +133,7 @@ Filesyses::updateDiskGeometry(
     auto lgeo = geo.lease();
     if (lgeo) {
         lgeo->deleteVertexArray();
-        Glib::ustring geoName{std::format("disk {0}", partInfo->getMount())};
+        auto geoName = Glib::ustring::sprintf("disk %s", partInfo->getMount());
         lgeo->setName(geoName);
         Color cu(0.5f + redOffs, 0.5f + greenOffs, 0.5f);   // idle gray, read green, write red
         lgeo->addCylinder(FS_RADIUS, 0.0f, usage, &cu);
@@ -176,7 +176,7 @@ Filesyses::updateDiskGeometry(
         //          << " size " << size
         //          << " ssize " << ssize
         //        << std::endl;
-        Glib::ustring winfo = std::format("{0} {1}", partInfo->getMount(),  ssize);
+        Glib::ustring winfo = Glib::ustring::sprintf("%s %s", partInfo->getMount(),  ssize);
         auto mountTxt = partInfo->getMountText();
         auto lmountTxt = mountTxt.lease();
         if (lmountTxt) {

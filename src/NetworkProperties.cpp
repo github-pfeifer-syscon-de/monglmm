@@ -28,7 +28,7 @@
 //   but maybe there is an option, or these will be available in the future
 NetworkProperties::NetworkProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& builder, const long processId, Glib::KeyFile* keyFile, int32_t update_interval)
 : Gtk::Dialog{cobject}
-, m_processNetInfo{std::make_shared<ProcessNetInfo>(std::format("/proc/{0}/net", processId))}
+, m_processNetInfo{std::make_shared<ProcessNetInfo>(Glib::ustring::sprintf("/proc/%ld/net", processId))}
 , m_processId{processId}
 , m_propertyColumns{std::make_shared<NetworkColumns>(m_processNetInfo)}
 {

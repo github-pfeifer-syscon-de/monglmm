@@ -221,7 +221,7 @@ Processes::updateMem(GraphShaderContext* pGraph_shaderContext,
                 //Matrix mvp = pGraph_shaderContext->setScalePos(persView, p, 1.0f);
                 //geo->display(persView);
                 double procMb = proc->getMemUsage() / 1024.0;
-                auto buffer = std::format("{0} {1:.1f}M", proc->getDisplayName(), procMb);
+                auto buffer = Glib::ustring::sprintf("%s %.1lfM", proc->getDisplayName(), procMb);
                 auto ltxtMem = m_textMem[i].lease();
                 if (ltxtMem) {
                     ltxtMem->setText(buffer);
@@ -295,7 +295,7 @@ Processes::display(
             }
         }
         else {
-	    psc::log::Log::logAdd(psc::log::Level::Error, std::format("Unknown tree renderer {0}", static_cast<std::underlying_type<TreeType>::type>(m_treeType)));
+	    psc::log::Log::logAdd(psc::log::Level::Error, Glib::ustring::sprintf("Unknown tree renderer %d", static_cast<std::underlying_type<TreeType>::type>(m_treeType)));
 
         }
         // as geometries are added to context they will be displayed automatically

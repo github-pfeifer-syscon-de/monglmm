@@ -171,9 +171,11 @@ CpuMonitor::update(int refreshRate, glibtop * glibtop)
 void
 CpuMonitor::updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height)
 {
+    char temp[64];
+
     cr->move_to(1.0, 10.0);
     cr->show_text("Cpu");
-    auto temp{std::format("{0:.1f}%", cpu_uns / cpu_total * 100.0f)};
+    sprintf(temp, "%.1f%%", cpu_uns / cpu_total * 100.0f);
     cr->move_to(1.0, 20.0);
     cr->show_text(temp);
 
