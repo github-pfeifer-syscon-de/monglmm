@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = res src
+SUBDIRS = res src test
 
 dist_doc_DATA = \
 	README \

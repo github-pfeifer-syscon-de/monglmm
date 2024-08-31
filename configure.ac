@@ -90,6 +90,7 @@ AX_CHECK_SED()
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
+test/Makefile
 res/Makefile
 ])
 AC_OUTPUT
