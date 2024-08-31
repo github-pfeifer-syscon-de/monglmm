@@ -1,21 +1,5 @@
 
-%.cpp:
-	ln -sf ../src/$@
-
-%.hpp:
-	ln -sf ../src/$@
-
-SOURCE_CPP = Process.cpp NameValue.cpp Monitor.cpp
-
-SOURCE_HPP = Process.hpp NameValue.hpp Monitor.hpp
-
-SOURCE = $(SOURCE_CPP) $(SOURCE_HPP)
-
-include_source: $(SOURCE)
-
-TESTS: include_source
-
-TESTS = simple_test funky_test
+TESTS = process_test
 
 AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
@@ -31,15 +15,14 @@ AM_CFLAGS= \
 AM_CXXFLAGS = \
 	-Wall -Wpedantic
 
-check_PROGRAMS = funky_test simple_test
+check_PROGRAMS = process_test
 
-simple_test_LDADD = \
+process_test_LDADD = \
+	../src/Process.o \
+	../src/NameValue.o \
+	../src/Monitor.o \
 	$(GENERICGLM_LIBS) \
 	$(GENERICIMG_LIBS)
 
-simple_test_SOURCES = \
-    $(SOURCE) \
-    Simple.cpp
-
-funky_test_SOURCES = \
-    funky_main.cpp
+process_test_SOURCES = \
+    process_test.cpp
