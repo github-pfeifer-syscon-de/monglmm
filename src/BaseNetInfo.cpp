@@ -17,7 +17,8 @@
  */
 
 #include <Log.hpp>
-
+#include <unordered_set>
+#include <map>
 
 #include "BaseNetInfo.hpp"
 
@@ -61,7 +62,7 @@ BaseNetInfo::prepareServiceNames()
                         //          << " prot " << prot << std::endl;
                         if ("tcp" == prot) {
                             uint32_t porti = std::stoi(port);
-                            m_portNames.insert(std::pair<uint32_t, std::string>(porti, name));
+                            m_portNames.insert(std::make_pair(porti, name));
                         }
                     }
                 }
@@ -69,10 +70,10 @@ BaseNetInfo::prepareServiceNames()
         }
     }
     catch (const std::ios_base::failure& e) {
-        std::ostringstream oss1;
-        oss1 << "Could not open /etc/services " << errno
-             << " " << strerror(errno)
-             << " ecode " << e.what();
+        //std::ostringstream oss1;
+        //oss1 << "Could not open /etc/services " << errno
+        //     << " " << strerror(errno)
+        //     << " ecode " << e.what();
         // e.code() == std::io_errc::stream doesn't help either
     }
     if (stat.is_open()) {
@@ -166,9 +167,9 @@ BaseNetInfo::getServiceName(uint32_t port)
 }
 
 void
-BaseNetInfo::read(const std::string& name, std::list<pNetConnect>& netConnections)
+BaseNetInfo::read(const std::string& name, std::map<std::string, pNetConnect>& netConnections, gint64 now)
 {
-    std::list<pNetConnect> listeningConn;
+    std::unordered_set<uint32_t> listeningConn;
     std::ifstream stat;
     std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit | std::ios::eofbit;
     stat.exceptions(exceptionMask);
@@ -181,23 +182,25 @@ BaseNetInfo::read(const std::string& name, std::list<pNetConnect>& netConnection
             StringUtils::splitRepeat(buf, ' ', parts);
             if (parts.size() >= 4
              && parts[0] != "sl") { // skip heading
-                auto localipPort = parts[1];
-                auto remoteipPort = parts[2];
-                auto status = parts[3];
-                auto conn = std::make_shared<NetConnection>(localipPort, remoteipPort, status);
+                auto conn = std::make_shared<NetConnection>(parts, now);
                 if (conn->getStatus() == BPF_TCP_LISTEN) {
-                    listeningConn.emplace_back(conn);
+                    listeningConn.insert(conn->getLocalPort());
                 }
-                else {
-                    if (conn->isValid()) {
-                        netConnections.emplace_back(conn);
-                        for (auto listen : listeningConn) {
-                            if (conn->getLocalPort() == listen->getLocalPort()) {
-                                conn->setIncomming(true);
-                                break;
-                            }
+                else if (conn->isValid()) {
+                    auto entry = netConnections.find(conn->getKey());
+                    if (entry == netConnections.end()) {
+                        auto lsnEntry = listeningConn.find(conn->getLocalPort());
+                        if (lsnEntry != listeningConn.end()) {
+                            conn->setIncomming(true);
                         }
                         setServiceName(conn);
+                        conn->setTouched(true);
+                        netConnections.insert(std::make_pair(conn->getKey(), std::move(conn)));
+                    }
+                    else {  // use existing
+                        auto& con  = (*entry).second;
+                        con->setTouched(true);
+                        con->setStatus(conn->getStatus());  // use "new" status
                     }
                 }
             }
@@ -220,14 +223,30 @@ BaseNetInfo::read(const std::string& name, std::list<pNetConnect>& netConnection
     if (stat.is_open()) {
         stat.close();
     }
+    //psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("accumulated conn %d", netConnections.size()));
 }
 
-const std::list<pNetConnect>
-BaseNetInfo::updateConnections()
+void
+BaseNetInfo::updateConnections(std::vector<pNetConnect>& connections)
 {
-    std::list<pNetConnect> connections;
-    read(getBasePath() + "/tcp", connections);
-    read(getBasePath() + "/tcp6", connections);
-    return connections;
+    gint64 now = g_get_monotonic_time();
+    std::map<std::string, pNetConnect> map; // use map to identify existing entries easy
+    for (auto& conn : connections) {
+        conn->setTouched(false);
+        map.insert(std::make_pair(conn->getKey(), std::move(conn)));
+    }
+    read(getBasePath() + "/tcp", map, now);
+    read(getBasePath() + "/tcp6", map, now);
+    connections.clear();    // rebuild list from map
+    connections.reserve(map.size());    // that may be a bit too much, but more efficent than default
+    for (auto iter = map.begin(); iter != map.end(); ++iter) {
+        auto& conn = (*iter).second;
+        if (conn->isTouched()) {
+            connections.emplace_back(std::move(conn));
+        }
+        // otherwise just skip
+    }
+    NetConnection::cleanAddressCache(now);
+    //psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("after remove %d", connections.size()));
 }
 

@@ -42,17 +42,17 @@ public:
     void update();
 
 protected:
-    std::map<std::string, std::list<std::shared_ptr<NetConnection>>>
-        group(const std::list<std::shared_ptr<NetConnection>>& list, uint32_t index);
+    std::map<std::string, std::vector<pNetConnect>>
+        group(const std::vector<pNetConnect>& list, uint32_t index);
     void handle(const std::shared_ptr<NetNode>& node,
-            const std::list<std::shared_ptr<NetConnection>>& list,
+            const std::vector<pNetConnect>& list,
             uint32_t index);
     std::shared_ptr<NetNode> createNode(
         const std::shared_ptr<NetConnection>& firstEntry
         ,const std::shared_ptr<NetNode>& node
         ,uint32_t index);
     std::string getBasePath() override;
-    std::list<std::shared_ptr<NetConnection>> m_netConnections;
+    std::vector<pNetConnect> m_netConnections;
 
 private:
     std::shared_ptr<NetNode> m_root;

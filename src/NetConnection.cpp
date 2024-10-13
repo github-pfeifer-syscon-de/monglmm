@@ -19,13 +19,20 @@
 #include <iostream>
 #include <StringUtils.hpp>
 #include <netdb.h>
+#include <format>
+#include <Log.hpp>
 
 #include "NetConnection.hpp"
+
+// use cache as there seems not much caching is involved in default lookup
+std::map<std::string, pNetAddress> NetConnection::m_nameCache;
+
+
 
 NetAddress::NetAddress(const std::string& addr)
 {
     if (addr.length() == 8) {   // ipv4
-        auto uIp = static_cast<uint32_t>(std::stol(addr, nullptr, 16));  // parse as long as toi fails for values out of signed integer range
+        auto uIp = static_cast<uint32_t>(std::stoul(addr, nullptr, 16));  // parse as long as toi fails for values out of signed integer range
         auto bIp = reinterpret_cast<guint8*>(&uIp);
         m_address = Gio::InetAddress::create(bIp, Gio::SocketFamily::SOCKET_FAMILY_IPV4);
         //std::cout << "ip4 " <<  m_address->to_string() << " in " << addr << std::endl;
@@ -33,7 +40,7 @@ NetAddress::NetAddress(const std::string& addr)
     else {                      // ipv6
         std::array<uint32_t, 4> uIp;
         for (uint32_t i = 0; i < uIp.size(); ++i) {
-            uIp[i] = static_cast<uint32_t>(std::stol(addr.substr(i*8, 8), nullptr, 16));
+            uIp[i] = static_cast<uint32_t>(std::stoul(addr.substr(i*8, 8), nullptr, 16));
         }
         auto bIp = reinterpret_cast<guint8*>(&uIp);
         m_address = Gio::InetAddress::create(bIp, Gio::SocketFamily::SOCKET_FAMILY_IPV6);
@@ -41,38 +48,64 @@ NetAddress::NetAddress(const std::string& addr)
     }
 }
 
+
+void
+NetAddress::lookup()
+{
+    bool set = false;
+    try {
+        // the use of async adds to much trouble so keep it simple
+        auto resolver = Gio::Resolver::get_default();
+        auto name = resolver->lookup_by_address(m_address);
+        if (!name.empty()) {
+            m_name = name;
+            set = true;
+        }
+    }
+    catch (const Glib::Error& e) {
+        // we get an error if address was not "resolvable" -> happens frequently
+    }
+    if (!set) {
+        m_name = m_address->to_string();
+        m_ip = true;
+    }
+}
+
 std::string
 NetAddress::getName()
 {
     if (m_name.empty()) {
-        auto resolver = Gio::Resolver::get_default();
-        try {
-            // may use asynchronous ...
-            m_name = resolver->lookup_by_address(m_address);
-        }
-        catch (const Glib::Error& e) {
-            m_name = m_address->to_string();
-            m_ip = true;
-        }
+        lookup();
     }
     return m_name;
 }
 
+void
+NetAddress::setTouched(gint64 touched)
+{
+    m_touched = touched;
+}
+
+gint64
+NetAddress::getTouched()
+{
+    return m_touched;
+}
 
 std::vector<Glib::ustring>
 NetAddress::getNameSplit()
 {
     if (m_splitedName.empty()) {
-        getName();      // init to make stati m_ip... available
         //std::cout << __FILE__ << "::getNameSplit"
         //          << " addr " << m_address->to_string()
         //          << " name " << getName()
         //          << " isIp " << (m_ip ? "yes" : "no")
         //          << " fam " << (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV4 ? "ipv4" : m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6 ? "ipv6" :Glib::ustring::sprintf("%d", m_address->get_family()))
         //          << std::endl;
+        auto name = getName();
         if (m_ip) {
             // keep it simple, especially ipv6 will take up a relatively large room if splitted (and not showing much)
-            m_splitedName.push_back(getName());
+            m_splitedName.push_back(name);
 //            if (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6) {
 //                auto addr = getName();
 //                int dotcount = 0;
@@ -98,7 +131,7 @@ NetAddress::getNameSplit()
 //            }
         }
         else {
-            StringUtils::split(getName(), '.', m_splitedName);
+            StringUtils::split(name, '.', m_splitedName);
         }
         //for (auto part : m_splitedName) {
         //    std::cout << part << " , ";
@@ -114,43 +147,81 @@ NetAddress::getAddress()
     return m_address;
 }
 
-NetConnection::NetConnection(
-              const std::string& localIp
-            , const std::string& remoteIp
-            , const std::string& status)
+bool
+NetAddress::isValid()
 {
+    return m_address.operator bool();
+}
+
+
+NetConnection::NetConnection(const std::vector<Glib::ustring>& parts, gint64 now)
+{
+    auto localIpPort = parts[1];
+    auto remoteIpPort = parts[2];
+    auto status = parts[3];
+    //auto inodeAddr = parts[11]; // the inode & addr changes if state changes to WAIT (6)
+    m_key = localIpPort + "_" + remoteIpPort;   // do not include state -> it will change
     try {
         m_status = std::stoi(status, nullptr, 16);
-        auto pos = localIp.find(':');
-        if (pos != localIp.npos) {
-            m_localIp = std::make_shared<NetAddress>(localIp.substr(0, pos));
+        auto pos = localIpPort.find(':');
+        if (pos != localIpPort.npos) {
+            m_localIp = findAddress(localIpPort.substr(0, pos), now);
             ++pos;
-            m_localPort = std::stoi(localIp.substr(pos), nullptr, 16);
+            m_localPort = std::stoi(localIpPort.substr(pos), nullptr, 16);
         }
-        pos = remoteIp.find(':');
-        if (pos != remoteIp.npos) {
-            m_remoteIp = std::make_shared<NetAddress>(remoteIp.substr(0, pos));
+        pos = remoteIpPort.find(':');
+        if (pos != remoteIpPort.npos) {
+            m_remoteIp = findAddress(remoteIpPort.substr(0, pos), now);
             ++pos;
-            m_remotePort = std::stoi(remoteIp.substr(pos), nullptr, 16);
+            m_remotePort = std::stoi(remoteIpPort.substr(pos), nullptr, 16);
         }
     }
     catch (const std::exception& ex) {
-        std::cout << __FILE__ << "::NetConnection"
-                  << " error " << ex.what()
-                  << " parsing " << localIp
-                  << " " << remoteIp
-                  << " " << status << std::endl;
+        psc::log::Log::logAdd(psc::log::Level::Notice,
+                              Glib::ustring::sprintf("parsing conn error %s local %s remote %s stat %s"
+                                                    , ex.what(), localIpPort, remoteIpPort, status));
     }
 }
 
 bool
 NetConnection::isValid()
 {
-    return m_localIp
-       && m_remoteIp
+    return m_localIp && m_localIp->isValid()
+       && m_remoteIp && m_localIp->isValid()
        && m_localPort > 0u
-       && m_remotePort > 0u     // for listening this might be valid ...
+       && m_remotePort > 0u     // for listening this might be valid value...
        && m_status > 0u;
+}
+
+pNetAddress
+NetConnection::findAddress(const Glib::ustring& addrHex, gint64 now)
+{
+    pNetAddress addr;
+    auto cachedName = m_nameCache.find(addrHex);
+    if (cachedName == m_nameCache.end()) {
+        addr = std::make_shared<NetAddress>(addrHex);
+        m_nameCache.insert(std::make_pair(addrHex, addr));
+    }
+    else {
+        addr = (*cachedName).second;
+    }
+    addr->setTouched(now);
+    return addr;
+}
+
+void
+NetConnection::cleanAddressCache(gint64 now)
+{
+    constexpr auto removeDelayUs = 30l * G_TIME_SPAN_MINUTE;    // 30min
+    for (auto iter = m_nameCache.begin(); iter != m_nameCache.end(); ) {
+        auto& addr = (*iter).second;
+        if (now - addr->getTouched() > removeDelayUs) {
+            iter = m_nameCache.erase(iter);
+        }
+        else {
+            ++iter;
+        }
+    }
 }
 
 // use well known port names, not a randomly chosen
@@ -168,11 +239,13 @@ std::string
 NetConnection::getGroupSuffix()
 {
     return Glib::ustring::sprintf("%c%d",
-            (isIncomming() ? '<' : '>')
+            (isIncomming()
+                ? '<'
+                : '>')
             , getWellKnownPort());
 }
 
-std::shared_ptr<NetAddress>
+const pNetAddress
 NetConnection::getLocalAddr()
 {
     return m_localIp;
@@ -184,7 +257,7 @@ NetConnection::getLocalPort() const
     return m_localPort;
 }
 
-std::shared_ptr<NetAddress>
+const pNetAddress
 NetConnection::getRemoteAddr()
 {
     return m_remoteIp;
@@ -202,6 +275,12 @@ NetConnection::getStatus() const
     return m_status;
 }
 
+void
+NetConnection::setStatus(uint32_t status)
+{
+    m_status = status;
+}
+
 bool
 NetConnection::isIncomming() const
 {
@@ -214,32 +293,37 @@ NetConnection::setIncomming(bool incomming)
     m_incomming = incomming;
 }
 
-std::string
-NetConnection::ip(uint32_t iip)
-{
-    auto h2 = iip & 0x000000ffu;        // requires network byte order
-    auto h1 = (iip & 0x0000ff00u) >> 8u;
-    auto l2 = (iip & 0x00ff0000u) >> 16u;
-    auto l1 = (iip & 0xff000000u) >> 24u;
-    auto sip = Glib::ustring::sprintf("%d.%d.%d.%d", h2, h1, l2, l1);
-    //std::cout << "ip " << std::hex << iip << std::dec
-    //          << " sip " << sip << std::endl;
-    return sip;
-}
-
 /**
  * this is used for the well known service name
  *   for outgoing the remote port
  *   for incomming the local port
  **/
 std::string
-NetConnection::getServiceName() {
-    return m_remoteSericeName;
+NetConnection::getServiceName()
+{
+    return m_remoteServiceName;
 }
 
 void
 NetConnection::setServiceName(const std::string& serviceName)
 {
-    m_remoteSericeName = serviceName;
+    m_remoteServiceName = serviceName;
 }
 
+void
+NetConnection::setTouched(bool touched)
+{
+    m_touched = touched;
+}
+
+bool
+NetConnection::isTouched()
+{
+    return m_touched;
+}
+
+const std::string&
+NetConnection::getKey()
+{
+    return m_key;
+}

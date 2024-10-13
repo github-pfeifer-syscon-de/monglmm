@@ -113,5 +113,6 @@ private:
     Glib::RefPtr<Gtk::TreeView> m_netTree;
     std::shared_ptr<NetworkColumns> m_propertyColumns;
     std::shared_ptr<psc::ui::KeyfileTableManager> m_kfTableManager;
+    std::vector<pNetConnect> m_netConn;
 };
 

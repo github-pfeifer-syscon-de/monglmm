@@ -82,9 +82,9 @@ NetworkProperties::refresh()
         auto row = *iterSel;
         selectedConnect = row.get_value(m_propertyColumns->m_netConnect);
     }
-    auto list = m_processNetInfo->updateConnections();  // use our own model as we get a garbled display if we are messing with the live time of main processes
+    m_processNetInfo->updateConnections(m_netConn);  // use our own model as we get a garbled display if we are messing with the live time of main processes
     m_properties->clear();
-    for (auto& conn : list) {
+    for (auto& conn : m_netConn) {
         if (conn->isValid()) {
             auto iterChld = m_properties->append();
             addNetConnect(iterChld, conn);

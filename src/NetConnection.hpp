@@ -23,6 +23,13 @@
 #include <string>
 #include <cstdint>
 
+enum class NetAddrState
+{
+    New
+    , Started
+    , Done
+};
+
 class NetAddress
 {
 public:
@@ -33,45 +40,58 @@ public:
     Glib::RefPtr<Gio::InetAddress> getAddress();
     std::string getName();
     std::vector<Glib::ustring> getNameSplit();
+    bool isValid();
+    void setTouched(gint64 touched);
+    gint64 getTouched();
 private:
+    void lookup();
     Glib::RefPtr<Gio::InetAddress> m_address;
     std::string m_name;
     std::vector<Glib::ustring> m_splitedName;
     bool m_ip{false};
+    gint64 m_touched;
 };
+
+typedef std::shared_ptr<NetAddress> pNetAddress;
+
+class NetConnection;
+
+typedef std::shared_ptr<NetConnection> pNetConnect;
 
 class NetConnection
 {
 public:
-    NetConnection(
-              const std::string& localIp
-            , const std::string& remoteIp
-            , const std::string& status);
-    explicit NetConnection(const NetConnection& orig) = delete;
+    NetConnection(const std::vector<Glib::ustring>& parts, gint64 now);
+    explicit NetConnection(const NetConnection& orig) = default;
     virtual ~NetConnection() = default;
 
-    std::shared_ptr<NetAddress> getLocalAddr();
+    const pNetAddress getLocalAddr();
     uint32_t getLocalPort() const;
-    std::shared_ptr<NetAddress> getRemoteAddr();
+    const pNetAddress getRemoteAddr();
     uint32_t getRemotePort() const;
     std::string getServiceName();
     void setServiceName(const std::string& serviceName);
     bool isValid();
     uint32_t getStatus() const;
+    void setStatus(uint32_t status);
     bool isIncomming() const;
     void setIncomming(bool incomming);
-    static std::string ip(uint32_t iip);
     uint32_t getWellKnownPort();
     std::string getGroupSuffix();
-
+    void setTouched(bool touched);
+    bool isTouched();
+    const std::string& getKey();
+    static void cleanAddressCache(gint64 now);
 private:
-    std::shared_ptr<NetAddress> m_localIp;
+    static pNetAddress findAddress(const Glib::ustring& addrHex, gint64 now);
+    pNetAddress m_localIp;
     uint32_t m_localPort{0u};
-    std::shared_ptr<NetAddress> m_remoteIp;
+    pNetAddress m_remoteIp;
     uint32_t m_remotePort{0u};
-    std::string m_remoteSericeName;
+    std::string m_remoteServiceName;
     uint32_t m_status{0u};
     bool m_incomming{false};
+    gint64 m_touched{false};
+    std::string m_key;
+    static std::map<std::string, pNetAddress> m_nameCache;
 };
-
-typedef std::shared_ptr<NetConnection> pNetConnect;

@@ -19,7 +19,7 @@
 #pragma once
 
 #include <fstream>
-#include <list>
+#include <vector>
 #include <memory>
 #include <map>
 #include <linux/bpf.h>  // only accessible version i could find for tcp status
@@ -36,11 +36,11 @@ public:
     virtual ~BaseNetInfo() = default;
 
 public:
-    const std::list<std::shared_ptr<NetConnection>> updateConnections();
+    void updateConnections(std::vector<pNetConnect>& connections);
     std::string getServiceName(uint32_t port);
 protected:
     void setServiceName(std::shared_ptr<NetConnection>& netConn);
-    void read(const std::string& name, std::list<std::shared_ptr<NetConnection>>& netConnections);
+    void read(const std::string& name, std::map<std::string, pNetConnect>& netConnections, gint64 now);
 
     std::map<uint32_t, std::string> m_portNames;
     virtual std::string getBasePath() = 0;

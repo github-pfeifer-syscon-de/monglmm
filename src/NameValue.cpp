@@ -20,6 +20,7 @@
 #include <fstream>
 #include <string>
 #include <StringUtils.hpp>
+#include <Log.hpp>
 
 #include "NameValue.hpp"
 
@@ -52,7 +53,9 @@ NameValue::read(const std::string &name)
     }
     catch (std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
-            std::cerr << name << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message() << std::endl;
+            std::ostringstream oss1;
+            oss1 << "Error reading " << name << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message();
+            psc::log::Log::logAdd(psc::log::Level::Debug, oss1.str());
 			ret = false;
         }
     }

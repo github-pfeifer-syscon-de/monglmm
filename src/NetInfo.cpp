@@ -21,18 +21,16 @@
 #include <StringUtils.hpp>
 #include <netdb.h>  // servent
 #include <string.h>
-
+#include <Log.hpp>
 
 #include "NetInfo.hpp"
 
-
-
-std::map<std::string, std::list<std::shared_ptr<NetConnection>>>
-NetInfo::group(const std::list<std::shared_ptr<NetConnection>>& list, uint32_t index)
+std::map<std::string, std::vector<pNetConnect>>
+NetInfo::group(const std::vector<pNetConnect>& list, uint32_t index)
 {
-    std::map<std::string, std::list<std::shared_ptr<NetConnection>>> collected;
-    for (auto conn : list) {
-        std::vector<Glib::ustring> parts = conn->getRemoteAddr()->getNameSplit();
+    std::map<std::string, std::vector<pNetConnect>> collected;
+    for (auto& conn : list) {
+        auto parts = conn->getRemoteAddr()->getNameSplit();
         if (parts.size() >= index) {
             std::string key = parts[parts.size() - index];
             if (parts.size() == index) {
@@ -40,8 +38,9 @@ NetInfo::group(const std::list<std::shared_ptr<NetConnection>>& list, uint32_t i
             }
             auto entry = collected.find(key);
             if (entry == collected.end()) {
-                collected.insert(
-                        std::pair(key, std::list<std::shared_ptr<NetConnection>>()));
+                std::vector<pNetConnect> vect;
+                vect.reserve(8);
+                collected.insert(std::make_pair(key, std::move(vect)));
                 entry = collected.find(key);
             }
             (*entry).second.push_back(conn);
@@ -50,6 +49,7 @@ NetInfo::group(const std::list<std::shared_ptr<NetConnection>>& list, uint32_t i
     //for (auto entry : collected) {
     //    std::cout << entry.first << " " << entry.second.size() << std::endl;
     //}
+    //psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("grouped %d connections", collected.size()));
     return collected;
 }
 
@@ -83,15 +83,15 @@ NetInfo::createNode(
 
 void
 NetInfo::handle(const std::shared_ptr<NetNode>& node,
-            const std::list<std::shared_ptr<NetConnection>>& list,
+            const std::vector<pNetConnect>& list,
             uint32_t index)
 {
-    std::map<std::string, std::list<std::shared_ptr<NetConnection>>> collected = group(list, index);
+    auto collected = group(list, index);
     node->setChildrenTouched(false);
     for (auto entry : collected) {
         auto key = entry.first;
         if (!key.empty()) {
-            std::list<std::shared_ptr<NetConnection>>& connEntries = entry.second;
+            auto& connEntries = entry.second;
             for (auto conEntry = connEntries.begin(); conEntry != connEntries.end(); ) {
                 auto conn = *conEntry;
                 auto addrEntry = conn->getRemoteAddr()->getNameSplit();
@@ -154,5 +154,5 @@ NetInfo::getBasePath()
 void
 NetInfo::update()
 {
-    m_netConnections = updateConnections();
+    updateConnections(m_netConnections);
 }

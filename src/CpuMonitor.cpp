@@ -153,17 +153,21 @@ CpuMonitor::update(int refreshRate, glibtop * glibtop)
     }
 
     /* Copy current to previous. */
-    memcpy(&previous_cpu_stat, &cpu, sizeof(struct cpu_stat));
+    previous_cpu_stat = cpu;
 
     double cpu_un = cpu_delta.user + cpu_delta.nice;
     cpu_uns = cpu_un + cpu_delta.sys;
     cpu_total = cpu_uns + cpu_delta.idle + cpu_delta.iowait + cpu_delta.irq + cpu_delta.softirq;
+    double r_user = 0.0;
+    double r_system = 0.0;
     if (cpu_total > 0l) {
-        getValues(0)->set(cpu_un / cpu_total);       // use only user here as we show process below that
-        getValues(1)->set(cpu_uns / cpu_total);      // stack sys value as it is not related to process times
+        r_user = (cpu_un / cpu_total);       // use only user here as we show process below that
+        r_system = (cpu_uns / cpu_total);      // stack sys value as it is not related to process times
 
         m_cpu_total = cpu_total / (double)((refreshRate > 0) ? refreshRate : 1);    // show per second
     }
+    getValues(0)->set(r_user);              // push value even if empty
+    getValues(1)->set(r_system);
 #endif
     return TRUE;
 }
