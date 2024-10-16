@@ -391,7 +391,7 @@ static libusb_device_handle *findAndOpenDevice(libg15_devices_t handled_device, 
 static  libusb_device_handle * findAndOpenG15() {
     int i;
     for (i=0; g15_devices[i].name != NULL; i++){
-        g15_log(G15_LOG_DEBUG, "Trying to find 0x%hx", g15_devices[i].productid);
+        g15_log(G15_LOG_DEBUG, "Trying to find usb-dev 0x%hx", g15_devices[i].productid);
         keyboard_device = findAndOpenDevice(g15_devices[i], i);
         if (keyboard_device) {
             break;

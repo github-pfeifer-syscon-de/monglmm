@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <stdarg.h>
+#include <string>
 
 #include "FileByLine.hpp"
 
@@ -31,11 +32,11 @@ FileByLine::FileByLine()
 FileByLine::~FileByLine()
 {
     if (m_file != nullptr) {
-        fclose(m_file);
+        std::fclose(m_file);
         m_file = nullptr;
     }
     if (m_line) {
-        free(m_line);
+        std::free(m_line);
         m_line = nullptr;
     }
 }
@@ -44,9 +45,9 @@ bool
 FileByLine::open(const char *_name, const char *_mode)
 {
     if (m_file != nullptr) {
-        fclose(m_file);
+        std::fclose(m_file);
     }
-    m_file = fopen(_name, _mode);
+    m_file = std::fopen(_name, _mode);
     return m_file != nullptr;
 }
 

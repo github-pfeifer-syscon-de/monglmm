@@ -240,8 +240,7 @@ Monitor::create_default_config_page(
 Glib::ustring
 Monitor::getDisplayName()
 {
-    Glib::ustring sname(StringUtils::lower(m_name, 1));
-
+    Glib::ustring sname(StringUtils::lower(m_name, 1ul));
     return sname;
 }
 

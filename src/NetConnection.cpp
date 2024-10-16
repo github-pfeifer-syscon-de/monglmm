@@ -177,9 +177,10 @@ NetConnection::NetConnection(const std::vector<Glib::ustring>& parts, gint64 now
         }
     }
     catch (const std::exception& ex) {
-        psc::log::Log::logAdd(psc::log::Level::Notice,
-                              Glib::ustring::sprintf("parsing conn error %s local %s remote %s stat %s"
-                                                    , ex.what(), localIpPort, remoteIpPort, status));
+        psc::log::Log::logAdd(psc::log::Level::Notice, [&] {
+            return std::format("parsing conn local {} remote {} stat {}"
+                    ,localIpPort, remoteIpPort, status, ex);
+        });
     }
 }
 

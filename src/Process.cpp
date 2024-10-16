@@ -200,7 +200,9 @@ void Process::update_stat()
     }
     catch (std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
-            psc::log::Log::logAdd(psc::log::Level::Notice, Glib::ustring::sprintf("Proc read %s what %s msg %s", sstat, e.what(), e.code().message()));
+            psc::log::Log::logAdd(psc::log::Level::Notice, [&] {
+                return std::format("Proc read {} {}", sstat, e);
+            });
             //std::cerr << sstat << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message() << std::endl;
             stage = psc::gl::TreeNodeState::Finished;     // do not ask again
         }

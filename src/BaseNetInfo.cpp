@@ -200,7 +200,7 @@ BaseNetInfo::read(const std::string& name, std::map<std::string, pNetConnect>& n
                     else {  // use existing
                         auto& con  = (*entry).second;
                         con->setTouched(true);
-                        con->setStatus(conn->getStatus());  // use "new" status
+                        con->setStatus(conn->getStatus());  // use "new" status, other fields are changed as well but at the moment we do not use them
                     }
                 }
             }

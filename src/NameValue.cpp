@@ -21,6 +21,7 @@
 #include <string>
 #include <StringUtils.hpp>
 #include <Log.hpp>
+#include <format>
 
 #include "NameValue.hpp"
 
@@ -51,11 +52,11 @@ NameValue::read(const std::string &name)
             }
         }
     }
-    catch (std::ios_base::failure &e) {
+    catch (const std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
-            std::ostringstream oss1;
-            oss1 << "Error reading " << name << " what " << e.what() << " val " << e.code().value() << " Err " << e.code().message();
-            psc::log::Log::logAdd(psc::log::Level::Debug, oss1.str());
+            psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+                return std::format("Error reading {} {} ",  name,  e);
+            });
 			ret = false;
         }
     }
