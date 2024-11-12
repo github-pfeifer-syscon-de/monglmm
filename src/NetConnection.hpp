@@ -77,6 +77,7 @@ public:
     bool isIncomming() const;
     void setIncomming(bool incomming);
     uint32_t getWellKnownPort();
+    std::string getGroupPrefix();
     std::string getGroupSuffix();
     void setTouched(bool touched);
     bool isTouched();

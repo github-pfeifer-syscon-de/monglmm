@@ -32,7 +32,13 @@ NetInfo::group(const std::vector<pNetConnect>& list, uint32_t index)
     for (auto& conn : list) {
         auto parts = conn->getRemoteAddr()->getNameSplit();
         if (parts.size() >= index) {
-            std::string key = parts[parts.size() - index];
+            std::string key;
+            if (index == 0) {
+                key += conn->getGroupPrefix();
+            }
+            else {
+                key += parts[parts.size() - index];
+            }
             if (parts.size() == index) {
                 key += conn->getGroupSuffix();
             }
@@ -56,17 +62,25 @@ NetInfo::group(const std::vector<pNetConnect>& list, uint32_t index)
 std::shared_ptr<NetNode>
 NetInfo::createNode(
     const std::shared_ptr<NetConnection>& connection
-    ,const std::shared_ptr<NetNode>& node
-    ,uint32_t index)
+  , const std::shared_ptr<NetNode>& node
+  , uint32_t index)
 {
     auto nameSplit = connection->getRemoteAddr()->getNameSplit();
-    Glib::ustring newName = nameSplit[nameSplit.size() - index];
     bool matching = false;
+    Glib::ustring newName;
     auto key = newName;
-    if (nameSplit.size() == index) {
-        newName = Glib::ustring::sprintf("%s:%s", newName, connection->getServiceName());    // , firstEntry->isIncomming() ? '<' : '>'
+    if (index == 0) {
+        newName = connection->getServiceName();
+        key = connection->getGroupPrefix(); // sort by numeric value rather than text
+    }
+    else if (nameSplit.size() == index) {
+        newName = nameSplit[nameSplit.size() - index];
         key = newName + connection->getGroupSuffix();
         matching = true;
+    }
+    else {
+        newName = nameSplit[nameSplit.size() - index];
+        key = newName;
     }
     auto namedNode = node->getChild(key);
     std::shared_ptr<NetNode> newNode = std::dynamic_pointer_cast<NetNode>(namedNode);
@@ -129,7 +143,7 @@ NetInfo::draw(NaviContext *pGraph_shaderContext
                 treeGeoLease->setPosition(pos);
             }
         }
-        handle(m_root, m_netConnections, 1);
+        handle(m_root, m_netConnections, 0);
         m_root->render(pGraph_shaderContext, txtCtx, pFont, nullptr);
         treeGeo = m_root->getGeo();
     }

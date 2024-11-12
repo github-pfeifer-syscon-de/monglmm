@@ -190,7 +190,7 @@ NetConnection::isValid()
     return m_localIp && m_localIp->isValid()
        && m_remoteIp && m_localIp->isValid()
        && m_localPort > 0u
-       && m_remotePort > 0u     // for listening this might be valid value...
+       && m_remotePort > 0u     // for listening this is a valid value...
        && m_status > 0u;
 }
 
@@ -234,16 +234,19 @@ NetConnection::getWellKnownPort()
             : getRemotePort();
 }
 
-// add some suffix for grouping, to separate
-//   incomming/outgoing + ports to same destination
+std::string
+NetConnection::getGroupPrefix()
+{
+    return Glib::ustring::sprintf("%04x", getWellKnownPort());
+}
+
+// add some suffix for grouping
 std::string
 NetConnection::getGroupSuffix()
 {
-    return Glib::ustring::sprintf("%c%d",
-            (isIncomming()
-                ? '<'
-                : '>')
-            , getWellKnownPort());
+    return Glib::ustring(isIncomming()
+                ? "<"
+                : ">");
 }
 
 const pNetAddress
