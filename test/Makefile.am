@@ -10,10 +10,10 @@ AM_CPPFLAGS = \
 	$(GENERICIMG_CFLAGS)
 
 AM_CFLAGS= \
-	-Wall -Wpedantic
+	-Wall -Wpedantic -Wconversion
 
 AM_CXXFLAGS = \
-	-Wall -Wpedantic
+	-Wall -Wpedantic -Wconversion
 
 check_PROGRAMS = process_test
 
