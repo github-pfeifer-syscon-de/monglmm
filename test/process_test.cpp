@@ -33,7 +33,7 @@ property_test()
     }
     std::cout << "name " << process.getDisplayName() << std::endl;
     if ("process_test" != process.getDisplayName()) {
-        std::cout << "No expected name!" << std::endl;
+        std::cout << "Not the expected name!" << std::endl;
         return false;
     }
     std::cout << "vmRssK " << process.getVmRssK() << "k" << std::endl;
@@ -49,7 +49,7 @@ main(int argc, char** argv)
 {
     Glib::init();
     if (!property_test()) {
-        return 2;
+        return 1;
     }
     std::cout << "end" << std::endl;
     return 0;
