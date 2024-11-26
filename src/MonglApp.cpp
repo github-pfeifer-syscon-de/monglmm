@@ -28,7 +28,7 @@ MonglApp::MonglApp(int argc, char **argv)
 : Gtk::Application{argc, argv, "de.pfeifer_syscon.monglmm"}
 , m_monglAppWindow{nullptr}
 {
-	
+
     //std::cout << "MonglApp::MonglApp" << std::endl;
 }
 
@@ -88,6 +88,7 @@ MonglApp::on_startup()
 
     // Add actions and keyboard accelerators for the application menu.
     add_action("preferences", sigc::mem_fun(*m_monglAppWindow, &MonglAppWindow::on_action_preferences));
+    add_action("viewLog", sigc::mem_fun(*m_monglAppWindow, &MonglAppWindow::on_action_viewLog));
     add_action("about", sigc::mem_fun(*m_monglAppWindow, &MonglAppWindow::on_action_about));
     add_action("quit", sigc::mem_fun(*this, &MonglApp::on_action_quit));
     set_accel_for_action("app.quit", "<Ctrl>Q");

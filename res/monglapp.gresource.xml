@@ -5,6 +5,7 @@
     <file preprocess="xml-stripblanks">abt-dlg.ui</file>
     <file preprocess="xml-stripblanks">process_properties.ui</file>
     <file preprocess="xml-stripblanks">network_properties.ui</file>
+    <file preprocess="xml-stripblanks">log_properties.ui</file>
     <file>mongl-vertex.glsl</file>
     <file>mongl-fragment.glsl</file>
     <file>monglmm.png</file>

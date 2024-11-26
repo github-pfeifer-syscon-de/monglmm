@@ -25,6 +25,7 @@
 #include "MonglView.hpp"
 #include "MonglAppWindow.hpp"
 #include "MonglApp.hpp"
+#include "LogProperties.hpp"
 
 MonglAppWindow::MonglAppWindow(Gtk::Application* application)
 : Gtk::ApplicationWindow()
@@ -84,7 +85,20 @@ MonglAppWindow::on_action_about()
             std::cerr << "MonglAppWindow::on_action_about(): No \"abt-dlg\" object in abt-dlg.ui"
                 << std::endl;
         }
-    } catch (const Glib::Error& ex) {
+    }
+    catch (const Glib::Error& ex) {
         std::cerr << "MonglAppWindow::on_action_about(): " << ex.what() << std::endl;
+    }
+}
+
+void MonglAppWindow::on_action_viewLog()
+{
+    auto logProp = LogProperties::show(m_monglView->getConfig(), m_monglView->getUpdateInterval());
+    if (logProp) {
+        logProp->set_transient_for(*this);
+        logProp->run();
+        logProp->hide();
+        delete logProp;
+        m_monglView->save_config();
     }
 }

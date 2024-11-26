@@ -367,7 +367,7 @@ MonglView::read_config()
     }
     catch (const Glib::FileError& exc) {
         // may happen if didn't create a file (yet) but we can go on
-        m_log->error(Glib::ustring::sprintf("File Error %s loading %s if its missing, it will be created?", exc.what(), gcfg));
+        m_log->error(Glib::ustring::sprintf("File Error %s loading %s if its missing, it will be created", exc.what(), gcfg));
     }
 }
 
@@ -382,8 +382,12 @@ MonglView::save_config()
             d->save_settings(m_config);
         }
         auto gcfg = get_config_name();
-        if (!m_config->save_to_file(gcfg)) {
-            m_log->error(Glib::ustring::sprintf("Error saving %s ", gcfg));
+        try {
+            m_config->save_to_file(gcfg);
+        }
+        catch (const Glib::FileError& exc) {
+            auto msg = Glib::ustring::sprintf("File error %s saving config %s", exc.what(), gcfg);
+            showMessage(msg, Gtk::MessageType::MESSAGE_ERROR);
         }
     }
 }
@@ -392,6 +396,11 @@ Glib::KeyFile*
 MonglView::getConfig()
 {
     return m_config;
+}
+
+gint MonglView::getUpdateInterval()
+{
+    return m_updateInterval;
 }
 
 void
@@ -643,19 +652,23 @@ MonglView::on_process_properties()
                         }
                     }
                     else {
-                        Gtk::MessageDialog messagedialog(*m_application->get_active_window(), "Works only for processes...", false, Gtk::MessageType::MESSAGE_INFO);
-                        messagedialog.run();
-                        messagedialog.hide();
+                        showMessage("Works only for processes...");
                     }
                 }
             }
         }
     }
     else {
-        Gtk::MessageDialog messagedialog(*m_application->get_active_window(), "No selection!", false, Gtk::MessageType::MESSAGE_INFO);
-        messagedialog.run();
-        messagedialog.hide();
+        showMessage("No selection!");
     }
+}
+
+void
+MonglView::showMessage(const Glib::ustring& msg, Gtk::MessageType msgType)
+{
+    Gtk::MessageDialog messagedialog(*m_application->get_active_window(), msg, false, msgType);
+    messagedialog.run();
+    messagedialog.hide();
 }
 
 void

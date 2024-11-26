@@ -29,6 +29,7 @@ public:
 
     void on_action_preferences();
     void on_action_about();
+    void on_action_viewLog();
 private:
     MonglView *m_monglView;
     Gtk::Application* m_application;

@@ -91,6 +91,8 @@ monglmm_SOURCES =  \
 	NetNode.hpp \
 	NetworkProperties.cpp \
 	NetworkProperties.hpp \
+	LogProperties.cpp \
+	LogProperties.hpp \
 	ProcessProperties.cpp \
 	ProcessProperties.hpp \
 	BaseNetInfo.cpp \

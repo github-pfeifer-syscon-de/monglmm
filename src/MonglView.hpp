@@ -69,7 +69,9 @@ public:
     void on_process_properties();
     void restore();
     void close();
+    void showMessage(const Glib::ustring& msg, Gtk::MessageType msgType = Gtk::MessageType::MESSAGE_INFO);
     Glib::KeyFile* getConfig();
+    gint getUpdateInterval();
     static constexpr auto CONFIG_SHOW_NET_CONNECT = "showNetConnections";
     static constexpr auto CONFIG_GRP_MAIN = "Main";
     void net_connections_show_changed(Gtk::CheckButton* showNetConn);
