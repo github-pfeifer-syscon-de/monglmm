@@ -22,6 +22,80 @@
 
 #include "LogProperties.hpp"
 
+LevelIconConverter::LevelIconConverter(Gtk::TreeModelColumn<psc::log::Level>& col)
+: psc::ui::CustomConverter<psc::log::Level>(col)
+{
+    for (uint32_t i = 0; i < m_levelPixmap.size(); ++i) {
+        m_levelPixmap[i] = getIconForLevel(static_cast<psc::log::Level>(i));
+    }
+}
+
+Gtk::CellRenderer*
+LevelIconConverter::createCellRenderer()
+{
+    return Gtk::manage<Gtk::CellRendererPixbuf>(new Gtk::CellRendererPixbuf());
+}
+
+Glib::RefPtr<Gdk::Pixbuf>
+LevelIconConverter::getIconForLevel(psc::log::Level level)
+{
+    Glib::RefPtr<Gdk::Pixbuf> pixmap;
+    const char* icon_name = nullptr;
+    switch (level) {
+    case psc::log::Level::Severe:
+    case psc::log::Level::Alert:
+    case psc::log::Level::Crit:
+        icon_name = "process-stop";
+        break;
+    case psc::log::Level::Error:
+        icon_name = "dialog-error";
+        break;
+    case psc::log::Level::Warn:
+        icon_name = "dialog-warning";
+        break;
+    case psc::log::Level::Notice:
+    case psc::log::Level::Info:
+        icon_name = "dialog-information";
+        break;
+    case psc::log::Level::Debug:
+        icon_name = "edit-find";
+        break;
+    }
+    auto icon_theme = Gtk::IconTheme::get_default();
+    try {
+        if (icon_name) {
+            pixmap = icon_theme->load_icon(icon_name, 24, Gtk::IconLookupFlags::ICON_LOOKUP_USE_BUILTIN);        // USE_BUILTIN
+            //std::cout << " pix " << (pixmap ? "yes" : "no") << std::endl;
+        }
+        else {
+        }
+    }
+    catch (const Glib::Error& exc) {
+        std::cout << "Error lookup icon " << static_cast<int>(level) << " exc " << exc.what() << std::endl;
+    }
+    if (!pixmap) {
+        pixmap = icon_theme->load_icon("gtk-cancel", 24, Gtk::IconLookupFlags::ICON_LOOKUP_USE_BUILTIN);
+        std::cout << " no name, using default! " << std::endl;
+    }
+    return pixmap;
+}
+
+void
+LevelIconConverter::convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter)
+{
+    psc::log::Level value;
+    iter->get_value(m_col.index(), value);
+    auto idx = static_cast<uint32_t>(value);
+    if (idx < m_levelPixmap.size()) {
+        auto svalue = m_levelPixmap[idx];
+        if (svalue) {
+            auto pixRend = static_cast<Gtk::CellRendererPixbuf*>(rend);
+            //std::cout << "convert " << static_cast<int>(value) << " pix " << (svalue ? "yes" : "no") << std::endl;
+            pixRend->property_pixbuf() = svalue;
+        }
+    }
+}
+
 LogProperties::LogProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Builder>& builder, Glib::KeyFile* keyFile, int32_t update_interval)
 : Gtk::Dialog{cobject}
 , m_propertyColumns{std::make_shared<LogColumns>()}
@@ -177,6 +251,7 @@ LogProperties::addLog(const Gtk::TreeModel::iterator& i, psc::log::pLogViewEntry
 	row.set_value(m_propertyColumns->m_date, logEntry->getLocalTime());
 	row.set_value(m_propertyColumns->m_message, toUstring(logEntry->getMessage()));
 	row.set_value(m_propertyColumns->m_location, toUstring(logEntry->getLocation()));
+    row.set_value(m_propertyColumns->m_level, logEntry->getLevel());
 }
 
 static bool
@@ -204,7 +279,7 @@ LogProperties::refresh()
             auto value = row.get_value(comboColumns.m_id);
             query.push_back(value);
         }
-        if (query.size() >= 2) {    // otherwise the number of entries might get to large ~10k are too much for gtk
+        if (query.size() >= 2) {    // otherwise the number of entries might get to large 
             Glib::ustring search = m_search->get_text();
             logView->setQuery(query);
             for (auto iter = logView->begin(); iter != logView->end(); ++iter) {
@@ -212,8 +287,17 @@ LogProperties::refresh()
                 if (search.empty()
                  || contains(logEntry->getLocation(), search)
                  || contains(logEntry->getMessage(), search)) {
-                    auto iterChld = m_properties->append();
-                    addLog(iterChld, logEntry);
+                    if (m_properties->children().size() <= ROW_LIMIT) {
+                        auto iterChld = m_properties->append();
+                        addLog(iterChld, logEntry);
+                    }
+                    else {
+                        auto iterChld = m_properties->append();
+                        auto row = *iterChld;
+                        row.set_value(m_propertyColumns->m_message, Glib::ustring::sprintf("More than %d rows, stopped loading ...", ROW_LIMIT));
+                        row.set_value(m_propertyColumns->m_level, psc::log::Level::Crit);
+                        break;
+                    }
                 }
             }
         }
@@ -225,6 +309,7 @@ LogProperties::refresh()
         auto tmp = Glib::ustring::sprintf("Error view log %s", exc.what());
         Gtk::MessageDialog msg = Gtk::MessageDialog(tmp, false, Gtk::MessageType::MESSAGE_ERROR);
         msg.run();
+        msg.hide();
     }
     return true;
 }

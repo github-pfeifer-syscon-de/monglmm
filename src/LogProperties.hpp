@@ -40,11 +40,48 @@ public:
         auto textRend = static_cast<Gtk::CellRendererText*>(rend);
         auto svalue = value.isValid()
                       ? value.format("%F %T")
-                      : Glib::ustring{};    
+                      : Glib::ustring{};
         textRend->property_text() = svalue;
      }
 private:
 };
+
+class LevelIconConverter
+: public psc::ui::CustomConverter<psc::log::Level>
+{
+public:
+    LevelIconConverter(Gtk::TreeModelColumn<psc::log::Level>& col);
+    virtual ~LevelIconConverter() = default;
+
+    Gtk::CellRenderer* createCellRenderer() override;
+    Glib::RefPtr<Gdk::Pixbuf>
+    getIconForLevel(psc::log::Level level);
+    void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override;
+private:
+    std::array<Glib::RefPtr<Gdk::Pixbuf>, 8> m_levelPixmap;
+};
+
+class LevelTextConverter
+: public psc::ui::CustomConverter<psc::log::Level>
+{
+public:
+    LevelTextConverter(Gtk::TreeModelColumn<psc::log::Level>& col)
+    : psc::ui::CustomConverter<psc::log::Level>(col)
+    {
+    }
+    virtual ~LevelTextConverter() = default;
+
+    void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override {
+        psc::log::Level value;
+        iter->get_value(m_col.index(), value);
+        auto textRend = static_cast<Gtk::CellRendererText*>(rend);
+        auto svalue = Glib::ustring{psc::log::Log::getLevelFull(value)};
+        textRend->property_text() = svalue;
+    }
+
+private:
+};
+
 
 class LogColumns
 : public psc::ui::ColumnRecord
@@ -53,6 +90,7 @@ public:
     Gtk::TreeModelColumn<psc::log::LogTime> m_date;
     Gtk::TreeModelColumn<Glib::ustring> m_message;
     Gtk::TreeModelColumn<Glib::ustring> m_location;
+    Gtk::TreeModelColumn<psc::log::Level> m_level;
 
     LogColumns()
     {
@@ -60,6 +98,10 @@ public:
         add<psc::log::LogTime>("Date", dateConverter);
         add<Glib::ustring>("Message", m_message);
         add<Glib::ustring>("Location", m_location);
+        auto levelIconConverter = std::make_shared<LevelIconConverter>(m_level);
+        add<psc::log::Level>("Icon", levelIconConverter);
+        auto levelTextConverter = std::make_shared<LevelTextConverter>(m_level);
+        add<psc::log::Level>("Level", levelTextConverter, 0.5f);
     }
     virtual ~LogColumns() = default;
 };
@@ -87,6 +129,7 @@ public:
     virtual ~LogProperties() = default;
 
     static LogProperties* show(Glib::KeyFile* keyFile, int32_t update_interval);
+    static constexpr auto ROW_LIMIT{5000u}; // this seems a reasonable limit but if you use a fast system increase it
 protected:
 
     bool refresh();
