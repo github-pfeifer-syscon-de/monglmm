@@ -54,11 +54,11 @@ public:
     virtual ~LevelIconConverter() = default;
 
     Gtk::CellRenderer* createCellRenderer() override;
-    Glib::RefPtr<Gdk::Pixbuf>
-    getIconForLevel(psc::log::Level level);
+    static Glib::RefPtr<Gdk::Pixbuf> getIconForLevel(psc::log::Level level);
     void convert(Gtk::CellRenderer* rend, const Gtk::TreeModel::iterator& iter) override;
+    static constexpr auto NUM_LOG_LEVEL{8u};     // maybe move this to Log
 private:
-    std::array<Glib::RefPtr<Gdk::Pixbuf>, 8> m_levelPixmap;
+    std::array<Glib::RefPtr<Gdk::Pixbuf>, NUM_LOG_LEVEL> m_levelPixmap;
 };
 
 class LevelTextConverter
@@ -99,9 +99,9 @@ public:
         add<Glib::ustring>("Message", m_message);
         add<Glib::ustring>("Location", m_location);
         auto levelIconConverter = std::make_shared<LevelIconConverter>(m_level);
-        add<psc::log::Level>("Icon", levelIconConverter);
+        add<psc::log::Level>("Icon", levelIconConverter, 0.5f);
         auto levelTextConverter = std::make_shared<LevelTextConverter>(m_level);
-        add<psc::log::Level>("Level", levelTextConverter, 0.5f);
+        add<psc::log::Level>("Level", levelTextConverter);
     }
     virtual ~LogColumns() = default;
 };
@@ -137,6 +137,8 @@ protected:
     void addLog(const Gtk::TreeModel::iterator& i, psc::log::pLogViewEntry& netConnect);
     Glib::ustring toUstring(const std::string& str);
     int isUtf8Start(char c);
+    void buildLevelCombo();
+    void buildSelectionModels();
     static constexpr auto CONFIG_GRP = "LogProperties";
 private:
     Glib::RefPtr<Gtk::TreeStore> m_properties;
@@ -151,5 +153,6 @@ private:
     ComboColumns comboColumns;
     Glib::RefPtr<Gtk::ListStore> m_nameModel;
     Glib::RefPtr<Gtk::ListStore> m_bootModel;
+    Gtk::ComboBoxText* m_comboLevel;
 };
 

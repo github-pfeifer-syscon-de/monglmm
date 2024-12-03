@@ -104,6 +104,59 @@ LogProperties::LogProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Bu
     builder->get_widget("comboBoot", m_comboBoot);
     builder->get_widget("search", m_search);
     builder->get_widget("btnRefresh", m_btnRefresh);
+    builder->get_widget("level", m_comboLevel);
+    buildLevelCombo();
+    buildSelectionModels();
+    m_comboNames->signal_changed().connect([&] {
+        refresh();
+    });
+    m_comboBoot->signal_changed().connect([&] {
+        refresh();
+    });
+    m_btnRefresh->signal_clicked().connect([&] {
+        refresh();
+    });
+    m_search->signal_changed().connect([&] {
+        refresh();
+    });
+    m_comboLevel->signal_changed().connect([&] {
+        refresh();
+    });
+    auto object = builder->get_object("properties");
+    m_logTable = Glib::RefPtr<Gtk::TreeView>::cast_dynamic(object);
+    if (m_logTable) {
+        m_properties = Gtk::TreeStore::create(*m_propertyColumns);
+        m_logTable->set_model(m_properties);
+        m_kfTableManager = std::make_shared<psc::ui::KeyfileTableManager>(m_propertyColumns, keyFile, CONFIG_GRP);
+        m_kfTableManager->setAllowSort(false);  // as we may create large number of entries with converted data
+        m_kfTableManager->setup(this);
+        m_kfTableManager->setup(m_logTable);
+        refresh();
+        //if (update_interval > 0) {
+        //    m_timer = Glib::signal_timeout().connect_seconds(
+        //            sigc::mem_fun(*this, &LogProperties::refresh), update_interval);
+        //}
+    }
+    else {
+        psc::log::Log::logAdd(psc::log::Level::Warn, "Not found Gtk::TreeView named properties");
+    }
+}
+
+void
+LogProperties::buildLevelCombo()
+{
+    for (uint32_t i = 0; i < LevelIconConverter::NUM_LOG_LEVEL; ++i) {
+        auto level = static_cast<psc::log::Level>(i);
+        m_comboLevel->append(
+            Glib::ustring::sprintf("%d", i),
+            Glib::ustring::sprintf("%s%s", (i > 0 ? ">= " : ""), psc::log::Log::getLevelFull(level)));
+    }
+    m_comboLevel->set_active_id(Glib::ustring::sprintf("%d", static_cast<int>(psc::log::Level::Debug)));    // debug results in see all
+}
+
+void
+LogProperties::buildSelectionModels()
+{
     m_nameModel = Gtk::ListStore::create(comboColumns);
     m_bootModel = Gtk::ListStore::create(comboColumns);
     Gtk::TreeModel::iterator bootSelected;
@@ -140,36 +193,6 @@ LogProperties::LogProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Bu
     m_comboBoot->set_model(m_bootModel);
     m_comboBoot->pack_start(comboColumns.m_text);  // set "visible" column !!!
     m_comboBoot->set_active(bootSelected);
-    m_comboNames->signal_changed().connect([&] {
-        refresh();
-    });
-    m_comboBoot->signal_changed().connect([&] {
-        refresh();
-    });
-    m_btnRefresh->signal_clicked().connect([&] {
-        refresh();
-    });
-    m_search->signal_changed().connect([&] {
-        refresh();
-    });
-    auto object = builder->get_object("properties");
-    m_logTable = Glib::RefPtr<Gtk::TreeView>::cast_dynamic(object);
-    if (m_logTable) {
-        m_properties = Gtk::TreeStore::create(*m_propertyColumns);
-        m_logTable->set_model(m_properties);
-        m_kfTableManager = std::make_shared<psc::ui::KeyfileTableManager>(m_propertyColumns, keyFile, CONFIG_GRP);
-        m_kfTableManager->setAllowSort(false);  // as we may create large number of entries with converted data
-        m_kfTableManager->setup(this);
-        m_kfTableManager->setup(m_logTable);
-        refresh();
-        //if (update_interval > 0) {
-        //    m_timer = Glib::signal_timeout().connect_seconds(
-        //            sigc::mem_fun(*this, &LogProperties::refresh), update_interval);
-        //}
-    }
-    else {
-        psc::log::Log::logAdd(psc::log::Level::Warn, "Not found Gtk::TreeView named properties");
-    }
 }
 
 void
@@ -265,8 +288,13 @@ LogProperties::refresh()
 {
     m_properties->clear();
     try {
+        auto logLevel = psc::log::Level::Debug;
+        auto levelId = m_comboLevel->get_active_id();
+        if (!levelId.empty()) {
+            auto ilevel = std::stoi(levelId);
+            logLevel = static_cast<psc::log::Level>(ilevel);
+        }
         std::list<std::shared_ptr<psc::log::LogViewIdentifier>> query;
-        auto logView = psc::log::LogView::create();
         auto selectedName = m_comboNames->get_active();  // use internal id
         if (selectedName) {
             auto row = *selectedName;
@@ -279,14 +307,16 @@ LogProperties::refresh()
             auto value = row.get_value(comboColumns.m_id);
             query.push_back(value);
         }
-        if (query.size() >= 2) {    // otherwise the number of entries might get to large 
+        if (query.size() >= 2) {    // otherwise the number of entries might get to large
             Glib::ustring search = m_search->get_text();
+            auto logView = psc::log::LogView::create();
             logView->setQuery(query);
             for (auto iter = logView->begin(); iter != logView->end(); ++iter) {
                 auto logEntry = *iter;
-                if (search.empty()
+                if ((search.empty()
                  || contains(logEntry->getLocation(), search)
-                 || contains(logEntry->getMessage(), search)) {
+                 || contains(logEntry->getMessage(), search))
+                 && logEntry->getLevel() <= logLevel) {
                     if (m_properties->children().size() <= ROW_LIMIT) {
                         auto iterChld = m_properties->append();
                         addLog(iterChld, logEntry);
