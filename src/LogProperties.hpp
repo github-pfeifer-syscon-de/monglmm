@@ -129,17 +129,18 @@ public:
     virtual ~LogProperties() = default;
 
     static LogProperties* show(Glib::KeyFile* keyFile, int32_t update_interval);
-    static constexpr auto ROW_LIMIT{5000u}; // this seems a reasonable limit but if you use a fast system increase it
 protected:
 
     bool refresh();
     void on_response(int response_id);
-    void addLog(const Gtk::TreeModel::iterator& i, psc::log::pLogViewEntry& netConnect);
+    void addLog(const Gtk::TreeModel::iterator& i, psc::log::LogViewEntry& logViewEntry);
     Glib::ustring toUstring(const std::string& str);
     int isUtf8Start(char c);
     void buildLevelCombo();
     void buildSelectionModels();
+    uint32_t m_rowLimit{5000}; // this seems a reasonable limit but if you use a fast system you may increase it if needed
     static constexpr auto CONFIG_GRP = "LogProperties";
+    static constexpr auto CONFIG_LOG_VIEW_ROW_LIMIT = "logViewRowLimit";
 private:
     Glib::RefPtr<Gtk::TreeStore> m_properties;
     sigc::connection m_timer;               /* Timer for regular updates */

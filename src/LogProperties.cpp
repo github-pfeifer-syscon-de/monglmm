@@ -19,7 +19,6 @@
 #include <iostream>
 #include <Log.hpp>
 
-
 #include "LogProperties.hpp"
 
 LevelIconConverter::LevelIconConverter(Gtk::TreeModelColumn<psc::log::Level>& col)
@@ -139,6 +138,13 @@ LogProperties::LogProperties(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Bu
     }
     else {
         psc::log::Log::logAdd(psc::log::Level::Warn, "Not found Gtk::TreeView named properties");
+    }
+    if (keyFile->has_group(CONFIG_GRP)
+     && keyFile->has_key(CONFIG_GRP, CONFIG_LOG_VIEW_ROW_LIMIT)) {
+        m_rowLimit = keyFile->get_integer(CONFIG_GRP, CONFIG_LOG_VIEW_ROW_LIMIT);
+    }
+    else {
+        keyFile->set_integer(CONFIG_GRP ,CONFIG_LOG_VIEW_ROW_LIMIT, m_rowLimit);
     }
 }
 
@@ -268,13 +274,13 @@ LogProperties::toUstring(const std::string& str)
 }
 
 void
-LogProperties::addLog(const Gtk::TreeModel::iterator& i, psc::log::pLogViewEntry& logEntry)
+LogProperties::addLog(const Gtk::TreeModel::iterator& i, psc::log::LogViewEntry& logEntry)
 {
 	auto row = *i;
-	row.set_value(m_propertyColumns->m_date, logEntry->getLocalTime());
-	row.set_value(m_propertyColumns->m_message, toUstring(logEntry->getMessage()));
-	row.set_value(m_propertyColumns->m_location, toUstring(logEntry->getLocation()));
-    row.set_value(m_propertyColumns->m_level, logEntry->getLevel());
+	row.set_value(m_propertyColumns->m_date, logEntry.getLocalTime());
+	row.set_value(m_propertyColumns->m_message, toUstring(logEntry.getMessage()));
+	row.set_value(m_propertyColumns->m_location, toUstring(logEntry.getLocation()));
+    row.set_value(m_propertyColumns->m_level, logEntry.getLevel());
 }
 
 static bool
@@ -314,17 +320,17 @@ LogProperties::refresh()
             for (auto iter = logView->begin(); iter != logView->end(); ++iter) {
                 auto logEntry = *iter;
                 if ((search.empty()
-                 || contains(logEntry->getLocation(), search)
-                 || contains(logEntry->getMessage(), search))
-                 && logEntry->getLevel() <= logLevel) {
-                    if (m_properties->children().size() <= ROW_LIMIT) {
+                 || contains(logEntry.getLocation(), search)
+                 || contains(logEntry.getMessage(), search))
+                 && logEntry.getLevel() <= logLevel) {
+                    if (m_properties->children().size() <= m_rowLimit) {
                         auto iterChld = m_properties->append();
                         addLog(iterChld, logEntry);
                     }
                     else {
                         auto iterChld = m_properties->append();
                         auto row = *iterChld;
-                        row.set_value(m_propertyColumns->m_message, Glib::ustring::sprintf("More than %d rows, stopped loading ...", ROW_LIMIT));
+                        row.set_value(m_propertyColumns->m_message, Glib::ustring::sprintf("More than %d rows, stopped loading ...", m_rowLimit));
                         row.set_value(m_propertyColumns->m_level, psc::log::Level::Crit);
                         break;
                     }
