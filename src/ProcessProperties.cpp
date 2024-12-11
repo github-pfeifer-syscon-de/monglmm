@@ -96,7 +96,7 @@ ProcessProperties::stopProcess()
             auto process = row.get_value(m_propertyColumns->m_process);
             if (process) {
                 psc::log::Log::logAdd(psc::log::Level::Info, [&] {
-                    return std::format("Kill {} {}!", process->getName(), process->getPid());
+                    return psc::fmt::format("Kill {} {}!", process->getName(), process->getPid());
                 });
                 process->killProcess();
                 ++iter;
@@ -146,7 +146,7 @@ ProcessProperties::addProcess(const Gtk::TreeModel::iterator& i, pProcess& proce
         }
         else {
             psc::log::Log::logAdd(psc::log::Level::Notice, [&] {
-                return std::format("Traversing process {}", typeid(child).name());
+                return psc::fmt::format("Traversing process {}", typeid(child).name());
             });
         }
     }

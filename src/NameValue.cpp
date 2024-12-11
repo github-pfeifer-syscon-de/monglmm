@@ -21,7 +21,7 @@
 #include <string>
 #include <StringUtils.hpp>
 #include <Log.hpp>
-#include <format>
+#include <psc_format.hpp>
 
 #include "NameValue.hpp"
 
@@ -55,7 +55,7 @@ NameValue::read(const std::string &name)
     catch (const std::ios_base::failure &e) {
         if (!stat.eof()) {  // as we may hit eof while reading ...
             psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-                return std::format("Error reading {} {} ",  name,  e);
+                return psc::fmt::format("Error reading {} {} ",  name,  e);
             });
 			ret = false;
         }

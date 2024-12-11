@@ -366,7 +366,7 @@ LogProperties::show(Glib::KeyFile* keyFile, int32_t update_interval)
         }
     }
     catch (const Glib::Error& ex) {
-        psc::log::Log::logAdd(psc::log::Level::Error, std::format("LogProperties::show: {}", ex));
+        psc::log::Log::logAdd(psc::log::Level::Error, psc::fmt::format("LogProperties::show: {}", ex));
     }
     return logProp;
 }

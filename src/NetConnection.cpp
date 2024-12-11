@@ -19,7 +19,7 @@
 #include <iostream>
 #include <StringUtils.hpp>
 #include <netdb.h>
-#include <format>
+#include <psc_format.hpp>
 #include <Log.hpp>
 
 #include "NetConnection.hpp"
@@ -178,7 +178,7 @@ NetConnection::NetConnection(const std::vector<Glib::ustring>& parts, gint64 now
     }
     catch (const std::exception& ex) {
         psc::log::Log::logAdd(psc::log::Level::Notice, [&] {
-            return std::format("parsing conn local {} remote {} stat {}"
+            return psc::fmt::format("parsing conn local {} remote {} stat {}"
                     ,localIpPort, remoteIpPort, status, ex);
         });
     }

@@ -296,7 +296,7 @@ Processes::display(
         }
         else {
             psc::log::Log::logAdd(psc::log::Level::Error, [&] {
-                return std::format("Unknown tree renderer {}", static_cast<std::underlying_type<TreeType>::type>(m_treeType));
+                return psc::fmt::format("Unknown tree renderer {}", static_cast<std::underlying_type<TreeType>::type>(m_treeType));
             });
         }
         // as geometries are added to context they will be displayed automatically
