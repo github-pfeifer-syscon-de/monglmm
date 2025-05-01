@@ -26,4 +26,3 @@ EXTRA_DIST = $(MONGLMM_RESOURCES) $(MONGLMM_RESOURCE_XML) $(pixmap_DATA) $(appic
 
 clean-local:
 	-rm -rf $(resources_c)
-	-rm -rf $(desktop_DATA)

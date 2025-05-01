@@ -57,7 +57,9 @@ enum
     FALSE,
     TRUE
   };
+#if __STDC_VERSION__ < 202311L
   typedef int bool;
+#endif
 #endif
 
 
@@ -114,7 +116,7 @@ const libg15_devices_t g15_devices[] = {
     DEVICE(NULL,0,0,0)
 };
 
-static void handle_transfer_events(int skipCancelled);
+static void handle_transfer_events(bool skipCancelled);
 void lcd_transfer_cb(struct libusb_transfer *transfer);
 void key_transfer_cb(struct libusb_transfer *transfer);
 static unsigned int processKeyEvent5Byte(unsigned char *buffer);
