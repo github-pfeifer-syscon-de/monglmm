@@ -7,7 +7,8 @@ AM_CPPFLAGS = \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
 	-I ../src \
 	$(GENERICGLM_CFLAGS) \
-	$(GENERICIMG_CFLAGS)
+	$(GENERICIMG_CFLAGS) \
+	$(EPOXY_CFLAGS)
 
 AM_CFLAGS= \
 	-Wall -Wpedantic -Wconversion
@@ -25,4 +26,13 @@ process_test_LDADD = \
 	$(GENERICIMG_LIBS)
 
 process_test_SOURCES = \
-    process_test.cpp
+	process_test.cpp
+
+# used to create logo
+SvgTest_LDADD = \
+	$(GENERICGLM_LIBS) \
+	$(GENERICIMG_LIBS) \
+	$(EPOXY_LIBS)
+
+SvgTest_SOURCES = \
+	SvgTest.cpp

@@ -51,6 +51,5 @@ main(int argc, char** argv)
     if (!property_test()) {
         return 1;
     }
-    std::cout << "end" << std::endl;
     return 0;
 }
