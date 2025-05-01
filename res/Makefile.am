@@ -12,20 +12,18 @@ $(resources_c): $(MONGLMM_RESOURCE_XML) $(MONGLMM_RESOURCES)
 
 # The desktop files
 desktopdir = $(datadir)/applications
-desktop_in_files=monglmm.desktop.in
-desktop_DATA=$(desktop_in_files:.desktop.in=.desktop)
+desktop_DATA=monglmm.desktop
 
 # application icon
-appicondir = $(datadir)/icons/hicolor/64x64/apps
-appicon_DATA = monglmm.png
-appdir_icon=$(appicondir)/$(appicon_DATA)
+icon_basename=monglmm
+pixmapdir=$(datadir)/icons/hicolor/64x64/apps
+pixmap_DATA=$(icon_basename).png
+appicondir=$(datadir)/icons/hicolor/scalable/apps
+appicon_DATA=$(icon_basename).svg
 
 
-EXTRA_DIST = $(MONGLMM_RESOURCES) $(MONGLMM_RESOURCE_XML)  $(appicon_DATA) $(desktop_in_files)
+EXTRA_DIST = $(MONGLMM_RESOURCES) $(MONGLMM_RESOURCE_XML) $(pixmap_DATA) $(appicon_DATA) $(desktop_DATA)
 
 clean-local:
 	-rm -rf $(resources_c)
 	-rm -rf $(desktop_DATA)
-
-%.desktop: %.desktop.in
-	@regex_cmd@ -e "s,\@APP_ICON\@,$(appdir_icon),g" $? > $@

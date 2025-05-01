@@ -6,4 +6,4 @@ Name=MonGlmm
 Comment=Different kind of system monitor
 Categories=Application;Utility;
 Exec=monglmm
-Icon=@APP_ICON@
+Icon=monglmm
