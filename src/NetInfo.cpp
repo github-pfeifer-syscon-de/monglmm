@@ -169,4 +169,11 @@ void
 NetInfo::update()
 {
     updateConnections(m_netConnections);
+    // do name queries in a batch
+    for (auto& conn : m_netConnections) {
+        auto& remoteAddr = conn->getRemoteAddr();
+        if (remoteAddr->getName().empty()) {
+            remoteAddr->lookup();
+        }
+    }
 }

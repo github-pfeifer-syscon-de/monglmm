@@ -212,10 +212,10 @@ BaseNetInfo::read(const std::string& name, std::map<std::string, pNetConnect>& n
     }
     catch (const std::ios_base::failure& e) {
         if (errno != EAGAIN) {  //we get no eof as this no "normal" file...
-            std::ostringstream oss1;
-            oss1 << "Could not open " << name << " "  << errno
-                 << " " << strerror(errno)
-                 << " ecode " << e.code();
+            //std::ostringstream oss1;
+            //oss1 << "Could not open " << name << " "  << errno
+            //     << " " << strerror(errno)
+            //     << " ecode " << e.code();
             //Log.addLog(Level.INFO, oss1);
             // e.code() == std::io_errc::stream doesn't help either
         }
@@ -240,7 +240,7 @@ BaseNetInfo::updateConnections(std::vector<pNetConnect>& connections)
     connections.clear();    // rebuild list from map
     connections.reserve(map.size());    // that may be a bit too much, but more efficent than default
     for (auto iter = map.begin(); iter != map.end(); ++iter) {
-        auto& conn = (*iter).second;
+        auto& conn = iter->second;
         if (conn->isTouched()) {
             connections.emplace_back(std::move(conn));
         }

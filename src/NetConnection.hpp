@@ -38,17 +38,24 @@ public:
     virtual ~NetAddress() = default;
 
     Glib::RefPtr<Gio::InetAddress> getAddress();
-    std::string getName();
+    // name might be empty if not yet queried
+    Glib::ustring getName();
     std::vector<Glib::ustring> getNameSplit();
     bool isValid();
     void setTouched(gint64 touched);
     gint64 getTouched();
-private:
+    Glib::ustring getIpAsString();
     void lookup();
+
+protected:
+
+private:
+    void address_lookup_ready(const Glib::RefPtr<Gio::AsyncResult>& result);
     Glib::RefPtr<Gio::InetAddress> m_address;
-    std::string m_name;
+    Glib::ustring m_name;
     std::vector<Glib::ustring> m_splitedName;
     bool m_ip{false};
+    bool m_querying{false};
     gint64 m_touched;
 };
 
@@ -83,6 +90,9 @@ public:
     bool isTouched();
     const std::string& getKey();
     static void cleanAddressCache(gint64 now);
+
+protected:
+
 private:
     static pNetAddress findAddress(const Glib::ustring& addrHex, gint64 now);
     pNetAddress m_localIp;

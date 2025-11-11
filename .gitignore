@@ -71,3 +71,7 @@
 /test/process_test
 /test/test-suite.log
 /test-driver
+/autom4te.cache/traces.7
+/autom4te.cache/traces.8
+/autom4te.cache/output.7
+/autom4te.cache/output.8

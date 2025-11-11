@@ -48,36 +48,54 @@ NetAddress::NetAddress(const std::string& addr)
     }
 }
 
-
 void
-NetAddress::lookup()
+NetAddress::address_lookup_ready(const Glib::RefPtr<Gio::AsyncResult>& result)
 {
-    bool set = false;
+    bool set{false};
     try {
-        // the use of async adds to much trouble so keep it simple
         auto resolver = Gio::Resolver::get_default();
-        auto name = resolver->lookup_by_address(m_address);
+        auto name = resolver->lookup_by_address_finish(result);
         if (!name.empty()) {
             m_name = name;
             set = true;
+            m_splitedName.clear();  // rebuild with corrected name
         }
     }
     catch (const Glib::Error& e) {
         // we get an error if address was not "resolvable" -> happens frequently
     }
     if (!set) {
-        m_name = m_address->to_string();
+        m_name = getIpAsString();
         m_ip = true;
     }
 }
 
-std::string
+void
+NetAddress::lookup()
+{
+    if (!m_querying) {  // only try once
+        try {
+            m_querying = true;
+            auto resolver = Gio::Resolver::get_default();
+            resolver->lookup_by_address_async(m_address,
+                    sigc::mem_fun(*this, &NetAddress::address_lookup_ready));
+        }
+        catch (const Glib::Error& e) {
+            std::cout << "NetAddress::lookup error " << e.what() << std::endl;
+        }
+    }
+}
+
+Glib::ustring
 NetAddress::getName()
 {
-    if (m_name.empty()) {
-        lookup();
-    }
     return m_name;
+}
+
+Glib::ustring
+NetAddress::getIpAsString()
+{
+    return m_address->to_string();
 }
 
 void
@@ -103,7 +121,12 @@ NetAddress::getNameSplit()
         //          << " fam " << (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV4 ? "ipv4" : m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6 ? "ipv6" :Glib::ustring::sprintf("%d", m_address->get_family()))
         //          << std::endl;
         auto name = getName();
-        if (m_ip) {
+        bool isIp = m_ip;
+        if (name.empty()) {
+            name = getIpAsString();
+            isIp = true;
+        }
+        if (isIp) {
             // keep it simple, especially ipv6 will take up a relatively large room if splitted (and not showing much)
             m_splitedName.push_back(name);
 //            if (m_address->get_family() == Gio::SocketFamily::SOCKET_FAMILY_IPV6) {
@@ -188,7 +211,7 @@ bool
 NetConnection::isValid()
 {
     return m_localIp && m_localIp->isValid()
-       && m_remoteIp && m_localIp->isValid()
+       && m_remoteIp && m_remoteIp->isValid()
        && m_localPort > 0u
        && m_remotePort > 0u     // for listening this is a valid value...
        && m_status > 0u;

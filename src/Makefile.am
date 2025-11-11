@@ -19,8 +19,10 @@ AM_CPPFLAGS = \
 AM_CFLAGS= \
 	-Wall
 
+# the battle for conversions is lost...
 AM_CXXFLAGS = \
-	-Wall
+	-Wall \
+	-Wpedantic
 
 bin_PROGRAMS = monglmm
 

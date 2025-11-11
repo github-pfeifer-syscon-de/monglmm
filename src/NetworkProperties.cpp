@@ -67,7 +67,11 @@ NetworkProperties::addNetConnect(const Gtk::TreeModel::iterator& i, pNetConnect&
 {
 	auto row = *i;
 	row.set_value(m_propertyColumns->m_direction, Glib::ustring(netConnect->isIncomming() ? "tx" : "rx"));
-	row.set_value(m_propertyColumns->m_addr, Glib::ustring(netConnect->getRemoteAddr()->getName()));
+    auto name = netConnect->getRemoteAddr()->getName();
+    if (name.empty()) {
+        name = netConnect->getRemoteAddr()->getIpAsString();
+    }
+	row.set_value(m_propertyColumns->m_addr, name);
 	row.set_value(m_propertyColumns->m_service, netConnect->getWellKnownPort());
 	row.set_value(m_propertyColumns->m_netConnect, netConnect);
 }

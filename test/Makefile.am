@@ -21,7 +21,6 @@ check_PROGRAMS = process_test
 process_test_LDADD = \
 	../src/Process.o \
 	../src/NameValue.o \
-	../src/Monitor.o \
 	$(GENERICGLM_LIBS) \
 	$(GENERICIMG_LIBS)
 

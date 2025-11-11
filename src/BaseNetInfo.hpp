@@ -34,8 +34,6 @@ public:
     BaseNetInfo() = default;
     explicit BaseNetInfo(const BaseNetInfo& orig) = delete;
     virtual ~BaseNetInfo() = default;
-
-public:
     void updateConnections(std::vector<pNetConnect>& connections);
     std::string getServiceName(uint32_t port);
 protected:
