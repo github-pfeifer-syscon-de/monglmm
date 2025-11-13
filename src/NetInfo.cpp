@@ -19,7 +19,6 @@
 #include <iostream>
 #include <fstream>
 #include <StringUtils.hpp>
-#include <netdb.h>  // servent
 #include <string.h>
 #include <Log.hpp>
 

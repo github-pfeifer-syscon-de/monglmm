@@ -19,6 +19,8 @@
 #include <Log.hpp>
 #include <unordered_set>
 #include <map>
+#include <netdb.h>      // getservent_r
+#include <arpa/inet.h>  // htons
 
 #include "BaseNetInfo.hpp"
 
@@ -37,116 +39,24 @@ BaseNetInfo::setServiceName(pNetConnect& netConn)
 void
 BaseNetInfo::prepareServiceNames()
 {
-    std::ifstream stat;
-    std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit | std::ios::eofbit;
-    stat.exceptions(exceptionMask);
-    try {   // alternativ  /usr/share/iana-etc/port-numbers.iana
-        stat.open("/etc/services");
-        while (!stat.eof()) {
-            std::string line;
-            std::getline(stat, line);
-            if (!line.starts_with('#')
-             && line.length() > 3) {
-                std::vector<Glib::ustring> parts;
-                StringUtils::splitRepeat(line, ' ', parts);
-                if (parts.size() >= 2) {
-                    auto name = parts[0];
-                    auto portProt = parts[1];
-                    auto pos = portProt.find('/');
-                    if (pos != portProt.npos) {
-                        auto port = portProt.substr(0, pos);
-                        auto prot = portProt.substr(pos + 1);
-                        //std::cout << __FILE__ << "::setRemoteServiceName"
-                        //          << " found " << name
-                        //          << " port " << port
-                        //          << " prot " << prot << std::endl;
-                        if ("tcp" == prot) {
-                            uint32_t porti = std::stoi(port);
-                            m_portNames.insert(std::make_pair(porti, name));
-                        }
-                    }
-                }
-            }
+    // linux specific, shortest method
+    struct servent result_buf{};
+    struct servent *result{};
+    char buf[1024]{};
+    while (true) {
+        int ret = getservent_r(&result_buf,
+                        buf, sizeof(buf),
+                        &result);
+        if (ret != 0 || result == nullptr) {
+            break;
+        }
+        uint32_t port = ntohs(static_cast<uint16_t>(result->s_port));
+        if (strstr(result->s_proto, "tcp") != nullptr) {
+            m_portNames.insert(
+                    std::pair(
+                        port, result->s_name));
         }
     }
-    catch (const std::ios_base::failure& e) {
-        //std::ostringstream oss1;
-        //oss1 << "Could not open /etc/services " << errno
-        //     << " " << strerror(errno)
-        //     << " ecode " << e.what();
-        // e.code() == std::io_errc::stream doesn't help either
-    }
-    if (stat.is_open()) {
-       stat.close();
-    }
-
-//    if (m_remoteSericeName.empty()) {
-//        auto serv = Gio::NetworkService::create(
-//            "",	"tcp", Glib::ustring::sprintf("%d", m_remotePort));
-//        if (!serv->get_service().empty()) {
-//            std::cout << "NetConnection::getRemoteServiceName "
-//                      << " gionetw. " << m_remotePort
-//                      << " to " << serv->get_service() << std::endl;
-//            return serv->get_service();
-//        }
-//    }
-//    if (m_portNames.empty()) {
-//        struct servent result_buf;
-//        struct servent *result;
-//        char buf[1024];
-//        // getservbyport seems to have been deprecated ... (always returns null)
-//        //   from the looks i would expect there is a free required ??? but the examples do not show any sign of this
-//        int ret = getservbyport_r(htons(static_cast<uint16_t>(netConn->getRemotePort())), "tcp",
-//                                  &result_buf, buf, sizeof(buf), &result);
-//        if (ret == 0) {
-//            if (strlen(buf) > 0) {
-//                netConn.setRemoteSericeName(buf);   // same result_buf.s_name;
-//            }
-//            //if (result != nullptr) {
-//            //    std::cout << __FILE_NAME__ << "::getRemoteServiceName "
-//            //              << " name " << result->s_name
-//            //              << " proto " << result->s_proto << std::endl;
-//            //}
-//        }
-//        else {
-//            std::cout << "errno " << errno << " " << strerror(errno) << std::endl;
-//            std::cout << "Checking " << m_remotePort << " servent is null" << std::endl;
-//        }
-//        if (netConn.getRemoteSericeName().empty()) {   // still empty use number ...
-//            netConn.setRemoteSericeName(Glib::ustring::sprintf("%d", m_remotePort));
-//        }
-//    }
-    // this leaves out https ?
-//    if (m_portNames.empty()) {
-//        struct servent result_buf;
-//        struct servent *result;
-//        char buf[1024];
-//        while (true) {
-//            memset(buf, 0, sizeof(buf));
-//            memset(&result_buf, 0, sizeof(result_buf));
-//            int ret = getservent_r(&result_buf,
-//                            buf, sizeof(buf),
-//                            &result);
-//            if (ret != 0 || result == nullptr) {
-//                break;
-//            }
-//            if (result->s_port >= 440 && result->s_port <= 450) {
-//                std::cout << __FILE__ "::setRemoteServiceName"
-//                          << "  add port " << result->s_port
-//                          << " name " << result->s_name
-//                          << " prot " << result->s_proto
-//                          << std::endl;
-//            }
-//            if (strstr(result->s_proto, "tcp") != nullptr) {
-//                m_portNames.insert(
-//                        std::pair<uint32_t, std::string>(
-//                            result->s_port, result->s_name));
-//            }
-//        }
-//        std::cout << __FILE__ "::setRemoteServiceName"
-//                  << "entries " << m_portNames.size()
-//                  << std::endl;
-//    }
 }
 
 std::string
