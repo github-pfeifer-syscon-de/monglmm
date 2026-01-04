@@ -5,7 +5,7 @@ AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)."\" \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
-	-I ../src \
+	-I $(top_srcdir)/src \
 	$(GENERICGLM_CFLAGS) \
 	$(GENERICIMG_CFLAGS) \
 	$(EPOXY_CFLAGS)
