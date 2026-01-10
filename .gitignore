@@ -49,12 +49,6 @@
 /res/Makefile.in
 /PKGBUILD
 /src/configure.ac
-/pkg/monglmm/.BUILDINFO
-/src/monglmm
-/pkg/monglmm/usr/share/applications/monglmm.desktop
-/pkg/monglmm/.MTREE
-/pkg/monglmm/.PKGINFO
-/pkg/monglmm/usr/bin/monglmm
 /pkg/
 /autom4te.cache/output.5
 /autom4te.cache/traces.5
@@ -75,3 +69,8 @@
 /autom4te.cache/traces.8
 /autom4te.cache/output.7
 /autom4te.cache/output.8
+/nbproject/
+/test/.save/
+/src/.save/
+/build/
+/.idea/
