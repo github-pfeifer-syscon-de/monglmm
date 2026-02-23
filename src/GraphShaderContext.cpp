@@ -21,7 +21,8 @@
 #include <cmath>
 #include <glarea-error.h>
 #include <Geom2.hpp>
-#include <GraphShaderContext.hpp>
+
+#include "GraphShaderContext.hpp"
 
 GraphShaderContext::GraphShaderContext()
 : NaviContext::NaviContext{}

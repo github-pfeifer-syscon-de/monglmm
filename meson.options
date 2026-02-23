@@ -1,0 +1,15 @@
+# choose
+option('libg15', type : 'boolean', value : false
+        , description : 'Use Logitech(R) G15(R) keyboard LCD-display')
+option('lmsensors', type : 'boolean', value : true
+       , description : 'Build with lmsensors support')
+# the following options where created some time ago
+#   and did not work out as expected
+#   as "user" you shoud probably leave them alone
+#   as "developer" you might try to improve these ... but don't blame me if it does not work
+option('raspi', type : 'boolean', value : false
+       , description : 'Use Raspi(R) core voltage info (function is (c) broadcom) beware: breaks gles'
+       , deprecated: true)
+option('glibtop', type : 'boolean', value : false
+        , description : 'Build with glibtop (very limited support, once in a time i was thinking this was a good idea...)  proc/sys is much better'
+        , deprecated: true)

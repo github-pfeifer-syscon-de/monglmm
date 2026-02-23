@@ -73,4 +73,5 @@
 /test/.save/
 /src/.save/
 /build/
+/buildDir/
 /.idea/

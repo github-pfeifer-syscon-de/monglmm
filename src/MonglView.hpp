@@ -37,7 +37,7 @@
 #include "DiskInfos.hpp"
 #include "TextContext.hpp"
 #include "DiagramMonitor.hpp"
-#include "config.h"
+#include "monglmm_config.h"
 #include "NetInfo.hpp"
 #ifdef LIBG15
 #include "G15Worker.hpp"

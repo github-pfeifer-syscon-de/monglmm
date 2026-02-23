@@ -24,7 +24,7 @@
  *   try to unify functions
  *  - use libusb >= 1.0
  *  - use dma transfer by using possibly optimized device memory
- *  - (as this involves some background transfer, the lib is best used from a single thread (as listening for keys requires some kind of polling anyway) (multithreading untested))
+ *  - (as this involves some background transfer, the lib is best used from a single thread (as listening for keys requires some kind of polling anyway) (multi-threading untested))
  */
 #ifndef _LIBG15_H_
 #define _LIBG15_H_

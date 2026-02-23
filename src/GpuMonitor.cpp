@@ -18,15 +18,11 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <stdlib.h>
 #include <gtkmm.h>
-#include <errno.h>
 #include <cmath>
 #include <cairo.h>
 #include <glib/gi18n.h>
 #include <glibmm.h>
-#include <string.h>
-#include <vector>
 #include <GenericGlmCompat.hpp>
 
 #include "HistMonitor.hpp"

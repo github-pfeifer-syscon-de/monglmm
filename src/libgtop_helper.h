@@ -18,7 +18,7 @@
 #ifndef LIBGTOP_HELPER_H
 #define LIBGTOP_HELPER_H
 
-#include "config.h"
+#include "monglmm_config.h"
 #ifdef LIBGTOP
 #include <libgtop-2.0/glibtop.h>
 #else

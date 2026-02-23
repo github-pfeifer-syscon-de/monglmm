@@ -2,7 +2,6 @@
 
 A fancy system-monitor for Linux using OpenGL.
 
-
 ![Monglmm](monglmm.png "monglmm")
 
 - graphs for cpu,memory,network,disk,gpu,clock and sensors
@@ -13,14 +12,14 @@ A fancy system-monitor for Linux using OpenGL.
 - viewing of log entries (as configured with genericImg)
 - support for g15-keyboard lcd and keys
 
-Build with autotools, requires genericImg, genericGlm (see there for some basic build infos).
+Build with meson, requires genericImg, genericGlm (see there for some basic build infos).
+The gles config is taken over from genericGlm (if GL-ES was used the Gpu values will be not be available). 
 
+meson options :
 <pre>
-configure:<br>
-     allow --with-gles using GL ES 3 e.g. useful on Raspi's (requires same use on GenericGlm)
-     allow --with-libg15 using G15 lcd display see libg15
-     allow --with-lmsensors using lmsensors for display
-    (obsolet  --with-raspi build with raspi core voltage (which is not moving) info (function is (c) broadcom) beware: breaks --with-gles)
+     allow -Dlibg15=true using G15 lcd display see libg15
+     allow -Dlmsensors=false to disable lmsensors display values
+    (obsolet  -Draspi=true build with raspi core voltage (which is not moving) info (function is (c) broadcom) beware: breaks -Dgles=true)
 </pre>
 
 ## Log view
@@ -29,6 +28,7 @@ configure:<br>
     If you still feel the limit of displayed lines dosn't fit your needs
     change it in mongl.conf section LogProperties key logViewRowLimit
     if you don't mind the used resources
-- with systemd-logging there is a overhead to assign bootId'sto times,
+- with systemd-logging there is a overhead to assign bootId's to times 
    this may result in some waiting period for the first invocation
-   (depending on the used storage), but over time that should improve.
+   (depending on the used storage, this has become faster in '25),
+   but over time that should improve.

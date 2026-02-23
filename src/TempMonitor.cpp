@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <memory>
 
-#include "config.h"
+#include "monglmm_config.h"
 #include "TempMonitor.hpp"
 #ifdef LMSENSORS
 #include "LmSensor.hpp"

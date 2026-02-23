@@ -20,10 +20,11 @@
 #include <memory>
 #include <Geom2.hpp>
 #include <Matrix.hpp>
-#include <GraphShaderContext.hpp>
 #include <Font2.hpp>
 #include <Text2.hpp>
-#include <Page.hpp>
+
+#include "Page.hpp"
+#include "GraphShaderContext.hpp"
 
 class DiskInfos;    // forward declaration
 class DiskInfo;    // forward declaration

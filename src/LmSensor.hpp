@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "config.h"
+#include "monglmm_config.h"
 #include "Sensor.hpp"
 
 struct sensors_chip_name;

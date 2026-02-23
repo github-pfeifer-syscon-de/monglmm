@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "config.h"
+#include "monglmm_config.h"
 #include "Sensors.hpp"
 
 class LmSensors : public Sensors
