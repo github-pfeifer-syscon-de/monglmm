@@ -20,8 +20,8 @@
 class MonglApp : public Gtk::Application {
 public:
     MonglApp(int arc, char **argv);
-    MonglApp(const MonglApp& orig);
-    virtual ~MonglApp();
+    MonglApp(const MonglApp& orig) = default;
+    virtual ~MonglApp() = default;
     void on_shutdown();
 
     void on_activate() override;

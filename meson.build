@@ -45,9 +45,9 @@ conf.set       ('LIBGTOP', get_option('glibtop'))
 conf.set       ('LIBG15', get_option('libg15'))
 conf.set       ('RASPI', get_option('raspi'))
 conf.set       ('LMSENSORS', get_option('lmsensors'))
-configure_file(output : meson.project_name() + '_config.h'
+conf_file = configure_file(output : meson.project_name() + '_config.h'
                , configuration : conf)
-configuration_inc = include_directories('.')
+configuration_inc = include_directories(fs.parent(conf_file))
 
 libusb_deps     = declare_dependency()
 if get_option('libg15')

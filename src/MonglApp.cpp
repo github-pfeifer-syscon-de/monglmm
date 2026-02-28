@@ -32,15 +32,6 @@ MonglApp::MonglApp(int argc, char **argv)
     //std::cout << "MonglApp::MonglApp" << std::endl;
 }
 
-MonglApp::MonglApp(const MonglApp& orig)
-{
-}
-
-MonglApp::~MonglApp()
-{
-    //std::cout << "MonglApp::~MonglApp" << std::endl;
-}
-
 void
 MonglApp::on_activate()
 {
