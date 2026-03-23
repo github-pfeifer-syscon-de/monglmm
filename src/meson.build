@@ -36,6 +36,8 @@ sources = files(
    ,'ProcessProperties.cpp'
    ,'BaseNetInfo.cpp'
    ,'NetInfo.cpp'
+   , 'KernelParameter.cpp'
+   , 'KernelParamDlg.cpp'
    )
 
 if get_option('libg15')

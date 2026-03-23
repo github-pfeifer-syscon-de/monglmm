@@ -1,0 +1,572 @@
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
+/*
+ * Copyright (C) 2026 rpf
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <iostream>
+#include <fstream>
+#include <error.h>
+#include <cstdio>
+#include <stdlib.h> // popen
+#include <cstring>
+#include <psc_format.hpp>
+#include <StringUtils.hpp>
+#include <filesystem>
+#include <zlib.h>
+
+#include "KernelParameter.hpp"
+
+KernelParameter::KernelParameter(std::string_view name
+                            , std::string_view info
+                            , std::string_view test
+                            , std::string_view persist)
+: m_name{name}
+, m_info{info}
+, m_test{test}
+, m_persist{persist}
+{
+}
+
+std::string
+KernelParameter::getName()
+{
+    return m_name;
+}
+
+std::string
+KernelParameter::getInfo()
+{
+    return m_info;
+}
+
+
+std::string
+KernelParameter::queryTimed()
+{
+    return "";
+}
+
+std::string
+KernelParameter::getTest()
+{
+    return m_test;
+}
+
+std::string
+KernelParameter::getPersist()
+{
+    return m_persist;
+}
+
+bool
+KernelParameter::isTimed()
+{
+    return false;
+}
+
+std::vector<std::shared_ptr<KernelParameter>>
+KernelParameter::getAllParameters()
+{
+    std::vector<std::shared_ptr<KernelParameter>> ret;
+    ret.reserve(20);
+    ret.emplace_back(std::move(std::make_shared<KernelParamSwappiness>()));
+    ret.emplace_back(std::move(std::make_shared<VfsCachePressure>()));
+    ret.emplace_back(std::move(std::make_shared<DirtyRatio>()));
+    ret.emplace_back(std::move(std::make_shared<HugePages>()));
+    ret.emplace_back(std::move(std::make_shared<SamePageMerge>()));
+    ret.emplace_back(std::move(std::make_shared<KernelPressure>()));
+    ret.emplace_back(std::move(std::make_shared<CpuFrequencyScaling>()));
+    ret.emplace_back(std::move(std::make_shared<CpuSecurityMitigations>()));
+    ret.emplace_back(std::move(std::make_shared<TicklessKernelOperation>()));
+    ret.emplace_back(std::move(std::make_shared<ReadCopyUpdate>()));
+    ret.emplace_back(std::move(std::make_shared<MaxMapCount>()));
+    ret.emplace_back(std::move(std::make_shared<IoScheduler>()));
+    ret.emplace_back(std::move(std::make_shared<ZSwap>()));
+    ret.emplace_back(std::move(std::make_shared<VmStats>()));
+    ret.emplace_back(std::move(std::make_shared<ReadAhead>()));
+
+    return ret;
+}
+
+std::string
+KernelParameter::cat(const std::string& name)
+{
+    std::string info;
+    std::ifstream stat;
+    // for now avoid throwing exceptions as fail/eof look the same
+    //std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
+    //stat.exceptions(exceptionMask);
+    try {
+        stat.open(name);
+        while (stat.good()) {
+            std::string line;
+            std::getline(stat, line);
+            if (line != "") {
+                info += line + "\n";
+            }
+        }
+    }
+    catch (const std::ios_base::failure& e) {
+        std::cout << "Could not open/read " << name << " "  << errno
+             << " " << strerror(errno)
+             << " ecode " << e.code();
+        //Log.addLog(Level.INFO, oss1);
+        // e.code() == std::io_errc::stream doesn't help either
+    }
+    if (stat.is_open()) {
+        stat.close();
+    }
+    return info;
+}
+
+std::string
+KernelParameter::zcat(const std::string& name, const std::string& parameter)
+{
+    std::string info;
+    std::ifstream stat;
+    // for now avoid throwing exceptions as fail/eof look the same
+    //std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
+    //stat.exceptions(exceptionMask);
+    try {
+        stat.open(name);
+        std::array<unsigned char,ZLIB_CHUNK_SIZE> in;
+        std::array<unsigned char,ZLIB_CHUNK_SIZE> out;
+        z_stream strm{};
+        int zlib_status = inflateInit2(&strm, ZLIB_GZIP_AUTO_DETECT);     // 0 is use window size of stream ...  ZLIB_WINDOW_BITS | ENABLE_ZLIB_GZIP
+        if (stat.good() && zlib_status == Z_OK) {
+            std::string lastLines;
+            while (stat.good() && info.empty()) {
+                auto bytes_read = stat.readsome(reinterpret_cast<char *>(in.data()), in.size());
+                if (bytes_read > 0) {
+                    int flush = stat.eof() ? Z_FINISH : Z_NO_FLUSH;
+                    strm.avail_in = bytes_read;
+                    strm.next_in = in.data();
+                    do {
+                        strm.avail_out = out.size();
+                        strm.next_out = out.data();
+                        zlib_status = inflate(&strm, flush);
+                        switch (zlib_status) {
+                            case Z_OK:
+                            case Z_STREAM_END:
+                            case Z_BUF_ERROR:
+                                break;
+                            default:
+                                fprintf (stderr, "Gzip error %d in '%s'.\n",
+                                     zlib_status, name.c_str());
+                                break;
+                        }
+                        if (zlib_status != Z_OK) {
+                            break;
+                        }
+                        unsigned have = out.size() - strm.avail_out;
+                        std::string lines(reinterpret_cast<const char*>(out.data()), have);
+                        std::string check = lastLines + lines;    // concat last to avoid missing line when hitting border
+                        auto pos = check.find(parameter);
+                        if (pos != check.npos) {
+                            auto nl = check.find("\n", pos);
+                            if (nl != check.npos) {
+                                info = check.substr(pos, nl - pos + 1);
+                                break;
+                            }
+                        }
+                        lastLines = lines;
+                    } while (info.empty() && strm.avail_out == 0);
+                }
+            }
+            inflateEnd(&strm);
+        }
+    }
+    catch (const std::ios_base::failure& e) {
+        std::cout << "Could not open/read " << name << " "  << errno
+             << " " << strerror(errno)
+             << " ecode " << e.code();
+        //Log.addLog(Level.INFO, oss1);
+        // e.code() == std::io_errc::stream doesn't help either
+    }
+    if (stat.is_open()) {
+        stat.close();
+    }
+    return info;
+}
+
+
+KernelParamSwappiness::KernelParamSwappiness()
+: KernelParameter("Swappiness"
+    , "Indicates the willingness for swapping process memory.\nHigher values for servers"
+    , "sudo sysctl vm.swappiness=10"
+    , "add/edit file in /etc/sysctl.d/ add vm.swappiness=10")
+{
+}
+
+std::string
+KernelParamSwappiness::query()
+{
+    return psc::fmt::format("vm.swappiness={}",
+        cat(PROC_SWAPPINESS));
+}
+
+VfsCachePressure::VfsCachePressure()
+: KernelParameter("Vfs cache pressure"
+    , "Lower values prioritizes filesystem metadata in memory.\nHigher values for servers"
+    , "sudo sysctl vm.vfs_cache_pressure=50"
+    , "add/edit file in /etc/sysctl.d/ add vm.vfs_cache_pressure=50")
+{
+}
+
+std::string
+VfsCachePressure::query()
+{
+    return psc::fmt::format("vm.vfs_cache_pressure={}",
+        cat(PROC_VFS_CACHE));
+}
+
+
+DirtyRatio::DirtyRatio()
+: KernelParameter("Dirty ratio"
+    , "Percentage of memory used for updated file data before flushed to disk\n(lower values lower risk of lost data in case of crash).\n"
+      "dirty_background_ratio: percentage of memory is filled before write data in background."
+    , "sudo sysctl vm.dirty_ratio=10  or... vm.dirty_background_ratio=5"
+    ,"add/edit file in /etc/sysctl.d/ with need values")
+{
+}
+
+std::string
+DirtyRatio::query()
+{
+    return psc::fmt::format("vm.dirty_ratio={}vm.dirty_background_ratio={}",
+         cat(DIRTY_RATIO)
+        , cat(DIRTY_BACKGROUND_RATIO));
+}
+
+HugePages::HugePages()
+: KernelParameter("Transparent huge pages"
+    , "Kernel may map pages larger than the default (4k) transparently (enhances effort to defragment memory if always).\nThe value \"madvise\" is optimal for desktops allows applications to choose.\nActive value in []."
+    , "echo madvice > sudo tee /sys/kernel/mm/transparent_hugepage/defrag"
+    , "edit /etc/default/grub add \"transparent_hugepage=madvise\" for GRUB_CMDLINE_LINUX_DEFAULT")
+{
+}
+
+std::string
+HugePages::query()
+{
+    return psc::fmt::format("enabled: {}defrag: {}",
+          cat(HUGE_PAGES)
+        , cat(HUGE_PAGES_DEFRAG));
+}
+
+SamePageMerge::SamePageMerge()
+: KernelParameter("Kernel samepage merging"
+    , "Kernel may merge pages shared between virtual machines for example (cost is page scanning).\nActive if 1."
+    , "echo 0 > sudo tee /sys/kernel/mm/ksm/run")
+{
+}
+
+std::string
+SamePageMerge::query()
+{
+    return psc::fmt::format("/sys/kernel/mm/ksm/run: {}",
+          cat(SAME_PAGE_MERGE));
+}
+
+KernelPressure::KernelPressure()
+: KernelParameter("Kernel pressure"
+    , "Kernel information about pressure situations")
+{
+}
+
+std::string
+KernelPressure::query()
+{
+    return psc::fmt::format("cpu:\n{}memory:\n{}io:\n{}",
+            cat(PRESSURE_CPU)
+          , cat(PRESSURE_MEMORY)
+          , cat(PRESSURE_IO));
+}
+
+SchedulerAutoGroup::SchedulerAutoGroup()
+: KernelParameter("Scheduler auto group"
+    , "Group process scheduling by terminal sessions. If disabled processes are scheduled individually."
+    , "sudo sysctl kernel.sched_autogroup_enabled=1"
+    , "add/edit file in /etc/sysctl.d/ with need values")
+{
+}
+
+std::string
+SchedulerAutoGroup::query()
+{
+    return psc::fmt::format("kernel.sched_autogroup_enabled={}",
+            cat(SCHEDULER_AUTO_GROUP));
+}
+
+CpuFrequencyScaling::CpuFrequencyScaling()
+: KernelParameter("Cpu frequency scaling"
+    , std::format("Allows {} the schedutil is a efficent choice.", cat("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors"))
+    , "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do\necho schedutil > sudo tee $cpu")
+{
+}
+
+std::string
+CpuFrequencyScaling::query()
+{
+    std::string info;
+    info.reserve(256);
+     for (const auto& entry : std::filesystem::directory_iterator(CPU_FREQUENCY_DIR)) {
+        auto name = entry.path().filename().string();
+        if (name.starts_with(CPU_FREQUENCY_BASE) && name.length() <= 5) {   // only looking for cpu0...99
+            auto info_path = entry.path();
+            info_path += CPU_FREQUENCY_ADD;
+            info += psc::fmt::format("{}={}", info_path.string(), cat(info_path.string()));
+        }
+    }
+    return info;
+}
+
+CpuSecurityMitigations::CpuSecurityMitigations()
+: KernelParameter("Cpu security mitigations"
+    , "List the security mitigations in place"
+    ,""
+    , "see https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html parameter mitigations=")
+{
+}
+
+std::string
+CpuSecurityMitigations::query()
+{
+    std::string info;
+    info.reserve(1024);
+    for (const auto& entry : std::filesystem::directory_iterator(CPU_SECURUTY_VULNERABILITES)) {
+        auto name = entry.path().filename();
+       info += psc::fmt::format("{}: {}", name.string(), cat(entry.path().string()));
+    }
+    return info;
+}
+
+TicklessKernelOperation::TicklessKernelOperation()
+: KernelParameter("Tickless kernel operation"
+    , "Switch between fixed timing intervals or dynamic scheduling"
+    ,""
+    , "see https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html parameter nohz=")
+{
+}
+
+std::string
+TicklessKernelOperation::query()
+{
+    return zcat(KERNEL_PARAMETERS, TICKLESS_PARAMETER);
+}
+
+ReadCopyUpdate::ReadCopyUpdate()
+: KernelParameter("Read copy update"
+    , "Seconds kernel waits to report serious error for reads or updates (usable for kernel debugging, extensive workloads)"
+    ,""
+    , psc::fmt::format("see https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html parameter {}=", RCU_PARAM))
+{
+}
+
+std::string
+ReadCopyUpdate::query()
+{
+    return psc::fmt::format("{}={}", RCU_PARAM, cat(READ_COPY_UPDATE));
+}
+
+MaxMapCount::MaxMapCount()
+: KernelParameter("Max map count"
+    , "Maximum number of memory mapped regions a process can use."
+    , psc::fmt::format("sudo sysctl {}={}", MMC_PARAM, MMC_SUGGEST)
+    , "add/edit file in /etc/sysctl.d/ with need values")
+{
+}
+
+std::string
+MaxMapCount::query()
+{
+    return psc::fmt::format("{}={}", MMC_PARAM, cat(MAX_MAP_COUNT));
+}
+
+IoScheduler::IoScheduler()
+: KernelParameter("IO Scheduler"
+    , std::format("Allows selecting IO-Scheduler\n   mq-deadline: general purpose\n   kyber: for fast storage\n   bfq: prefer interactive tasks\n   none: hand requests to hardware\n   used value in []")
+    , psc::fmt::format("echo bfq | sudo tee {}DEVICE{}", IO_SCHEDULE_DIR, IO_SCHEDULE_ADD)
+    , "add/edit file in /etc/udev/rules.d/60-ioschedulers.rules add ACTION==\"add|change\",KERNEL==\"sd[a-z]\",ATTR{queue/scheduler}=\"bfq\" for nvme's use mvme[0-9]n[0-9] instead of sd[a-z]")
+{
+}
+
+std::string
+IoScheduler::query()
+{
+    std::string info;
+    info.reserve(256);
+    for (const auto& entry : std::filesystem::directory_iterator(IO_SCHEDULE_DIR)) {
+        auto name = entry.path().filename().string();
+        auto info_path = entry.path();
+        info_path += IO_SCHEDULE_ADD;
+        info += psc::fmt::format("{}={}", entry.path().filename().string(), cat(info_path.string()));
+    }
+    return info;
+
+}
+
+ZSwap::ZSwap()
+: KernelParameter("Compress swapped-data"
+    , std::format("Compress swapped memory on out-/input")
+    , std::format("sudo echo 1 > {}", ZSWAP_PARAM)
+    , "edit /etc/default/grub add \"zswap.enabled=1\" or \"zswap.compressor=lz4\" for GRUB_CMDLINE_LINUX_DEFAULT")
+{
+}
+
+std::string
+ZSwap::query()
+{
+    return psc::fmt::format("{}={}{}={}", ZSWAP_PARAM, cat(ZSWAP_PARAM), ZSWAP_COMPRESSOR, cat(ZSWAP_COMPRESSOR));
+}
+
+VmStats::VmStats()
+: KernelParameter("VmStats"
+    , "Swap/Paging statistics\n"
+        "See vmstat for more values\n"
+        "Units are 4k pages, io is difference to last")
+{
+}
+
+std::string
+VmStats::queryTimed()
+{
+    std::string info;
+    std::ifstream stat;
+    // for now avoid throwing exceptions as fail/eof look the same
+    //std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
+    //stat.exceptions(exceptionMask);
+    try {
+        stat.open(VMSTATS);
+        uint64_t spwapin{}; // swapping
+        uint64_t spwapout{};
+        uint64_t pgpgin{};  // blocks passed to IO
+        uint64_t pgpgout{};
+        while (stat.good()) {
+            std::string line;
+            std::getline(stat, line);
+            // "pgpgin"/"pgpgout"
+            auto pos = line.find(' ');
+            uint64_t val{};
+            if (pos != line.npos) {
+                val = std::stoul(line.substr(pos));
+            }
+            if (line.starts_with("pswpin")) {
+                spwapin = val;
+            }
+            if (line.starts_with("pswpout")) {
+                spwapout = val;
+            }
+            if (line.starts_with("pgpgin")) {
+                pgpgin = val;
+            }
+            if (line.starts_with("pgpgout")) {
+                pgpgout = val;
+            }
+        }
+        info = psc::fmt::format("{:>12} {:>12} {:>12} {:>12}\n"
+                    , spwapin, spwapout, pgpgin - m_last_pgin, pgpgout - m_last_pgout);
+        m_last_pgin = pgpgin;
+        m_last_pgout = pgpgout;
+    }
+    catch (const std::ios_base::failure& e) {
+        std::cout << "Could not open/read " << VMSTATS << " " << errno
+             << " " << strerror(errno)
+             << " ecode " << e.code();
+        //Log.addLog(Level.INFO, oss1);
+        // e.code() == std::io_errc::stream doesn't help either
+    }
+    if (stat.is_open()) {
+        stat.close();
+    }
+
+    return info;
+}
+
+
+std::string
+VmStats::query()
+{
+    std::string info = psc::fmt::format("{:>12} {:>12} {:>12} {:>12}\n"
+        , "swap: in", "out", "io: in", "out");
+    info += queryTimed();
+    return info;
+}
+
+bool
+VmStats::isTimed()
+{
+    return true;
+}
+
+
+ReadAhead::ReadAhead()
+: KernelParameter("Read ahead"
+    , "Sectors that are read ahead sector size + count"
+    , "Use \"sudo blockdev --setra VALUE DEVICE\" to change"
+    , "add/edit file in /etc/udev/rules.d/60-readahead.rules add ACTION==\"add|change\",KERNEL==\"sd[a-z]\",ATTR{queue/read_ahead_kb}=\"8192\" for nvme's use mvme[0-9]n[0-9] instead of sd[a-z]")
+{
+}
+
+std::string
+ReadAhead::getBlockdev(const std::string& dev)
+{   // this requires read permissions for device -> root
+    std::string info;
+    info.reserve(64);
+    auto cmd = std::string("/bin/") + BLOCKDEV_CMD + dev;
+    std::FILE* fp = popen(cmd.c_str(), "r");     /* Open the command for reading. */
+    if (fp != nullptr) {
+        std::array<char, 64> buffer{};      /* Read the output a line at a time  */
+        auto ptr = std::fgets(buffer.data(), buffer.size(), fp);
+        if (ptr != nullptr) {
+            std::string line{buffer.data(), std::strlen(buffer.data())};
+            info += line + "\n";
+        }
+        int res = pclose(fp);
+        if (WIFEXITED(res) && WEXITSTATUS(res) != 0) {
+            std::cout << "Process exit " << WEXITSTATUS(res) << " dev " << dev << std::endl;
+        }
+        else if (WIFSIGNALED(res)) {
+            std::cout << "Process signal " << WTERMSIG(res) << " dev " << dev << std::endl;
+        }
+    }
+    else {
+        std::cout << "Failed to run command " << BLOCKDEV_CMD
+                  << " dev " << dev << " errno" << errno
+                  << " " << strerror(errno) << std::endl;
+    }
+    return info;
+}
+
+std::string
+ReadAhead::query()
+{
+    std::string info;
+    for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
+        auto name = entry.path().filename().string();
+        auto stat_path = entry.path();
+        stat_path += "/stat";
+        auto stats = cat(stat_path.string());
+        StringUtils::trim(stats);
+        auto stat_vals = StringUtils::splitConsec(stats, ' ');
+        if (stat_vals.size() > 2 && stat_vals[0] != "0") {  // don't include unused devs e.g. cd-rom
+            auto dev = std::string("/dev/") + name;
+            // auto readAhead = getBlockdev(dev);
+            info += std::string("Use \"sudo blockdev --getss --getra ") + dev + "\"\n";
+        }
+    }
+    return info;
+}

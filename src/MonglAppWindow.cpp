@@ -26,6 +26,7 @@
 #include "MonglAppWindow.hpp"
 #include "MonglApp.hpp"
 #include "LogProperties.hpp"
+#include "KernelParamDlg.hpp"
 
 MonglAppWindow::MonglAppWindow(Gtk::Application* application)
 : Gtk::ApplicationWindow()
@@ -36,6 +37,11 @@ MonglAppWindow::MonglAppWindow(Gtk::Application* application)
             application->get_resource_base_path() + "/monglmm.png");
     set_icon(pix);
     m_monglView = new MonglView(application);
+    // Add actions and keyboard accelerators for the application menu.
+    add_action("preferences", sigc::mem_fun(*this, &MonglAppWindow::on_action_preferences));
+    add_action("viewLog", sigc::mem_fun(*this, &MonglAppWindow::on_action_viewLog));
+    add_action("kernelParam", sigc::mem_fun(*this, &MonglAppWindow::on_action_viewKernelParam));
+    add_action("about", sigc::mem_fun(*this, &MonglAppWindow::on_action_about));
     auto naviGlArea = Gtk::manage(new NaviGlArea(m_monglView));
 	#ifdef USE_GLES
     //naviGlArea->set_required_version (3, 0);
@@ -91,7 +97,8 @@ MonglAppWindow::on_action_about()
     }
 }
 
-void MonglAppWindow::on_action_viewLog()
+void
+MonglAppWindow::on_action_viewLog()
 {
     auto logProp = LogProperties::show(m_monglView->getConfig(), m_monglView->getUpdateInterval());
     if (logProp) {
@@ -100,5 +107,17 @@ void MonglAppWindow::on_action_viewLog()
         logProp->hide();
         delete logProp;
         m_monglView->save_config();
+    }
+}
+
+void
+MonglAppWindow::on_action_viewKernelParam()
+{
+    auto kernParam = KernelParamDlg::show(m_monglView->getConfig(), m_monglView->getUpdateInterval());
+    if (kernParam) {
+        kernParam->set_transient_for(*this);
+        kernParam->run();
+        kernParam->hide();
+        delete kernParam;
     }
 }

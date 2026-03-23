@@ -21,6 +21,7 @@ add_project_arguments('-DPACKAGE_SRC_DIR="' + pkgsrcdir + '"', language: ['cpp',
 
 disable_flags = [
     '-Wno-unused-parameter' # limit the compiler noisiness
+   ,'-Wno-overlength-strings'
 ]
 cc = meson.get_compiler('c')
 foreach cflag : disable_flags
@@ -70,6 +71,7 @@ if get_option('raspi')
 endif
 
 thread_deps     = dependency('threads')
+zlib_deps       = dependency('zlib')
 genericimg_deps = dependency('genericimg', version :'>= 0.4.0')
 deps = [
       genericimg_deps
@@ -79,6 +81,7 @@ deps = [
     , thread_deps
     , raspi_deps
     , libgtop_deps
+    , zlib_deps
     ]
 subdir('src')
 subdir('test')

@@ -5,15 +5,19 @@
     <section>
       <item>
         <attribute name="label" translatable="yes">_Preferences</attribute>
-        <attribute name="action">app.preferences</attribute>
+        <attribute name="action">win.preferences</attribute>
       </item>
       <item>
         <attribute name="label" translatable="yes">_View logs</attribute>
-        <attribute name="action">app.viewLog</attribute>
+        <attribute name="action">win.viewLog</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Kernel parameters</attribute>
+        <attribute name="action">win.kernelParam</attribute>
       </item>
       <item>
         <attribute name="label" translatable="yes">_About</attribute>
-        <attribute name="action">app.about</attribute>
+        <attribute name="action">win.about</attribute>
       </item>
       <item>
         <attribute name="label" translatable="yes">_Quit</attribute>

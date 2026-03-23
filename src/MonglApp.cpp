@@ -77,10 +77,6 @@ MonglApp::on_startup()
     m_monglAppWindow = new MonglAppWindow(this);
     signal_shutdown().connect(sigc::mem_fun(*this, &MonglApp::on_shutdown));
 
-    // Add actions and keyboard accelerators for the application menu.
-    add_action("preferences", sigc::mem_fun(*m_monglAppWindow, &MonglAppWindow::on_action_preferences));
-    add_action("viewLog", sigc::mem_fun(*m_monglAppWindow, &MonglAppWindow::on_action_viewLog));
-    add_action("about", sigc::mem_fun(*m_monglAppWindow, &MonglAppWindow::on_action_about));
     add_action("quit", sigc::mem_fun(*this, &MonglApp::on_action_quit));
     set_accel_for_action("app.quit", "<Ctrl>Q");
 
