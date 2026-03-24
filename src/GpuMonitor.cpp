@@ -30,11 +30,6 @@
 #include "GpuMonitor.hpp"
 #include "GpuCounter.hpp"
 
-#ifndef USE_GLES
-#define USE_GLQUERY
-// the use of amdCounters with gles may differ
-#define USE_AMDCOUNT
-#endif
 
 #ifdef USE_GLQUERY
 #include "GpuGLquery.hpp"

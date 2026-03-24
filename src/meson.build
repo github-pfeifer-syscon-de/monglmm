@@ -59,9 +59,12 @@ if not use_gles
 	'GpuGLquery.cpp'
     ,'GpuExtAmdCounter.cpp'
     )
-    message('GpuGLquery included')
+    # the availibilty of amdCounters with gles may differ
+    add_project_arguments('-DUSE_GLQUERY', language: ['cpp','c'])
+    add_project_arguments('-DUSE_AMDCOUNT', language: ['cpp','c'])
+    message('GpuGLquery/GpuAmdCounter included')
 else
-    message('GpuGLquery not included')
+    message('GpuGLquery/GpuAmdCounter not included')
 endif
 
 if get_option('raspi')
