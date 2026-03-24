@@ -28,7 +28,7 @@ class GpuMonitor : public HistMonitor
 {
 public:
     GpuMonitor(guint points, Gtk::GLArea *glArea);
-    virtual ~GpuMonitor();
+    virtual ~GpuMonitor() = default;
 
     virtual void close() override;
     gboolean update(int refreshRate, glibtop * glibtop) override;

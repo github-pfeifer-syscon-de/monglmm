@@ -30,10 +30,19 @@
 #include "GpuMonitor.hpp"
 #include "GpuCounter.hpp"
 
-#include "GpuExtAmdCounter.hpp"
 #ifndef USE_GLES
+#define USE_GLQUERY
+// the use of amdCounters with gles may differ
+#define USE_AMDCOUNT
+#endif
+
+#ifdef USE_GLQUERY
 #include "GpuGLquery.hpp"
 #endif
+#ifdef USE_AMDCOUNT
+#include "GpuExtAmdCounter.hpp"
+#endif
+
 #undef DEBUG
 //#define DEBUG 1
 
@@ -48,17 +57,15 @@ GpuMonitor::GpuMonitor(guint points, Gtk::GLArea *glArea)
 }
 
 
-GpuMonitor::~GpuMonitor()
-{
-}
-
 void GpuMonitor::close()
 {
 	// require early destruction as gl-context is required + avoid message "end query..."
 	m_counterPrim.reset();
 	m_counterSec.reset();
+    #ifndef USE_AMDCOUNT
     GpuExtAmdCounters::reset();
-    #ifndef USE_GLES
+    #endif
+    #ifdef USE_GLQUERY
     GpuGLqueries::reset();
     #endif
 	Monitor::close();
@@ -159,9 +166,10 @@ gboolean
 GpuMonitor::update(int refreshRate, glibtop * glibtop)
 {
 	if (m_counterPrim || m_counterSec) {
+#ifdef USE_AMDCOUNT
 		auto amdCounters = GpuExtAmdCounters::create();
 		amdCounters->read();
-
+#endif
 		gint64 actual_time = g_get_monotonic_time();    // the promise is this does not get screwed up by time adjustments
 		guint64 dt = refreshRate * 1e6l;
 		if (previous_time != 0) {
@@ -240,12 +248,14 @@ std::list<std::string>
 GpuMonitor::list()
 {
     std::list<std::string> names;
+#ifdef USE_AMDCOUNT
     auto amdCounters = GpuExtAmdCounters::create();
     auto amdNames = amdCounters->list();
     for (auto amdName : amdNames) {
         names.push_back(amdName);
     }
-#ifndef USE_GLES
+#endif
+#ifdef USE_GLQUERY
     auto queryCounters = GpuGLqueries::create();
     auto queryNames = queryCounters->list();
     for (auto queryName : queryNames) {
@@ -261,12 +271,14 @@ GpuMonitor::find_by_name(const std::string& name)
 	// we require the correct gl_context for setup counters/query
 	m_glArea->make_current();
     if (name != "") {
+    #ifdef USE_AMDCOUNT
         auto amdCounters = GpuExtAmdCounters::create();
         auto amdCounter = amdCounters->get(name);
         if (amdCounter) {
             return amdCounter;
         }
-    #ifndef USE_GLES
+    #endif
+    #ifdef USE_GLQUERY
         auto queryCounters = GpuGLqueries::create();
         auto queryCounter = queryCounters->get(name);
         if (queryCounter) {

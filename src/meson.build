@@ -28,7 +28,6 @@ sources = files(
    ,'NameValue.cpp'
    ,'FileByLine.cpp'
    ,'GpuCounter.cpp'
-   ,'GpuExtAmdCounter.cpp'
    ,'NetConnection.cpp'
    ,'NetNode.cpp'
    ,'NetworkProperties.cpp'
@@ -58,6 +57,7 @@ endif
 if not use_gles
     sources += files(
 	'GpuGLquery.cpp'
+    ,'GpuExtAmdCounter.cpp'
     )
     message('GpuGLquery included')
 else
