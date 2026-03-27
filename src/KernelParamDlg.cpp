@@ -51,7 +51,11 @@ KernelParamDlg::refresh()
         auto value = row.get_value(comboColumns.m_id);
         auto info = value->getName();
         info += "\n" + value->getInfo();
-        info += "\n" + value->query();
+        auto query = value->query();
+        if (query.empty()) {    // if permission disallowed the query show alternative
+            query = value->getManualCommand();
+        }
+        info += "\n" + query;
         auto test = value->getTest();
         if (!test.empty()) {
             info += "\nTo test use:\n";

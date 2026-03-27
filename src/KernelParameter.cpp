@@ -218,6 +218,13 @@ KernelParamSwappiness::query()
         cat(PROC_SWAPPINESS));
 }
 
+std::string
+KernelParamSwappiness::getManualCommand()
+{
+    return sudo_cat + PROC_SWAPPINESS;
+}
+
+
 VfsCachePressure::VfsCachePressure()
 : KernelParameter("Vfs cache pressure"
     , "Lower values prioritizes filesystem metadata in memory.\nHigher values for servers"
@@ -233,6 +240,11 @@ VfsCachePressure::query()
         cat(PROC_VFS_CACHE));
 }
 
+std::string
+VfsCachePressure::getManualCommand()
+{
+    return sudo_cat + PROC_VFS_CACHE;
+}
 
 DirtyRatio::DirtyRatio()
 : KernelParameter("Dirty ratio"
@@ -251,6 +263,13 @@ DirtyRatio::query()
         , cat(DIRTY_BACKGROUND_RATIO));
 }
 
+std::string
+DirtyRatio::getManualCommand()
+{
+    return sudo_cat + DIRTY_RATIO + "\n"
+         + sudo_cat + DIRTY_BACKGROUND_RATIO;
+}
+
 HugePages::HugePages()
 : KernelParameter("Transparent huge pages"
     , "Kernel may map pages larger than the default (4k) transparently (enhances effort to defragment memory if always).\nThe value \"madvise\" is optimal for desktops allows applications to choose.\nActive value in []."
@@ -267,6 +286,14 @@ HugePages::query()
         , cat(HUGE_PAGES_DEFRAG));
 }
 
+std::string
+HugePages::getManualCommand()
+{
+    return sudo_cat + HUGE_PAGES + "\n"
+         + sudo_cat + HUGE_PAGES_DEFRAG;
+
+}
+
 SamePageMerge::SamePageMerge()
 : KernelParameter("Kernel samepage merging"
     , "Kernel may merge pages shared between virtual machines for example (cost is page scanning).\nActive if 1."
@@ -279,6 +306,12 @@ SamePageMerge::query()
 {
     return psc::fmt::format("/sys/kernel/mm/ksm/run: {}",
           cat(SAME_PAGE_MERGE));
+}
+
+std::string
+SamePageMerge::getManualCommand()
+{
+    return sudo_cat + SAME_PAGE_MERGE;
 }
 
 KernelPressure::KernelPressure()
@@ -296,6 +329,14 @@ KernelPressure::query()
           , cat(PRESSURE_IO));
 }
 
+std::string
+KernelPressure::getManualCommand()
+{
+    return sudo_cat + PRESSURE_CPU + "\n"
+        + sudo_cat + PRESSURE_MEMORY + "\n"
+        + sudo_cat + PRESSURE_IO;
+}
+
 SchedulerAutoGroup::SchedulerAutoGroup()
 : KernelParameter("Scheduler auto group"
     , "Group process scheduling by terminal sessions. If disabled processes are scheduled individually."
@@ -310,6 +351,13 @@ SchedulerAutoGroup::query()
     return psc::fmt::format("kernel.sched_autogroup_enabled={}",
             cat(SCHEDULER_AUTO_GROUP));
 }
+
+std::string
+SchedulerAutoGroup::getManualCommand()
+{
+    return sudo_cat + SCHEDULER_AUTO_GROUP;
+}
+
 
 CpuFrequencyScaling::CpuFrequencyScaling()
 : KernelParameter("Cpu frequency scaling"
@@ -334,6 +382,12 @@ CpuFrequencyScaling::query()
     return info;
 }
 
+std::string
+CpuFrequencyScaling::getManualCommand()
+{
+    return sudo_cat + CPU_FREQUENCY_DIR + CPU_FREQUENCY_BASE + "0" + CPU_FREQUENCY_ADD;
+}
+
 CpuSecurityMitigations::CpuSecurityMitigations()
 : KernelParameter("Cpu security mitigations"
     , "List the security mitigations in place"
@@ -354,6 +408,12 @@ CpuSecurityMitigations::query()
     return info;
 }
 
+std::string
+CpuSecurityMitigations::getManualCommand()
+{
+    return std::string("See content of ") + CPU_SECURUTY_VULNERABILITES;
+}
+
 TicklessKernelOperation::TicklessKernelOperation()
 : KernelParameter("Tickless kernel operation"
     , "Switch between fixed timing intervals or dynamic scheduling"
@@ -366,6 +426,12 @@ std::string
 TicklessKernelOperation::query()
 {
     return zcat(KERNEL_PARAMETERS, TICKLESS_PARAMETER);
+}
+
+std::string
+TicklessKernelOperation::getManualCommand()
+{
+    return std::string("sudo zcat ") +KERNEL_PARAMETERS + " grep -F " + TICKLESS_PARAMETER;
 }
 
 ReadCopyUpdate::ReadCopyUpdate()
@@ -382,6 +448,12 @@ ReadCopyUpdate::query()
     return psc::fmt::format("{}={}", RCU_PARAM, cat(READ_COPY_UPDATE));
 }
 
+std::string
+ReadCopyUpdate::getManualCommand()
+{
+    return sudo_cat  + READ_COPY_UPDATE;
+}
+
 MaxMapCount::MaxMapCount()
 : KernelParameter("Max map count"
     , "Maximum number of memory mapped regions a process can use."
@@ -394,6 +466,12 @@ std::string
 MaxMapCount::query()
 {
     return psc::fmt::format("{}={}", MMC_PARAM, cat(MAX_MAP_COUNT));
+}
+
+std::string
+MaxMapCount::getManualCommand()
+{
+    return sudo_cat  + MAX_MAP_COUNT;
 }
 
 IoScheduler::IoScheduler()
@@ -413,11 +491,25 @@ IoScheduler::query()
         auto name = entry.path().filename().string();
         auto info_path = entry.path();
         info_path += IO_SCHEDULE_ADD;
-        info += psc::fmt::format("{}={}", entry.path().filename().string(), cat(info_path.string()));
+        info += psc::fmt::format("{}={}", name, cat(info_path.string()));
     }
     return info;
-
 }
+
+std::string
+IoScheduler::getManualCommand()
+{
+    std::string info;
+    info.reserve(256);
+    for (const auto& entry : std::filesystem::directory_iterator(IO_SCHEDULE_DIR)) {
+        auto name = entry.path().filename().string();
+        auto info_path = entry.path();
+        info_path += IO_SCHEDULE_ADD;
+        info += sudo_cat  + info_path.string() + "\n";
+    }
+    return info;
+}
+
 
 ZSwap::ZSwap()
 : KernelParameter("Compress swapped-data"
@@ -431,6 +523,13 @@ std::string
 ZSwap::query()
 {
     return psc::fmt::format("{}={}{}={}", ZSWAP_PARAM, cat(ZSWAP_PARAM), ZSWAP_COMPRESSOR, cat(ZSWAP_COMPRESSOR));
+}
+
+std::string
+ZSwap::getManualCommand()
+{
+    return sudo_cat + ZSWAP_PARAM + "\n"
+         + sudo_cat +ZSWAP_COMPRESSOR;
 }
 
 VmStats::VmStats()
@@ -496,7 +595,6 @@ VmStats::queryTimed()
     return info;
 }
 
-
 std::string
 VmStats::query()
 {
@@ -512,6 +610,11 @@ VmStats::isTimed()
     return true;
 }
 
+std::string
+VmStats::getManualCommand()
+{
+    return sudo_cat + VMSTATS + " | grep -F pswp";
+}
 
 ReadAhead::ReadAhead()
 : KernelParameter("Read ahead"
@@ -555,6 +658,7 @@ std::string
 ReadAhead::query()
 {
     std::string info;
+    info.reserve(128);
     for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
         auto name = entry.path().filename().string();
         auto stat_path = entry.path();
@@ -567,6 +671,19 @@ ReadAhead::query()
             // auto readAhead = getBlockdev(dev);
             info += std::string("Use \"sudo blockdev --getss --getra ") + dev + "\"\n";
         }
+    }
+    return info;
+}
+
+std::string
+ReadAhead::getManualCommand()
+{
+    std::string info;
+    info.reserve(128);
+    for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
+        auto name = entry.path().filename().string();
+        auto dev = std::string("/dev/") + name;
+        return std::string("sudo blockdev --getss --getra ") + dev;
     }
     return info;
 }
