@@ -52,8 +52,9 @@ KernelParamDlg::refresh()
         auto info = value->getName();
         info += "\n" + value->getInfo();
         auto query = value->query();
-        if (value->isError()) {
-            query = value->getErrorMessage();   // give a hint what might be wrong
+        auto error = value->getError();
+        if (error.has_value()) {
+            query = error.value();   // give a hint what might be wrong
             query += "\n" + value->getManualCommand();  // add alternative if e.g. permissions disallowed this
         }
         info += "\n" + query;

@@ -21,10 +21,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <optional>
 
 
-class KernelParameter
-{
+class KernelParameter {
 public:
     KernelParameter(std::string_view name
                     , std::string_view info
@@ -39,8 +39,8 @@ public:
     virtual std::string getTest();
     virtual std::string getPersist();
     virtual bool isTimed();
-    bool isError();
-    std::string getErrorMessage();
+    void resetError();
+    std::optional<std::string> getError();
     static std::vector<std::shared_ptr<KernelParameter>> getAllParameters();
 protected:
     std::string cat(const std::string& name);
@@ -50,8 +50,7 @@ protected:
     static constexpr auto ZLIB_CHUNK_BITS{ 10u };   // from zlib perspective this is inefficient, but since we are copying data limit the used amount
     static constexpr auto ZLIB_CHUNK_SIZE{ 1u << ZLIB_CHUNK_BITS };
     const std::string sudo_cat = "sudo cat ";
-    bool m_error{};
-    std::string m_errorMessage;
+    std::optional<std::string> m_error;
 private:
     std::string m_name;
     std::string m_info;

@@ -9,7 +9,16 @@ process_test = executable('process_test'
     , '../src/NameValue.cpp'
     , dependencies: deps
     , include_directories : test_headers)
+
 test('process_test', process_test)
+
+param_test = executable('param_test'
+    , 'param_test.cpp'
+    , '../src/KernelParameter.cpp'
+    , dependencies: deps
+    , include_directories : test_headers)
+
+test('param_test', param_test)
 
 # used to create logo
 svg_test = executable('svg_test'

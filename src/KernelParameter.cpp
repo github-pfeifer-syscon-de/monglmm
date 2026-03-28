@@ -20,7 +20,7 @@
 #include <fstream>
 #include <error.h>
 #include <cstdio>
-#include <stdlib.h> // popen
+#include <cstdlib> // popen
 #include <cstring>
 #include <psc_format.hpp>
 #include <StringUtils.hpp>
@@ -77,16 +77,15 @@ KernelParameter::isTimed()
     return false;
 }
 
-bool
-KernelParameter::isError()
+void KernelParameter::resetError()
 {
-    return m_error;
+    m_error.reset();    // or = std::nullopt
 }
 
-std::string
-KernelParameter::getErrorMessage()
+std::optional<std::string>
+KernelParameter::getError()
 {
-    return m_errorMessage;
+    return m_error;
 }
 
 
@@ -122,7 +121,6 @@ KernelParameter::cat(const std::string& name)
     // this seems the best of exceptions and state-checking
     std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
     stat.exceptions(exceptionMask);
-    m_error = false;
     try {
         stat.open(name);
         std::string line;
@@ -134,8 +132,7 @@ KernelParameter::cat(const std::string& name)
     }
     catch (const std::ios_base::failure& e) {
         if (!stat.eof()) {
-            m_error = true;
-            m_errorMessage = psc::fmt::format("Could not open/read {} error {}", name, e.what());
+            m_error = psc::fmt::format("Could not open/read {} error {}", name, e.what());
         }
         //std::cout <<  << name << " "  << errno
         //     << " " << strerror(errno)
@@ -157,7 +154,6 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
     // this seems the best of exceptions and state-checking
     std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
     stat.exceptions(exceptionMask);
-    m_error = false;
     bool zlib_need_close{};
     z_stream zstrm{};
     try {
@@ -184,8 +180,7 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
                             case Z_BUF_ERROR:
                                 break;
                             default:
-                                m_error = true;
-                                m_errorMessage = psc::fmt::format("Gzip error open/read {} error {}", name, zlib_status);
+                                m_error = psc::fmt::format("Gzip error open/read {} error {}", name, zlib_status);
                                 break;
                         }
                         if (zlib_status != Z_OK) {
@@ -210,8 +205,7 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
     }
     catch (const std::ios_base::failure& e) {
         if (!stat.eof()) {
-            m_error = true;
-            m_errorMessage = psc::fmt::format("Could not open/read {} error {}", name, e.what());
+            m_error = psc::fmt::format("Could not open/read {} error {}", name, e.what());
         }
     }
     if (zlib_need_close) {
@@ -234,6 +228,7 @@ KernelParamSwappiness::KernelParamSwappiness()
 std::string
 KernelParamSwappiness::query()
 {
+    resetError();
     return psc::fmt::format("vm.swappiness={}", cat(PROC_SWAPPINESS));
 }
 
@@ -255,6 +250,7 @@ VfsCachePressure::VfsCachePressure()
 std::string
 VfsCachePressure::query()
 {
+    resetError();
     return psc::fmt::format("vm.vfs_cache_pressure={}", cat(PROC_VFS_CACHE));
 }
 
@@ -276,6 +272,7 @@ DirtyRatio::DirtyRatio()
 std::string
 DirtyRatio::query()
 {
+    resetError();
     return psc::fmt::format("vm.dirty_ratio={}vm.dirty_background_ratio={}",
          cat(DIRTY_RATIO)
         , cat(DIRTY_BACKGROUND_RATIO));
@@ -299,6 +296,7 @@ HugePages::HugePages()
 std::string
 HugePages::query()
 {
+    resetError();
     std::string info;
     info.reserve(128);
     auto huge = cat(HUGE_PAGES);
@@ -330,12 +328,8 @@ SamePageMerge::SamePageMerge()
 std::string
 SamePageMerge::query()
 {
-    std::string info;
-    auto smp = cat(SAME_PAGE_MERGE);
-    if (!smp.empty()) {
-        info = "/sys/kernel/mm/ksm/run: " + smp;
-    }
-    return info;
+    resetError();
+    return psc::fmt::format("/sys/kernel/mm/ksm/run: {}", cat(SAME_PAGE_MERGE));
 }
 
 std::string
@@ -353,21 +347,11 @@ KernelPressure::KernelPressure()
 std::string
 KernelPressure::query()
 {
-    std::string info;
-    info.reserve(256);
-    auto cpu = cat(PRESSURE_CPU);
-    if (!cpu.empty()) {
-        info += "cpu:\n" + cpu;
-    }
-    auto memory = cat(PRESSURE_MEMORY);
-    if (!memory.empty()) {
-        info += "memory:\n" + memory;
-    }
-    auto io = cat(PRESSURE_IO);
-    if (!io.empty()) {
-        info += "io:\n" + io;
-    }
-    return info;    
+    resetError();
+    return psc::fmt::format("cpu:\n{}memory:\n{}io:\n{}"
+        , cat(PRESSURE_CPU)
+        , cat(PRESSURE_MEMORY)
+        , cat(PRESSURE_IO));
 }
 
 std::string
@@ -389,12 +373,8 @@ SchedulerAutoGroup::SchedulerAutoGroup()
 std::string
 SchedulerAutoGroup::query()
 {
-    std::string info;
-    std::string sae = cat(SCHEDULER_AUTO_GROUP);
-    if (!sae.empty()) {
-        info = "kernel.sched_autogroup_enabled=" + sae;
-    }
-    return info;
+    resetError();
+    return psc::fmt::format("kernel.sched_autogroup_enabled={}", cat(SCHEDULER_AUTO_GROUP));
 }
 
 std::string
@@ -414,6 +394,7 @@ CpuFrequencyScaling::CpuFrequencyScaling()
 std::string
 CpuFrequencyScaling::query()
 {
+    resetError();
     std::string info;
     info.reserve(256);
      for (const auto& entry : std::filesystem::directory_iterator(CPU_FREQUENCY_DIR)) {
@@ -444,6 +425,7 @@ CpuSecurityMitigations::CpuSecurityMitigations()
 std::string
 CpuSecurityMitigations::query()
 {
+    resetError();
     std::string info;
     info.reserve(1024);
     for (const auto& entry : std::filesystem::directory_iterator(CPU_SECURUTY_VULNERABILITES)) {
@@ -470,6 +452,7 @@ TicklessKernelOperation::TicklessKernelOperation()
 std::string
 TicklessKernelOperation::query()
 {
+    resetError();
     return zcat(KERNEL_PARAMETERS, TICKLESS_PARAMETER);
 }
 
@@ -490,12 +473,8 @@ ReadCopyUpdate::ReadCopyUpdate()
 std::string
 ReadCopyUpdate::query()
 {
-    std::string info;
-    auto rcu = cat(READ_COPY_UPDATE);
-    if (!rcu.empty()) {
-        info += std::string(RCU_PARAM) + "=" + rcu;
-    }
-    return info;
+    resetError();
+    return psc::fmt::format("{}={}", RCU_PARAM, cat(READ_COPY_UPDATE));
 }
 
 std::string
@@ -515,12 +494,8 @@ MaxMapCount::MaxMapCount()
 std::string
 MaxMapCount::query()
 {
-    std::string info;
-    auto mmc = cat(MAX_MAP_COUNT);
-    if (!mmc.empty()) {
-        info = std::string(MMC_PARAM) + "=" + mmc;
-    }
-    return info;
+    resetError();
+    return psc::fmt::format("{}={}", MMC_PARAM, cat(MAX_MAP_COUNT));
 }
 
 std::string
@@ -540,6 +515,7 @@ IoScheduler::IoScheduler()
 std::string
 IoScheduler::query()
 {
+    resetError();
     std::string info;
     info.reserve(256);
     for (const auto& entry : std::filesystem::directory_iterator(IO_SCHEDULE_DIR)) {
@@ -580,17 +556,10 @@ ZSwap::ZSwap()
 std::string
 ZSwap::query()
 {
-    std::string info;
-    info.reserve(128);
-    auto zswap = cat(ZSWAP_PARAM);
-    if (!zswap.empty()) {
-        info += std::string(ZSWAP_PARAM) + "=" + zswap;
-    }
-    auto zcomp = cat(ZSWAP_COMPRESSOR);
-    if (!zcomp.empty()) {
-        info += std::string(ZSWAP_COMPRESSOR) + "=" + zcomp;
-    }
-    return info;
+    resetError();
+    return psc::fmt::format("{}={}\n{}={}",
+          ZSWAP_PARAM, cat(ZSWAP_PARAM)
+        , ZSWAP_COMPRESSOR, cat(ZSWAP_COMPRESSOR));
 }
 
 std::string
@@ -666,6 +635,7 @@ VmStats::queryTimed()
 std::string
 VmStats::query()
 {
+    resetError();
     std::string info = psc::fmt::format("{:>12} {:>12} {:>12} {:>12}\n"
         , "swap: in", "out", "io: in", "out");
     info += queryTimed();
@@ -696,9 +666,9 @@ std::string
 ReadAhead::getBlockdev(const std::string& dev)
 {   // this requires read permissions for device -> root
     std::string info;
-    info.reserve(64);
-    auto cmd = std::string("/bin/") + BLOCKDEV_CMD + dev;
-    m_error = false;
+    info.reserve(128);
+    auto cmd = BLOCKDEV_CMD + dev + " 2>&1";    // added capture stderr
+    // spills errors to stdout
     std::FILE* fp = popen(cmd.c_str(), "r");     /* Open the command for reading. */
     if (fp != nullptr) {
         std::array<char, 64> buffer{};      /* Read the output a line at a time  */
@@ -709,17 +679,14 @@ ReadAhead::getBlockdev(const std::string& dev)
         }
         int res = pclose(fp);
         if (WIFEXITED(res) && WEXITSTATUS(res) != 0) {
-            m_error = true;
-            m_errorMessage = psc::fmt::format("Process exit {} device {}", WEXITSTATUS(res), dev);
+            m_error = psc::fmt::format("Process exit {} device {}", WEXITSTATUS(res), dev);
         }
         else if (WIFSIGNALED(res)) {
-            m_error = true;
-            m_errorMessage = psc::fmt::format("Process signal {} device {}", WTERMSIG(res), dev);
+            m_error = psc::fmt::format("Process signal {} device {}", WTERMSIG(res), dev);
         }
     }
     else {
-        m_error = true;
-        m_errorMessage = psc::fmt::format("Failed to run command {} device {}", cmd, dev);
+        m_error = psc::fmt::format("Failed to run command {} device {}", cmd, dev);
     }
     return info;
 }
@@ -728,7 +695,8 @@ std::string
 ReadAhead::query()
 {
     std::string info;
-    info.reserve(128);
+    info.reserve(256);
+    resetError();
     for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
         auto name = entry.path().filename().string();
         auto stat_path = entry.path();

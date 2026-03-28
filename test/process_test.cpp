@@ -1,3 +1,4 @@
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
  * Copyright (C) 2024 RPf 
  *
@@ -162,8 +163,6 @@ net_test_getservent_r()
 //            netConn.setRemoteSericeName(Glib::ustring::sprintf("%d", m_remotePort));
 //        }
 //    }
-
-
 
 
 int
