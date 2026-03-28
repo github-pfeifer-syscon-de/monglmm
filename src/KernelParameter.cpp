@@ -299,9 +299,17 @@ HugePages::HugePages()
 std::string
 HugePages::query()
 {
-    return psc::fmt::format("enabled: {}defrag: {}",
-          cat(HUGE_PAGES)
-        , cat(HUGE_PAGES_DEFRAG));
+    std::string info;
+    info.reserve(128);
+    auto huge = cat(HUGE_PAGES);
+    if (!huge.empty()) {
+        info += "enabled: " + huge;
+    }
+    auto defrag = cat(HUGE_PAGES_DEFRAG);
+    if (!defrag.empty()) {
+        info += "defrag: " + defrag;
+    }
+    return info;
 }
 
 std::string
@@ -322,8 +330,12 @@ SamePageMerge::SamePageMerge()
 std::string
 SamePageMerge::query()
 {
-    return psc::fmt::format("/sys/kernel/mm/ksm/run: {}",
-          cat(SAME_PAGE_MERGE));
+    std::string info;
+    auto smp = cat(SAME_PAGE_MERGE);
+    if (!smp.empty()) {
+        info = "/sys/kernel/mm/ksm/run: " + smp;
+    }
+    return info;
 }
 
 std::string
@@ -341,10 +353,21 @@ KernelPressure::KernelPressure()
 std::string
 KernelPressure::query()
 {
-    return psc::fmt::format("cpu:\n{}memory:\n{}io:\n{}",
-            cat(PRESSURE_CPU)
-          , cat(PRESSURE_MEMORY)
-          , cat(PRESSURE_IO));
+    std::string info;
+    info.reserve(256);
+    auto cpu = cat(PRESSURE_CPU);
+    if (!cpu.empty()) {
+        info += "cpu:\n" + cpu;
+    }
+    auto memory = cat(PRESSURE_MEMORY);
+    if (!memory.empty()) {
+        info += "memory:\n" + memory;
+    }
+    auto io = cat(PRESSURE_IO);
+    if (!io.empty()) {
+        info += "io:\n" + io;
+    }
+    return info;    
 }
 
 std::string
@@ -366,8 +389,12 @@ SchedulerAutoGroup::SchedulerAutoGroup()
 std::string
 SchedulerAutoGroup::query()
 {
-    return psc::fmt::format("kernel.sched_autogroup_enabled={}",
-            cat(SCHEDULER_AUTO_GROUP));
+    std::string info;
+    std::string sae = cat(SCHEDULER_AUTO_GROUP);
+    if (!sae.empty()) {
+        info = "kernel.sched_autogroup_enabled=" + sae;
+    }
+    return info;
 }
 
 std::string
@@ -449,7 +476,7 @@ TicklessKernelOperation::query()
 std::string
 TicklessKernelOperation::getManualCommand()
 {
-    return std::string("sudo zcat ") +KERNEL_PARAMETERS + " grep -F " + TICKLESS_PARAMETER;
+    return std::string("sudo zcat ") +KERNEL_PARAMETERS + " | grep -F " + TICKLESS_PARAMETER;
 }
 
 ReadCopyUpdate::ReadCopyUpdate()
@@ -463,7 +490,12 @@ ReadCopyUpdate::ReadCopyUpdate()
 std::string
 ReadCopyUpdate::query()
 {
-    return psc::fmt::format("{}={}", RCU_PARAM, cat(READ_COPY_UPDATE));
+    std::string info;
+    auto rcu = cat(READ_COPY_UPDATE);
+    if (!rcu.empty()) {
+        info += std::string(RCU_PARAM) + "=" + rcu;
+    }
+    return info;
 }
 
 std::string
@@ -483,7 +515,12 @@ MaxMapCount::MaxMapCount()
 std::string
 MaxMapCount::query()
 {
-    return psc::fmt::format("{}={}", MMC_PARAM, cat(MAX_MAP_COUNT));
+    std::string info;
+    auto mmc = cat(MAX_MAP_COUNT);
+    if (!mmc.empty()) {
+        info = std::string(MMC_PARAM) + "=" + mmc;
+    }
+    return info;
 }
 
 std::string
@@ -509,7 +546,10 @@ IoScheduler::query()
         auto name = entry.path().filename().string();
         auto info_path = entry.path();
         info_path += IO_SCHEDULE_ADD;
-        info += psc::fmt::format("{}={}", name, cat(info_path.string()));
+        auto value = cat(info_path.string());
+        if (!value.empty()) {
+            info += name + "=" + value;
+        }
     }
     return info;
 }
@@ -540,7 +580,17 @@ ZSwap::ZSwap()
 std::string
 ZSwap::query()
 {
-    return psc::fmt::format("{}={}{}={}", ZSWAP_PARAM, cat(ZSWAP_PARAM), ZSWAP_COMPRESSOR, cat(ZSWAP_COMPRESSOR));
+    std::string info;
+    info.reserve(128);
+    auto zswap = cat(ZSWAP_PARAM);
+    if (!zswap.empty()) {
+        info += std::string(ZSWAP_PARAM) + "=" + zswap;
+    }
+    auto zcomp = cat(ZSWAP_COMPRESSOR);
+    if (!zcomp.empty()) {
+        info += std::string(ZSWAP_COMPRESSOR) + "=" + zcomp;
+    }
+    return info;
 }
 
 std::string

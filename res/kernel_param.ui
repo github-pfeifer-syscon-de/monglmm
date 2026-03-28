@@ -104,8 +104,8 @@
             <property name="xpad">5</property>
             <property name="ypad">5</property>
             <property name="label" translatable="yes">These informations are provided without gurantee,
-before changing these values permanently consider 
-additional sources from the web for more in depth infos
+(and may not be available for every plattform),
+before changing these values permanently consider additional sources from the web for more in depth infos
 (or if you like talking/animations e.g. &lt;a href="https://www.youtube.com/watch?v=VN16KCXc8oM"&gt;Youtube&lt;/a&gt;).</property>
             <property name="use-markup">True</property>
             <property name="selectable">True</property>

@@ -57,7 +57,7 @@ void GpuMonitor::close()
 	// require early destruction as gl-context is required + avoid message "end query..."
 	m_counterPrim.reset();
 	m_counterSec.reset();
-    #ifndef USE_AMDCOUNT
+    #ifdef USE_AMDCOUNT
     GpuExtAmdCounters::reset();
     #endif
     #ifdef USE_GLQUERY
