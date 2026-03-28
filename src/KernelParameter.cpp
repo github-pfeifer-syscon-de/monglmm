@@ -77,6 +77,19 @@ KernelParameter::isTimed()
     return false;
 }
 
+bool
+KernelParameter::isError()
+{
+    return m_error;
+}
+
+std::string
+KernelParameter::getErrorMessage()
+{
+    return m_errorMessage;
+}
+
+
 std::vector<std::shared_ptr<KernelParameter>>
 KernelParameter::getAllParameters()
 {
@@ -106,23 +119,27 @@ KernelParameter::cat(const std::string& name)
 {
     std::string info;
     std::ifstream stat;
-    // for now avoid throwing exceptions as fail/eof look the same
-    //std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
-    //stat.exceptions(exceptionMask);
+    // this seems the best of exceptions and state-checking
+    std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
+    stat.exceptions(exceptionMask);
+    m_error = false;
     try {
         stat.open(name);
-        while (stat.good()) {
-            std::string line;
-            std::getline(stat, line);
-            if (line != "") {
+        std::string line;
+        while (std::getline(stat, line)) {  // this check(eof) is just for in case the standard did change ...
+            if (!line.empty()) {
                 info += line + "\n";
             }
         }
     }
     catch (const std::ios_base::failure& e) {
-        std::cout << "Could not open/read " << name << " "  << errno
-             << " " << strerror(errno)
-             << " ecode " << e.code();
+        if (!stat.eof()) {
+            m_error = true;
+            m_errorMessage = psc::fmt::format("Could not open/read {} error {}", name, e.what());
+        }
+        //std::cout <<  << name << " "  << errno
+        //     << " " << strerror(errno)
+        //     << " ecode " << ;
         //Log.addLog(Level.INFO, oss1);
         // e.code() == std::io_errc::stream doesn't help either
     }
@@ -137,41 +154,44 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
 {
     std::string info;
     std::ifstream stat;
-    // for now avoid throwing exceptions as fail/eof look the same
-    //std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
-    //stat.exceptions(exceptionMask);
+    // this seems the best of exceptions and state-checking
+    std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
+    stat.exceptions(exceptionMask);
+    m_error = false;
+    bool zlib_need_close{};
+    z_stream zstrm{};
     try {
         stat.open(name);
-        std::array<unsigned char,ZLIB_CHUNK_SIZE> in;
-        std::array<unsigned char,ZLIB_CHUNK_SIZE> out;
-        z_stream strm{};
-        int zlib_status = inflateInit2(&strm, ZLIB_GZIP_AUTO_DETECT);     // 0 is use window size of stream ...  ZLIB_WINDOW_BITS | ENABLE_ZLIB_GZIP
+        int zlib_status = inflateInit2(&zstrm, ZLIB_GZIP_AUTO_DETECT);     // 0 is use window size of stream ...  ZLIB_WINDOW_BITS | ENABLE_ZLIB_GZIP
         if (stat.good() && zlib_status == Z_OK) {
+            zlib_need_close = true;
+            std::array<unsigned char,ZLIB_CHUNK_SIZE> in;
+            std::array<unsigned char,ZLIB_CHUNK_SIZE> out;
             std::string lastLines;
             while (stat.good() && info.empty()) {
                 auto bytes_read = stat.readsome(reinterpret_cast<char *>(in.data()), in.size());
                 if (bytes_read > 0) {
                     int flush = stat.eof() ? Z_FINISH : Z_NO_FLUSH;
-                    strm.avail_in = bytes_read;
-                    strm.next_in = in.data();
+                    zstrm.avail_in = bytes_read;
+                    zstrm.next_in = in.data();
                     do {
-                        strm.avail_out = out.size();
-                        strm.next_out = out.data();
-                        zlib_status = inflate(&strm, flush);
+                        zstrm.avail_out = out.size();
+                        zstrm.next_out = out.data();
+                        zlib_status = inflate(&zstrm, flush);
                         switch (zlib_status) {
                             case Z_OK:
                             case Z_STREAM_END:
                             case Z_BUF_ERROR:
                                 break;
                             default:
-                                fprintf (stderr, "Gzip error %d in '%s'.\n",
-                                     zlib_status, name.c_str());
+                                m_error = true;
+                                m_errorMessage = psc::fmt::format("Gzip error open/read {} error {}", name, zlib_status);
                                 break;
                         }
                         if (zlib_status != Z_OK) {
                             break;
                         }
-                        unsigned have = out.size() - strm.avail_out;
+                        unsigned have = out.size() - zstrm.avail_out;
                         std::string lines(reinterpret_cast<const char*>(out.data()), have);
                         std::string check = lastLines + lines;    // concat last to avoid missing line when hitting border
                         auto pos = check.find(parameter);
@@ -183,25 +203,25 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
                             }
                         }
                         lastLines = lines;
-                    } while (info.empty() && strm.avail_out == 0);
+                    } while (info.empty() && zstrm.avail_out == 0);
                 }
             }
-            inflateEnd(&strm);
         }
     }
     catch (const std::ios_base::failure& e) {
-        std::cout << "Could not open/read " << name << " "  << errno
-             << " " << strerror(errno)
-             << " ecode " << e.code();
-        //Log.addLog(Level.INFO, oss1);
-        // e.code() == std::io_errc::stream doesn't help either
+        if (!stat.eof()) {
+            m_error = true;
+            m_errorMessage = psc::fmt::format("Could not open/read {} error {}", name, e.what());
+        }
+    }
+    if (zlib_need_close) {
+        inflateEnd(&zstrm);
     }
     if (stat.is_open()) {
         stat.close();
     }
     return info;
 }
-
 
 KernelParamSwappiness::KernelParamSwappiness()
 : KernelParameter("Swappiness"
@@ -214,8 +234,7 @@ KernelParamSwappiness::KernelParamSwappiness()
 std::string
 KernelParamSwappiness::query()
 {
-    return psc::fmt::format("vm.swappiness={}",
-        cat(PROC_SWAPPINESS));
+    return psc::fmt::format("vm.swappiness={}", cat(PROC_SWAPPINESS));
 }
 
 std::string
@@ -236,8 +255,7 @@ VfsCachePressure::VfsCachePressure()
 std::string
 VfsCachePressure::query()
 {
-    return psc::fmt::format("vm.vfs_cache_pressure={}",
-        cat(PROC_VFS_CACHE));
+    return psc::fmt::format("vm.vfs_cache_pressure={}", cat(PROC_VFS_CACHE));
 }
 
 std::string
@@ -515,7 +533,7 @@ ZSwap::ZSwap()
 : KernelParameter("Compress swapped-data"
     , std::format("Compress swapped memory on out-/input")
     , std::format("sudo echo 1 > {}", ZSWAP_PARAM)
-    , "edit /etc/default/grub add \"zswap.enabled=1\" or \"zswap.compressor=lz4\" for GRUB_CMDLINE_LINUX_DEFAULT")
+    , "edit /etc/default/grub add \"zswap.enabled=1\" and/or \"zswap.compressor=lz4\" for GRUB_CMDLINE_LINUX_DEFAULT")
 {
 }
 
@@ -630,6 +648,7 @@ ReadAhead::getBlockdev(const std::string& dev)
     std::string info;
     info.reserve(64);
     auto cmd = std::string("/bin/") + BLOCKDEV_CMD + dev;
+    m_error = false;
     std::FILE* fp = popen(cmd.c_str(), "r");     /* Open the command for reading. */
     if (fp != nullptr) {
         std::array<char, 64> buffer{};      /* Read the output a line at a time  */
@@ -640,16 +659,17 @@ ReadAhead::getBlockdev(const std::string& dev)
         }
         int res = pclose(fp);
         if (WIFEXITED(res) && WEXITSTATUS(res) != 0) {
-            std::cout << "Process exit " << WEXITSTATUS(res) << " dev " << dev << std::endl;
+            m_error = true;
+            m_errorMessage = psc::fmt::format("Process exit {} device {}", WEXITSTATUS(res), dev);
         }
         else if (WIFSIGNALED(res)) {
-            std::cout << "Process signal " << WTERMSIG(res) << " dev " << dev << std::endl;
+            m_error = true;
+            m_errorMessage = psc::fmt::format("Process signal {} device {}", WTERMSIG(res), dev);
         }
     }
     else {
-        std::cout << "Failed to run command " << BLOCKDEV_CMD
-                  << " dev " << dev << " errno" << errno
-                  << " " << strerror(errno) << std::endl;
+        m_error = true;
+        m_errorMessage = psc::fmt::format("Failed to run command {} device {}", cmd, dev);
     }
     return info;
 }
@@ -668,8 +688,7 @@ ReadAhead::query()
         auto stat_vals = StringUtils::splitConsec(stats, ' ');
         if (stat_vals.size() > 2 && stat_vals[0] != "0") {  // don't include unused devs e.g. cd-rom
             auto dev = std::string("/dev/") + name;
-            // auto readAhead = getBlockdev(dev);
-            info += std::string("Use \"sudo blockdev --getss --getra ") + dev + "\"\n";
+            auto readAhead = getBlockdev(dev);
         }
     }
     return info;
@@ -682,8 +701,15 @@ ReadAhead::getManualCommand()
     info.reserve(128);
     for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
         auto name = entry.path().filename().string();
-        auto dev = std::string("/dev/") + name;
-        return std::string("sudo blockdev --getss --getra ") + dev;
+        auto stat_path = entry.path();
+        stat_path += "/stat";
+        auto stats = cat(stat_path.string());
+        StringUtils::trim(stats);
+        auto stat_vals = StringUtils::splitConsec(stats, ' ');
+        if (stat_vals.size() > 2 && stat_vals[0] != "0") {  // don't include unused devs e.g. cd-rom
+            auto dev = std::string("/dev/") + name;
+            info += std::string("sudo blockdev --getss --getra ") + dev + "\n";
+        }
     }
     return info;
 }

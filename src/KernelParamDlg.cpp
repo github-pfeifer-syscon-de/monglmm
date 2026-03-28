@@ -52,8 +52,9 @@ KernelParamDlg::refresh()
         auto info = value->getName();
         info += "\n" + value->getInfo();
         auto query = value->query();
-        if (query.empty()) {    // if permission disallowed the query show alternative
-            query = value->getManualCommand();
+        if (value->isError()) {
+            query = value->getErrorMessage();   // give a hint what might be wrong
+            query += "\n" + value->getManualCommand();  // add alternative if e.g. permissions disallowed this
         }
         info += "\n" + query;
         auto test = value->getTest();

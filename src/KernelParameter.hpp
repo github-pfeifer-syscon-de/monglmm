@@ -39,15 +39,19 @@ public:
     virtual std::string getTest();
     virtual std::string getPersist();
     virtual bool isTimed();
+    bool isError();
+    std::string getErrorMessage();
     static std::vector<std::shared_ptr<KernelParameter>> getAllParameters();
 protected:
-    static std::string cat(const std::string& name);
-    static std::string zcat(const std::string& name, const std::string& parameter);
+    std::string cat(const std::string& name);
+    std::string zcat(const std::string& name, const std::string& parameter);
     static constexpr auto KERNEL_PARAMETERS{"/proc/config.gz"};
     static constexpr auto ZLIB_GZIP_AUTO_DETECT{ 0x20 };
     static constexpr auto ZLIB_CHUNK_BITS{ 10u };   // from zlib perspective this is inefficient, but since we are copying data limit the used amount
     static constexpr auto ZLIB_CHUNK_SIZE{ 1u << ZLIB_CHUNK_BITS };
     const std::string sudo_cat = "sudo cat ";
+    bool m_error{};
+    std::string m_errorMessage;
 private:
     std::string m_name;
     std::string m_info;
