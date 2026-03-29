@@ -22,6 +22,20 @@ meson options :
     (obsolet  -Draspi=true build with raspi core voltage (which is not moving) info (function is (c) broadcom) beware: breaks -Dgles=true)
 </pre>
 
+Permissions for g15 use,
+add file /etc/udev/rules.d/30-usbdev.rules (use sudo):
+<pre>
+SUBSYSTEM=="usb", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c626", ACTION=="add", GROUP="usbdev", MODE="0664"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c227", ACTION=="add", GROUP="usbdev",  MODE="0664"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="04a9", ATTRS{idProduct}=="1906", ACTION=="add", GROUP="usbdev",  MODE="0664"
+</pre>
+add user group:
+<pre>
+sudo groupadd usbdev
+sudo usermod -a -G usbdev rpf
+</pre>
+
+
 ## Log view
 
 - this was build with a desktop-system in mind, if your system has GBytes of logs it will probably not display all infos.
