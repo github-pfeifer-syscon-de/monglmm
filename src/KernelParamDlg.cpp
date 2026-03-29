@@ -49,15 +49,18 @@ KernelParamDlg::refresh()
         m_timer.disconnect();
         auto row = *selectedName;
         auto value = row.get_value(comboColumns.m_id);
-        auto info = value->getName();
+        std::string info;
+        info.reserve(256);
+        info += value->getName();
         info += "\n" + value->getInfo();
         auto query = value->query();
-        auto error = value->getError();
-        if (error.has_value()) {
-            query = error.value();   // give a hint what might be wrong
-            query += "\n" + value->getManualCommand();  // add alternative if e.g. permissions disallowed this
+        if (query.hasError()) {
+            info += query.getError();   // give a hint what might be wrong
+            info += "\nmaybe use alternative:\n" + value->getManualCommand();  // add alternative if e.g. permissions disallowed this
         }
-        info += "\n" + query;
+        else {
+            info += "\n" + query.getValue();
+        }
         auto test = value->getTest();
         if (!test.empty()) {
             info += "\nTo test use:\n";

@@ -22,6 +22,11 @@ meson options :
     (obsolet  -Draspi=true build with raspi core voltage (which is not moving) info (function is (c) broadcom) beware: breaks -Dgles=true)
 </pre>
 
+meson test option:
+<pre>
+meson test --wrap='valgrind --tool=helgrind'
+</pre>
+
 ## Log view
 
 - this was build with a desktop-system in mind, if your system has GBytes of logs it will probably not display all infos.

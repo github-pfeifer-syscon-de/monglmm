@@ -77,18 +77,6 @@ KernelParameter::isTimed()
     return false;
 }
 
-void KernelParameter::resetError()
-{
-    m_error.reset();    // or = std::nullopt
-}
-
-std::optional<std::string>
-KernelParameter::getError()
-{
-    return m_error;
-}
-
-
 std::vector<std::shared_ptr<KernelParameter>>
 KernelParameter::getAllParameters()
 {
@@ -113,8 +101,8 @@ KernelParameter::getAllParameters()
     return ret;
 }
 
-std::string
-KernelParameter::cat(const std::string& name)
+void
+KernelParameter::cat(const std::string& name, KernelParmValue& kernelParmValue)
 {
     std::string info;
     std::ifstream stat;
@@ -126,35 +114,29 @@ KernelParameter::cat(const std::string& name)
         std::string line;
         while (std::getline(stat, line)) {  // this check(eof) is just for in case the standard did change ...
             if (!line.empty()) {
-                info += line + "\n";
+                kernelParmValue.addValue(line + "\n");
             }
         }
     }
     catch (const std::ios_base::failure& e) {
         if (!stat.eof()) {
-            m_error = psc::fmt::format("Could not open/read {} error {}", name, e.what());
+            kernelParmValue.addError(psc::fmt::format("Could not open/read {} error {}", name, e.what()));
         }
-        //std::cout <<  << name << " "  << errno
-        //     << " " << strerror(errno)
-        //     << " ecode " << ;
-        //Log.addLog(Level.INFO, oss1);
-        // e.code() == std::io_errc::stream doesn't help either
     }
     if (stat.is_open()) {
         stat.close();
     }
-    return info;
 }
 
-std::string
-KernelParameter::zcat(const std::string& name, const std::string& parameter)
+void
+KernelParameter::zcat(const std::string& name, const std::string& parameter, KernelParmValue& kernelParmValue)
 {
-    std::string info;
     std::ifstream stat;
     // this seems the best of exceptions and state-checking
     std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
     stat.exceptions(exceptionMask);
     bool zlib_need_close{};
+    bool entry_found{};
     z_stream zstrm{};
     try {
         stat.open(name);
@@ -164,7 +146,7 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
             std::array<unsigned char,ZLIB_CHUNK_SIZE> in;
             std::array<unsigned char,ZLIB_CHUNK_SIZE> out;
             std::string lastLines;
-            while (stat.good() && info.empty()) {
+            while (stat.good() && !entry_found) {
                 auto bytes_read = stat.readsome(reinterpret_cast<char *>(in.data()), in.size());
                 if (bytes_read > 0) {
                     int flush = stat.eof() ? Z_FINISH : Z_NO_FLUSH;
@@ -180,7 +162,7 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
                             case Z_BUF_ERROR:
                                 break;
                             default:
-                                m_error = psc::fmt::format("Gzip error open/read {} error {}", name, zlib_status);
+                                kernelParmValue.addError(psc::fmt::format("Gzip error open/read {} error {}", name, zlib_status));
                                 break;
                         }
                         if (zlib_status != Z_OK) {
@@ -193,19 +175,20 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
                         if (pos != check.npos) {
                             auto nl = check.find("\n", pos);
                             if (nl != check.npos) {
-                                info = check.substr(pos, nl - pos + 1);
+                                kernelParmValue.addValue(check.substr(pos, nl - pos + 1));
+                                entry_found = true; // for now stop searching but may match multiple
                                 break;
                             }
                         }
                         lastLines = lines;
-                    } while (info.empty() && zstrm.avail_out == 0);
+                    } while (!entry_found && zstrm.avail_out == 0);
                 }
             }
         }
     }
     catch (const std::ios_base::failure& e) {
         if (!stat.eof()) {
-            m_error = psc::fmt::format("Could not open/read {} error {}", name, e.what());
+            kernelParmValue.addError(psc::fmt::format("Could not open/read {} error {}", name, e.what()));
         }
     }
     if (zlib_need_close) {
@@ -214,7 +197,6 @@ KernelParameter::zcat(const std::string& name, const std::string& parameter)
     if (stat.is_open()) {
         stat.close();
     }
-    return info;
 }
 
 KernelParamSwappiness::KernelParamSwappiness()
@@ -225,11 +207,12 @@ KernelParamSwappiness::KernelParamSwappiness()
 {
 }
 
-std::string
+KernelParmValue
 KernelParamSwappiness::query()
 {
-    resetError();
-    return psc::fmt::format("vm.swappiness={}", cat(PROC_SWAPPINESS));
+    KernelParmValue kernelParamValue("vm.swappiness=");
+    cat(PROC_SWAPPINESS, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -247,11 +230,12 @@ VfsCachePressure::VfsCachePressure()
 {
 }
 
-std::string
+KernelParmValue
 VfsCachePressure::query()
 {
-    resetError();
-    return psc::fmt::format("vm.vfs_cache_pressure={}", cat(PROC_VFS_CACHE));
+    KernelParmValue kernelParamValue("vm.vfs_cache_pressure=");
+    cat(PROC_VFS_CACHE, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -269,13 +253,15 @@ DirtyRatio::DirtyRatio()
 {
 }
 
-std::string
+KernelParmValue
 DirtyRatio::query()
 {
-    resetError();
-    return psc::fmt::format("vm.dirty_ratio={}vm.dirty_background_ratio={}",
-         cat(DIRTY_RATIO)
-        , cat(DIRTY_BACKGROUND_RATIO));
+    KernelParmValue kernelParamValue;
+    kernelParamValue.addValue("vm.dirty_ratio=");
+    cat(DIRTY_RATIO, kernelParamValue);
+    kernelParamValue.addValue("vm.dirty_background_ratio=");
+    cat(DIRTY_BACKGROUND_RATIO, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -293,21 +279,15 @@ HugePages::HugePages()
 {
 }
 
-std::string
+KernelParmValue
 HugePages::query()
 {
-    resetError();
-    std::string info;
-    info.reserve(128);
-    auto huge = cat(HUGE_PAGES);
-    if (!huge.empty()) {
-        info += "enabled: " + huge;
-    }
-    auto defrag = cat(HUGE_PAGES_DEFRAG);
-    if (!defrag.empty()) {
-        info += "defrag: " + defrag;
-    }
-    return info;
+    KernelParmValue kernelParamValue;
+    kernelParamValue.addValue("enabled: ");
+    cat(HUGE_PAGES, kernelParamValue);
+    kernelParamValue.addValue("defrag: ");
+    cat(HUGE_PAGES_DEFRAG, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -325,11 +305,12 @@ SamePageMerge::SamePageMerge()
 {
 }
 
-std::string
+KernelParmValue
 SamePageMerge::query()
 {
-    resetError();
-    return psc::fmt::format("/sys/kernel/mm/ksm/run: {}", cat(SAME_PAGE_MERGE));
+    KernelParmValue kernelParamValue("/sys/kernel/mm/ksm/run: ");
+    cat(SAME_PAGE_MERGE, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -344,14 +325,17 @@ KernelPressure::KernelPressure()
 {
 }
 
-std::string
+KernelParmValue
 KernelPressure::query()
 {
-    resetError();
-    return psc::fmt::format("cpu:\n{}memory:\n{}io:\n{}"
-        , cat(PRESSURE_CPU)
-        , cat(PRESSURE_MEMORY)
-        , cat(PRESSURE_IO));
+    KernelParmValue kernelParamValue;
+    kernelParamValue.addValue("cpu:\n");
+    cat(PRESSURE_CPU, kernelParamValue);
+    kernelParamValue.addValue("memory:\n");
+    cat(PRESSURE_MEMORY, kernelParamValue);
+    kernelParamValue.addValue("io:\n");
+    cat(PRESSURE_IO, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -370,11 +354,12 @@ SchedulerAutoGroup::SchedulerAutoGroup()
 {
 }
 
-std::string
+KernelParmValue
 SchedulerAutoGroup::query()
 {
-    resetError();
-    return psc::fmt::format("kernel.sched_autogroup_enabled={}", cat(SCHEDULER_AUTO_GROUP));
+    KernelParmValue kernelParamValue("kernel.sched_autogroup_enabled=");
+    cat(SCHEDULER_AUTO_GROUP, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -386,26 +371,36 @@ SchedulerAutoGroup::getManualCommand()
 
 CpuFrequencyScaling::CpuFrequencyScaling()
 : KernelParameter("Cpu frequency scaling"
-    , std::format("Allows {} the schedutil is a efficent choice.", cat("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors"))
+    , ""
     , "for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do\necho schedutil > sudo tee $cpu")
 {
 }
 
-std::string
+KernelParmValue
 CpuFrequencyScaling::query()
 {
-    resetError();
-    std::string info;
-    info.reserve(256);
-     for (const auto& entry : std::filesystem::directory_iterator(CPU_FREQUENCY_DIR)) {
+    KernelParmValue kernelParamValue;
+    for (const auto& entry : std::filesystem::directory_iterator(CPU_FREQUENCY_DIR)) {
         auto name = entry.path().filename().string();
         if (name.starts_with(CPU_FREQUENCY_BASE) && name.length() <= 5) {   // only looking for cpu0...99
             auto info_path = entry.path();
             info_path += CPU_FREQUENCY_ADD;
-            info += psc::fmt::format("{}={}", info_path.string(), cat(info_path.string()));
+            kernelParamValue.addValue(info_path.string() + "=");
+            cat(info_path.string(), kernelParamValue);
         }
     }
-    return info;
+    return kernelParamValue;
+}
+
+std::string
+CpuFrequencyScaling::getInfo()
+{
+    if (m_info.empty()) {
+        KernelParmValue infoVal;
+        cat("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors", infoVal);
+        m_info = std::format("Allows {} the schedutil is a efficent choice.", infoVal.getValue());
+    }
+    return m_info;
 }
 
 std::string
@@ -422,17 +417,18 @@ CpuSecurityMitigations::CpuSecurityMitigations()
 {
 }
 
-std::string
+KernelParmValue
 CpuSecurityMitigations::query()
 {
-    resetError();
+    KernelParmValue kernelParamValue;
     std::string info;
     info.reserve(1024);
     for (const auto& entry : std::filesystem::directory_iterator(CPU_SECURUTY_VULNERABILITES)) {
         auto name = entry.path().filename();
-       info += psc::fmt::format("{}: {}", name.string(), cat(entry.path().string()));
+        kernelParamValue.addValue(name.string() + ": ");
+        cat(entry.path().string(), kernelParamValue);
     }
-    return info;
+    return kernelParamValue;
 }
 
 std::string
@@ -449,11 +445,12 @@ TicklessKernelOperation::TicklessKernelOperation()
 {
 }
 
-std::string
+KernelParmValue
 TicklessKernelOperation::query()
 {
-    resetError();
-    return zcat(KERNEL_PARAMETERS, TICKLESS_PARAMETER);
+    KernelParmValue kernelParamValue;
+    zcat(KERNEL_PARAMETERS, TICKLESS_PARAMETER, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -470,11 +467,13 @@ ReadCopyUpdate::ReadCopyUpdate()
 {
 }
 
-std::string
+KernelParmValue
 ReadCopyUpdate::query()
 {
-    resetError();
-    return psc::fmt::format("{}={}", RCU_PARAM, cat(READ_COPY_UPDATE));
+    KernelParmValue kernelParamValue(RCU_PARAM);
+    kernelParamValue.addValue("=");
+    cat(READ_COPY_UPDATE, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -491,11 +490,13 @@ MaxMapCount::MaxMapCount()
 {
 }
 
-std::string
+KernelParmValue
 MaxMapCount::query()
 {
-    resetError();
-    return psc::fmt::format("{}={}", MMC_PARAM, cat(MAX_MAP_COUNT));
+    KernelParmValue kernelParamValue(MMC_PARAM);
+    kernelParamValue.addValue("=");
+    cat(MAX_MAP_COUNT, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -512,22 +513,18 @@ IoScheduler::IoScheduler()
 {
 }
 
-std::string
+KernelParmValue
 IoScheduler::query()
 {
-    resetError();
-    std::string info;
-    info.reserve(256);
+    KernelParmValue kernelParamValue;
     for (const auto& entry : std::filesystem::directory_iterator(IO_SCHEDULE_DIR)) {
         auto name = entry.path().filename().string();
         auto info_path = entry.path();
         info_path += IO_SCHEDULE_ADD;
-        auto value = cat(info_path.string());
-        if (!value.empty()) {
-            info += name + "=" + value;
-        }
+        kernelParamValue.addValue(name + "=");
+        cat(info_path.string(), kernelParamValue);
     }
-    return info;
+    return kernelParamValue;
 }
 
 std::string
@@ -553,13 +550,15 @@ ZSwap::ZSwap()
 {
 }
 
-std::string
+KernelParmValue
 ZSwap::query()
 {
-    resetError();
-    return psc::fmt::format("{}={}\n{}={}",
-          ZSWAP_PARAM, cat(ZSWAP_PARAM)
-        , ZSWAP_COMPRESSOR, cat(ZSWAP_COMPRESSOR));
+    KernelParmValue kernelParamValue;
+    kernelParamValue.addValue(std::string(ZSWAP_PARAM) + "=");
+    cat(ZSWAP_PARAM, kernelParamValue);
+    kernelParamValue.addValue(std::string(ZSWAP_COMPRESSOR) + "=");
+    cat(ZSWAP_COMPRESSOR, kernelParamValue);
+    return kernelParamValue;
 }
 
 std::string
@@ -582,15 +581,14 @@ VmStats::queryTimed()
 {
     std::string info;
     std::ifstream stat;
-    // for now avoid throwing exceptions as fail/eof look the same
-    //std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
-    //stat.exceptions(exceptionMask);
+    std::ios_base::iostate exceptionMask = stat.exceptions() | std::ios::failbit | std::ios::badbit;
+    stat.exceptions(exceptionMask);
+    uint64_t spwapin{}; // swapping
+    uint64_t spwapout{};
+    uint64_t pgpgin{};  // blocks passed to IO
+    uint64_t pgpgout{};
     try {
         stat.open(VMSTATS);
-        uint64_t spwapin{}; // swapping
-        uint64_t spwapout{};
-        uint64_t pgpgin{};  // blocks passed to IO
-        uint64_t pgpgout{};
         while (stat.good()) {
             std::string line;
             std::getline(stat, line);
@@ -613,33 +611,33 @@ VmStats::queryTimed()
                 pgpgout = val;
             }
         }
+    }
+    catch (const std::ios_base::failure& e) {
+        if (!stat.eof()) {
+            info = std::string("Error ") + e.what();
+        }
+    }
+    if (stat.eof()) {   // consider this as success
         info = psc::fmt::format("{:>12} {:>12} {:>12} {:>12}\n"
                     , spwapin, spwapout, pgpgin - m_last_pgin, pgpgout - m_last_pgout);
         m_last_pgin = pgpgin;
         m_last_pgout = pgpgout;
     }
-    catch (const std::ios_base::failure& e) {
-        std::cout << "Could not open/read " << VMSTATS << " " << errno
-             << " " << strerror(errno)
-             << " ecode " << e.code();
-        //Log.addLog(Level.INFO, oss1);
-        // e.code() == std::io_errc::stream doesn't help either
-    }
     if (stat.is_open()) {
         stat.close();
     }
-
     return info;
 }
 
-std::string
+KernelParmValue
 VmStats::query()
 {
-    resetError();
+    KernelParmValue kernelParamValue;
     std::string info = psc::fmt::format("{:>12} {:>12} {:>12} {:>12}\n"
         , "swap: in", "out", "io: in", "out");
-    info += queryTimed();
-    return info;
+    kernelParamValue.addValue(info);
+    kernelParamValue.addValue(queryTimed());
+    return kernelParamValue;
 }
 
 bool
@@ -662,11 +660,9 @@ ReadAhead::ReadAhead()
 {
 }
 
-std::string
-ReadAhead::getBlockdev(const std::string& dev)
-{   // this requires read permissions for device -> root
-    std::string info;
-    info.reserve(128);
+void
+ReadAhead::getBlockdev(const std::string& dev, KernelParmValue& kernelParamValue)
+{   // this requires read permissions for device -> so works only 4 root
     auto cmd = BLOCKDEV_CMD + dev + " 2>&1";    // added capture stderr
     // spills errors to stdout
     std::FILE* fp = popen(cmd.c_str(), "r");     /* Open the command for reading. */
@@ -675,41 +671,53 @@ ReadAhead::getBlockdev(const std::string& dev)
         auto ptr = std::fgets(buffer.data(), buffer.size(), fp);
         if (ptr != nullptr) {
             std::string line{buffer.data(), std::strlen(buffer.data())};
-            info += line + "\n";
+            kernelParamValue.addValue(line + "\n");
         }
         int res = pclose(fp);
         if (WIFEXITED(res) && WEXITSTATUS(res) != 0) {
-            m_error = psc::fmt::format("Process exit {} device {}", WEXITSTATUS(res), dev);
+            kernelParamValue.addError(psc::fmt::format("Process exit {} device {}", WEXITSTATUS(res), dev));
         }
         else if (WIFSIGNALED(res)) {
-            m_error = psc::fmt::format("Process signal {} device {}", WTERMSIG(res), dev);
+            kernelParamValue.addError(psc::fmt::format("Process signal {} device {}", WTERMSIG(res), dev));
         }
     }
     else {
-        m_error = psc::fmt::format("Failed to run command {} device {}", cmd, dev);
+        kernelParamValue.addError(psc::fmt::format("Failed to run command {} device {}", cmd, dev));
     }
-    return info;
 }
 
-std::string
+bool
+ReadAhead::isDeviceUsed(const std::filesystem::path& dev_path)
+{
+    auto stat_path = dev_path;
+    stat_path += "/stat";
+    KernelParmValue kernelParamValue;
+    cat(stat_path.string(), kernelParamValue);
+    if (!kernelParamValue.hasError()) {
+        std::string stats = kernelParamValue.getValue();
+        StringUtils::trim(stats);
+        auto stat_vals = StringUtils::splitConsec(stats, ' ');
+        if (stat_vals.size() > 2) {  // don't include unused devs e.g. cd-rom
+            auto read = std::stoul(stat_vals[0]);
+            return read > 0;
+        }
+    }
+    return false;
+}
+
+KernelParmValue
 ReadAhead::query()
 {
-    std::string info;
-    info.reserve(256);
-    resetError();
+    KernelParmValue kernelParamValue;
     for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
         auto name = entry.path().filename().string();
         auto stat_path = entry.path();
-        stat_path += "/stat";
-        auto stats = cat(stat_path.string());
-        StringUtils::trim(stats);
-        auto stat_vals = StringUtils::splitConsec(stats, ' ');
-        if (stat_vals.size() > 2 && stat_vals[0] != "0") {  // don't include unused devs e.g. cd-rom
+        if (isDeviceUsed(stat_path)) {
             auto dev = std::string("/dev/") + name;
-            auto readAhead = getBlockdev(dev);
+            getBlockdev(dev, kernelParamValue);
         }
     }
-    return info;
+    return kernelParamValue;
 }
 
 std::string
@@ -720,11 +728,7 @@ ReadAhead::getManualCommand()
     for (const auto& entry : std::filesystem::directory_iterator(DEVICE_DIR)) {
         auto name = entry.path().filename().string();
         auto stat_path = entry.path();
-        stat_path += "/stat";
-        auto stats = cat(stat_path.string());
-        StringUtils::trim(stats);
-        auto stat_vals = StringUtils::splitConsec(stats, ' ');
-        if (stat_vals.size() > 2 && stat_vals[0] != "0") {  // don't include unused devs e.g. cd-rom
+        if (isDeviceUsed(stat_path)) {
             auto dev = std::string("/dev/") + name;
             info += std::string("sudo blockdev --getss --getra ") + dev + "\n";
         }

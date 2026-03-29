@@ -22,7 +22,48 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <filesystem>
 
+class KernelParmValue
+{
+public:
+    KernelParmValue()
+    {
+        m_value.reserve(128);
+        m_error.reserve(128);
+    }
+    KernelParmValue(const std::string& value)
+    : KernelParmValue()
+    {
+        addValue(value);
+    }
+    KernelParmValue(const KernelParmValue& other) = default;
+    virtual ~KernelParmValue() = default;
+
+    void addValue(const std::string& val)
+    {
+        m_value += val;
+    }
+    std::string getValue()
+    {
+        return m_value;
+    }
+    void addError(const std::string& err)
+    {
+        m_error += err;
+    }
+    bool hasError() const
+    {
+        return !m_error.empty();
+    }
+    std::string getError()
+    {
+        return m_value + m_error;   // add value as it contains output
+    }
+private:
+    std::string m_value;
+    std::string m_error;
+};
 
 class KernelParameter {
 public:
@@ -33,25 +74,22 @@ public:
     virtual ~KernelParameter() = default;
     virtual std::string getName();
     virtual std::string getInfo();
-    virtual std::string query() = 0;
+    virtual KernelParmValue query() = 0;
     virtual std::string getManualCommand() = 0;
     virtual std::string queryTimed();
     virtual std::string getTest();
     virtual std::string getPersist();
     virtual bool isTimed();
-    void resetError();
-    std::optional<std::string> getError();
     static std::vector<std::shared_ptr<KernelParameter>> getAllParameters();
 protected:
-    std::string cat(const std::string& name);
-    std::string zcat(const std::string& name, const std::string& parameter);
+    void cat(const std::string& name, KernelParmValue& value);
+    void zcat(const std::string& name, const std::string& parameter, KernelParmValue& value);
     static constexpr auto KERNEL_PARAMETERS{"/proc/config.gz"};
     static constexpr auto ZLIB_GZIP_AUTO_DETECT{ 0x20 };
     static constexpr auto ZLIB_CHUNK_BITS{ 10u };   // from zlib perspective this is inefficient, but since we are copying data limit the used amount
     static constexpr auto ZLIB_CHUNK_SIZE{ 1u << ZLIB_CHUNK_BITS };
     const std::string sudo_cat = "sudo cat ";
-    std::optional<std::string> m_error;
-private:
+protected:
     std::string m_name;
     std::string m_info;
     std::string m_test;
@@ -65,7 +103,7 @@ class KernelParamSwappiness
 public:
     KernelParamSwappiness();
     virtual ~KernelParamSwappiness() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto PROC_SWAPPINESS{"/proc/sys/vm/swappiness"};
@@ -78,7 +116,7 @@ class VfsCachePressure
 public:
     VfsCachePressure();
     virtual ~VfsCachePressure() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto PROC_VFS_CACHE{"/proc/sys/vm/vfs_cache_pressure"};
@@ -90,7 +128,7 @@ class DirtyRatio
 public:
     DirtyRatio();
     virtual ~DirtyRatio() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto DIRTY_RATIO{"/proc/sys/vm/dirty_ratio"};
@@ -104,7 +142,7 @@ class HugePages
 public:
     HugePages();
     virtual ~HugePages() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto HUGE_PAGES{"/sys/kernel/mm/transparent_hugepage/enabled"};
@@ -119,7 +157,7 @@ class SamePageMerge
 public:
     SamePageMerge();
     virtual ~SamePageMerge() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto SAME_PAGE_MERGE{"/sys/kernel/mm/ksm/run"};
@@ -131,7 +169,7 @@ class KernelPressure
 public:
     KernelPressure();
     virtual ~KernelPressure() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto PRESSURE_CPU{"/proc/pressure/cpu"};
@@ -145,7 +183,7 @@ class SchedulerAutoGroup
 public:
     SchedulerAutoGroup();
     virtual ~SchedulerAutoGroup() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto SCHEDULER_AUTO_GROUP{"/proc/sys/kernel/sched_autogroup_enabled"};
@@ -157,8 +195,9 @@ class CpuFrequencyScaling
 public:
     CpuFrequencyScaling();
     virtual ~CpuFrequencyScaling() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
+    std::string getInfo() override;
 protected:
     static constexpr auto CPU_FREQUENCY_DIR{"/sys/devices/system/cpu/"};
     static constexpr auto CPU_FREQUENCY_BASE{"cpu"};
@@ -171,7 +210,7 @@ class CpuSecurityMitigations
 public:
     CpuSecurityMitigations();
     virtual ~CpuSecurityMitigations() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto CPU_SECURUTY_VULNERABILITES{"/sys/devices/system/cpu/vulnerabilities/"};
@@ -184,7 +223,7 @@ class TicklessKernelOperation
 public:
     TicklessKernelOperation();
     virtual ~TicklessKernelOperation() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto TICKLESS_PARAMETER{"CONFIG_NO_HZ="};
@@ -197,7 +236,7 @@ class ReadCopyUpdate
 public:
     ReadCopyUpdate();
     virtual ~ReadCopyUpdate() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto READ_COPY_UPDATE{"/sys/module/rcupdate/parameters/rcu_cpu_stall_timeout"};
@@ -211,7 +250,7 @@ class MaxMapCount
 public:
     MaxMapCount();
     virtual ~MaxMapCount() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto MAX_MAP_COUNT{"/proc/sys/vm/max_map_count"};
@@ -225,7 +264,7 @@ class IoScheduler
 public:
     IoScheduler();
     virtual ~IoScheduler() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto IO_SCHEDULE_DIR{"/sys/block/"};
@@ -238,7 +277,7 @@ class ZSwap
 public:
     ZSwap();
     virtual ~ZSwap() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
     static constexpr auto ZSWAP_PARAM{"/sys/module/zswap/parameters/enabled"};
@@ -251,7 +290,7 @@ class VmStats
 public:
     VmStats();
     virtual ~VmStats() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string queryTimed() override;
     bool isTimed() override;
     uint64_t m_last_pgin{};
@@ -267,10 +306,11 @@ class ReadAhead
 public:
     ReadAhead();
     virtual ~ReadAhead() = default;
-    std::string query() override;
+    KernelParmValue query() override;
     std::string getManualCommand() override;
 protected:
-    std::string getBlockdev(const std::string& dev);
+    void getBlockdev(const std::string& dev, KernelParmValue& kernelParamValue);
+    bool isDeviceUsed(const std::filesystem::path& dev_path);
 
     static constexpr auto BLOCKDEV_CMD{"blockdev --getra "};
     static constexpr auto DEVICE_DIR{"/sys/block/"};

@@ -25,22 +25,18 @@
 static bool
 param_test()
 {
-    // just query them all
     auto params = KernelParameter::getAllParameters();
     for (auto param : params) {
-        auto readAheadValue = param->query();
-        auto readAheadErr = param->getError();
-        if (readAheadErr.has_value()) {
-            std::cout << "error " << readAheadErr.value() << std::endl;
+        auto kernVal = param->query();
+        if (kernVal.hasError()) {   // some errors are expected
+            std::cout << "error " << kernVal.getError() << std::endl;
         }
         else {
-            std::cout << "value  " << readAheadValue << std::endl;
+            std::cout << "value  " << kernVal.getValue() << std::endl;
         }
     }
     return true;
 }
-
-
 
 int
 main(int argc, char** argv)

@@ -85,6 +85,8 @@ LmSensor::featureType()
 	    featName = "beep_enable";  break;
 	case SENSORS_FEATURE_MAX:
 	    featName = "max";  break;
+    case SENSORS_FEATURE_PWM:
+	    featName = "pmw";  break;
 	case SENSORS_FEATURE_UNKNOWN:
 	    featName = "unknown";  break;
     }
@@ -136,6 +138,9 @@ LmSensor::getUnit()
 	case SENSORS_FEATURE_MAX:
 	    featUnit = "max";
             break;
+    case SENSORS_FEATURE_PWM:
+    	featUnit = "%";
+    	break;
 	case SENSORS_FEATURE_UNKNOWN:
 	    featUnit = "unknown";
             break;
