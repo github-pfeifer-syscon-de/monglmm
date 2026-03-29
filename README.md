@@ -32,7 +32,7 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="04a9", ATTRS{idProduct}=="1906", ACTION=="ad
 add user group:
 <pre>
 sudo groupadd usbdev
-sudo usermod -a -G usbdev rpf
+sudo usermod -a -G usbdev USER
 </pre>
 
 

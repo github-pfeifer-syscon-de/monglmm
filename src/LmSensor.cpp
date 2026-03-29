@@ -87,6 +87,8 @@ LmSensor::featureType()
 	    featName = "max";  break;
     case SENSORS_FEATURE_PWM:
 	    featName = "pmw";  break;
+    case SENSORS_FEATURE_FREQ:
+    	featName = "frequency"; break;
 	case SENSORS_FEATURE_UNKNOWN:
 	    featName = "unknown";  break;
     }
@@ -140,6 +142,9 @@ LmSensor::getUnit()
             break;
     case SENSORS_FEATURE_PWM:
     	featUnit = "%";
+    	break;
+   	case SENSORS_FEATURE_FREQ:
+    	featUnit = "HZ";
     	break;
 	case SENSORS_FEATURE_UNKNOWN:
 	    featUnit = "unknown";
