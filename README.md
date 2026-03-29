@@ -17,14 +17,9 @@ The gles config is taken over from genericGlm (if GL-ES was used the Gpu values 
 
 meson options :
 <pre>
-     allow -Dlibg15=true using G15 lcd display see libg15
-     allow -Dlmsensors=false to disable lmsensors display values
+     allow -Dlibg15=true using G15 lcd display see libg15 (for debian requires: sudo apt-get install libusb-1.0-0-dev)
+     allow -Dlmsensors=false to disable lmsensors display values (for debian requires: sudo apt-get install libsensors-dev)
     (obsolet  -Draspi=true build with raspi core voltage (which is not moving) info (function is (c) broadcom) beware: breaks -Dgles=true)
-</pre>
-
-meson test option:
-<pre>
-meson test --wrap='valgrind --tool=helgrind'
 </pre>
 
 ## Log view
