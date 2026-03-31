@@ -17,12 +17,25 @@ The gles config is taken over from genericGlm (if GL-ES was used the Gpu values 
 
 meson options :
 <pre>
-     allow -Dlibg15=true using G15 lcd display see libg15 (for debian requires: sudo apt-get install libusb-1.0-0-dev)
-     allow -Dlmsensors=false to disable lmsensors display values (for debian requires: sudo apt-get install libsensors-dev)
+     allow -Dlibg15=true using G15 lcd display see libg15 
+     allow -Dlmsensors=false to disable lmsensors display values 
     (obsolet  -Draspi=true build with raspi core voltage (which is not moving) info (function is (c) broadcom) beware: breaks -Dgles=true)
 </pre>
 
-Permissions for g15 use,
+## Lmsensors 
+
+For Debian install if missing:
+<pre>
+sudo apt-get install libsensors-dev
+</pre>
+
+## G15
+
+For Debian install if missing:
+<pre>
+sudo apt-get install libusb-1.0-0-dev
+</pre>
+To grant the required permissions to access the additional usb-devices,
 add file /etc/udev/rules.d/30-usbdev.rules (use sudo):
 <pre>
 SUBSYSTEM=="usb", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c626", ACTION=="add", GROUP="usbdev", MODE="0664"
@@ -34,7 +47,6 @@ add user group:
 sudo groupadd usbdev
 sudo usermod -a -G usbdev USER
 </pre>
-
 
 ## Log view
 

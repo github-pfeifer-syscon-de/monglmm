@@ -316,3 +316,15 @@ protected:
     static constexpr auto DEVICE_DIR{"/sys/block/"};
 
 };
+
+class SystemdServices
+: public KernelParameter
+{
+public:
+    SystemdServices();
+    virtual ~SystemdServices() = default;
+    KernelParmValue query() override;
+    std::string getManualCommand() override;
+protected:
+    static constexpr auto SYSCTL = "systemctl list-units --type service";
+};

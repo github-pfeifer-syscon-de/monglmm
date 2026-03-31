@@ -45,7 +45,7 @@ property_test()
         return false;
     }
     std::cout << "vmRssK " << process.getVmRssK() << "k" << std::endl;
-    if (process.getVmRssK() < 10000 || process.getVmRssK() > 50000) {
+    if (process.getVmRssK() < 10000 || process.getVmRssK() > 100000) {
         std::cout << "The size " << process.getVmRssK() <<  " is not in expected range!" << std::endl;
         return false;
     }

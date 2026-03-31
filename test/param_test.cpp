@@ -29,10 +29,10 @@ param_test()
     for (auto param : params) {
         auto kernVal = param->query();
         if (kernVal.hasError()) {   // some errors are expected
-            std::cout << "error " << kernVal.getError() << std::endl;
+            std::cout << param->getName() << " error " << kernVal.getError() << std::endl;
         }
         else {
-            std::cout << "value  " << kernVal.getValue() << std::endl;
+            std::cout << param->getName() << " value  " << kernVal.getValue() << std::endl;
         }
     }
     return true;
@@ -46,7 +46,6 @@ main(int argc, char** argv)
     if (!param_test()) {
         return 1;
     }
-
 
     return 0;
 }

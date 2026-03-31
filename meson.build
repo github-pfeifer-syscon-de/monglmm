@@ -2,6 +2,7 @@ project('monglmm', 'c', 'cpp'
     , default_options: ['c_std=gnu11'   # for libg15.c is ancient and refuses to usleep
                        , 'cpp_std=c++20'
                        , 'buildtype=debugoptimized'
+#                       , 'b_sanitize=address,undefined'    # use to identify issues
                        , 'warning_level=3']
     , license : 'GPL-3.0'
     , meson_version: '>=1.3.0'
@@ -20,8 +21,8 @@ add_project_arguments('-DPACKAGE_SRC_DIR="' + pkgsrcdir + '"', language: ['cpp',
 #add_project_arguments('-DPACKAGE_LOCALE_DIR="' + pkglocaledir + '"', language: ['cpp','c'])
 
 disable_flags = [
-    '-Wno-unused-parameter' # limit the compiler noisiness
-   ,'-Wno-overlength-strings'
+    '-Wno-unused-parameter'     # limit the compiler noisiness
+   ,'-Wno-overlength-strings'   # the resources exceed the std-c limit
 ]
 cc = meson.get_compiler('c')
 foreach cflag : disable_flags

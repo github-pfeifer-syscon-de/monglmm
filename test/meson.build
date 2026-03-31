@@ -7,6 +7,8 @@ process_test = executable('process_test'
     , 'process_test.cpp'
     , '../src/Process.cpp'
     , '../src/NameValue.cpp'
+    , '../src/Monitor.cpp'
+    , '../src/Page.cpp'
     , dependencies: deps
     , include_directories : test_headers)
 

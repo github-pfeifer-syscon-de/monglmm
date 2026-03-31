@@ -97,6 +97,7 @@ KernelParameter::getAllParameters()
     ret.emplace_back(std::move(std::make_shared<ZSwap>()));
     ret.emplace_back(std::move(std::make_shared<VmStats>()));
     ret.emplace_back(std::move(std::make_shared<ReadAhead>()));
+    ret.emplace_back(std::move(std::make_shared<SystemdServices>()));
 
     return ret;
 }
@@ -667,22 +668,25 @@ ReadAhead::getBlockdev(const std::string& dev, KernelParmValue& kernelParamValue
     // spills errors to stdout
     std::FILE* fp = popen(cmd.c_str(), "r");     /* Open the command for reading. */
     if (fp != nullptr) {
-        std::array<char, 64> buffer{};      /* Read the output a line at a time  */
-        auto ptr = std::fgets(buffer.data(), buffer.size(), fp);
-        if (ptr != nullptr) {
+        std::array<char, 128> buffer{};      /* Read the output a line at a time  */
+        char *ptr;
+        while ((ptr = std::fgets(buffer.data(), buffer.size(), fp))) {
+            if (std::ferror(fp)) {  // docs is unclear if this will return nullptr on fgets
+                break;
+            }
             std::string line{buffer.data(), std::strlen(buffer.data())};
             kernelParamValue.addValue(line + "\n");
         }
         int res = pclose(fp);
         if (WIFEXITED(res) && WEXITSTATUS(res) != 0) {
-            kernelParamValue.addError(psc::fmt::format("Process exit {} device {}", WEXITSTATUS(res), dev));
+            kernelParamValue.addError(psc::fmt::format("Process exit {} device {}\n", WEXITSTATUS(res), dev));
         }
         else if (WIFSIGNALED(res)) {
-            kernelParamValue.addError(psc::fmt::format("Process signal {} device {}", WTERMSIG(res), dev));
+            kernelParamValue.addError(psc::fmt::format("Process signal {} device {}\n", WTERMSIG(res), dev));
         }
     }
     else {
-        kernelParamValue.addError(psc::fmt::format("Failed to run command {} device {}", cmd, dev));
+        kernelParamValue.addError(psc::fmt::format("Failed to run command {} device {}\n", cmd, dev));
     }
 }
 
@@ -734,4 +738,52 @@ ReadAhead::getManualCommand()
         }
     }
     return info;
+}
+
+SystemdServices::SystemdServices()
+: KernelParameter("Systemd services"
+    , "Disabling unused services may improve performance (less importatnt for a descent desktop but matters on a raspi) some suggestions:\n"
+          "exim4 used for local mail delivery (for jobs...) -> \"dmg\" might be are more lightweight choice\n"
+          "nfs used for file sharing -> consider scp/sshfs as these do not require a extra infrastructure\n"
+          "cups used for printing -> if printing is available somewhere else"
+    , "Use \"sudo systemctl stop SERVICE\" to change"
+    , "Use \"sudo systemctl disable SERVICE\" or uninstall related package")
+{
+}
+
+KernelParmValue
+SystemdServices::query()
+{
+    KernelParmValue kernelParamValue;
+    auto cmd = std::string(SYSCTL) + " 2>&1";
+    // spills errors to stdout
+    std::FILE* fp = popen(cmd.c_str(), "r");     /* Open the command for reading. */
+    if (fp != nullptr) {
+        std::array<char, 128> buffer{};      /* Read the output a line at a time  */
+        char *ptr;
+        while ((ptr = std::fgets(buffer.data(), buffer.size(), fp))) {
+            if (std::ferror(fp)) {  // docs is unclear if this will return nullptr on fgets
+                break;
+            }
+            std::string line{buffer.data(), std::strlen(buffer.data())};
+            kernelParamValue.addValue(line);
+        }
+        int res = pclose(fp);
+        if (WIFEXITED(res) && WEXITSTATUS(res) != 0) {
+            kernelParamValue.addError(psc::fmt::format("Process error {}\n", WEXITSTATUS(res)));
+        }
+        else if (WIFSIGNALED(res)) {
+            kernelParamValue.addError(psc::fmt::format("Process signal {}\n", WTERMSIG(res)));
+        }
+    }
+    else {
+        kernelParamValue.addError(psc::fmt::format("Failed to run command {}\n", cmd));
+    }
+    return kernelParamValue;
+}
+
+std::string
+SystemdServices::getManualCommand()
+{
+    return SYSCTL;
 }
