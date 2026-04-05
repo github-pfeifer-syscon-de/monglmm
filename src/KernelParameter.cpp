@@ -742,7 +742,7 @@ ReadAhead::getManualCommand()
 
 SystemdServices::SystemdServices()
 : KernelParameter("Systemd services"
-    , "Disabling unused services may improve performance (less importatnt for a descent desktop but matters on a raspi) some suggestions:\n"
+    , "Disabling unused services may improve performance (less important for a descent desktop but matters on a raspi) some suggestions:\n"
           "exim4 used for local mail delivery (for jobs...) -> \"dmg\" might be are more lightweight choice\n"
           "nfs used for file sharing -> consider scp/sshfs as these do not require a extra infrastructure\n"
           "cups used for printing -> if printing is available somewhere else"

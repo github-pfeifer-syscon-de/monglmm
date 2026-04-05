@@ -2,9 +2,10 @@ project('monglmm', 'c', 'cpp'
     , default_options: ['c_std=gnu11'   # for libg15.c is ancient and refuses to usleep
                        , 'cpp_std=c++20'
                        , 'buildtype=debugoptimized'
-#                       , 'b_sanitize=address,undefined'    # use to identify issues
+#                       , 'b_sanitize=address,undefined'    # use to identify issues use for test
                        , 'warning_level=3']
     , license : 'GPL-3.0'
+    , license_files : ['LICENSE']
     , meson_version: '>=1.3.0'
     , version: '0.1')
 

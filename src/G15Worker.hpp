@@ -1,3 +1,4 @@
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
  * Copyright (C) 2018 rpf
  *
@@ -44,6 +45,8 @@ public:
     bool isRunning();
     void setLog(const std::shared_ptr<psc::log::Log>& log);
     void logMsg(int g15level, const char *msg);
+protected:
+    Cairo::RefPtr<Cairo::FontFace> getFont();
 private:
     void g15_update();
     int rundirect(const Glib::ustring &cmd);
@@ -62,5 +65,6 @@ private:
     Glib::ustring m1on;
     Glib::ustring m1off;
     std::shared_ptr<psc::log::Log> m_log;
+    Cairo::RefPtr<Cairo::FontFace> m_face;
 };
 

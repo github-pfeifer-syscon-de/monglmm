@@ -249,7 +249,7 @@ LogProperties::toUstring(const std::string& str)
                 --utf8len;
             }
             else {
-                if (c < 0x20 || c > 0x7f) {
+                if (c < 0x20) {
                     if (!inEscape) {
                         ustring += '<';
                         inEscape = true;

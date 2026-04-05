@@ -1,3 +1,4 @@
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 4; coding: utf-8; -*-  */
 /*
  * Copyright (C) 2018 rpf
  *
@@ -94,18 +95,10 @@ cairo2g15Image(Cairo::RefPtr<Cairo::ImageSurface> g15pixmap)
     return data;
 }
 
-void
-G15Worker::g15_update()
+Cairo::RefPtr<Cairo::FontFace>
+G15Worker::getFont()
 {
-    Cairo::RefPtr<Cairo::ImageSurface> g15pixmap = Cairo::ImageSurface::create(Cairo::FORMAT_A8, G15_LCD_WIDTH, G15_LCD_HEIGHT);
-    if (g15pixmap->cobj() != nullptr)
-    {
-        // Create context with some useful defaults
-        Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(g15pixmap);
-        cr->set_source_rgba(1.0, 1.0, 1.0, 1.0);
-        cr->set_line_width(1.0);
-        cr->set_antialias(Cairo::Antialias::ANTIALIAS_NONE);
-
+    if (!m_face) {
         FcPattern* fcFontPattern = FcPatternCreate();
         FcPatternAddString(fcFontPattern, FC_FAMILY, (FcChar8 *)"Monospace");   // mono is the most readable (but still not all glyphs are without artefacts), other "sans-serif""Source code"
         FcPatternAddString(fcFontPattern, FC_STYLE, (FcChar8 *)"Regular");
@@ -117,7 +110,24 @@ G15Worker::g15_update()
         FcResult result;
         FcPattern* resolved = FcFontMatch(nullptr, fcFontPattern, &result);
 
-        Cairo::RefPtr<Cairo::FontFace> face = Cairo::FtFontFace::create(resolved);
+        m_face = Cairo::FtFontFace::create(resolved);
+        FcPatternDestroy(resolved);
+        FcPatternDestroy(fcFontPattern);
+    }
+    return m_face;
+}
+
+void
+G15Worker::g15_update()
+{
+    Cairo::RefPtr<Cairo::ImageSurface> g15pixmap = Cairo::ImageSurface::create(Cairo::FORMAT_A8, G15_LCD_WIDTH, G15_LCD_HEIGHT);
+    if (g15pixmap->cobj() != nullptr) {
+        // Create context with some useful defaults
+        Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(g15pixmap);
+        cr->set_source_rgba(1.0, 1.0, 1.0, 1.0);
+        cr->set_line_width(1.0);
+        cr->set_antialias(Cairo::Antialias::ANTIALIAS_NONE);
+        Cairo::RefPtr<Cairo::FontFace> face = getFont();
         cr->set_font_face(face);
         //cr->set_font_size(9.0);      // 10 is the default
         Cairo::FontOptions fopt;
@@ -135,8 +145,6 @@ G15Worker::g15_update()
         }
         delete[] data;
 
-        FcPatternDestroy(resolved);
-        FcPatternDestroy(fcFontPattern);
     }
 }
 
