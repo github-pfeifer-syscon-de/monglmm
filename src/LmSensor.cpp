@@ -162,6 +162,6 @@ LmSensor::getLabel()
     // longer name is more verbose but is repeating ...
     oss << lmSensors->getName(m_chip, m_feat)
         << " ";
-    oss << Monitor::formatScale(read(), getUnit().c_str(), 1000.0);
+    oss << Monitor::formatScale(read(), getUnit().c_str(), 1000ul);
     return  oss.str();
 }

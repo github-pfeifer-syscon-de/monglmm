@@ -22,9 +22,11 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <StringUtils.hpp>
+#include <psc_format.hpp>
 
 #include "Monitor.hpp"
-#include "StringUtils.hpp"
+
 
 Monitor::Monitor(guint points, const char *_name)
 : m_name{_name}
@@ -246,37 +248,55 @@ Monitor::getDisplayName()
 
 // move to StringUtils unify with Picnic
 std::string
-Monitor::formatScale(double value, const char *suffix, double scaleFactor)
+Monitor::formatScale(double value, const char *suffix, uint64_t scaleFactor)
 {
+    const FormatLimit* formatLimit{};
+    if (scaleFactor == 1024) {
+        formatLimit = &formatLimitIec;
+    }
+    else if (scaleFactor == 1000) {
+        formatLimit = &formatLimitSi;
+    }
+    if (!formatLimit) {
+        throw std::invalid_argument(psc::fmt::format("The format factor {} is not supported", scaleFactor));
+    }
     std::string scale;
-    double mscale = scaleFactor * scaleFactor;
-    double gscale = mscale * scaleFactor;
-    if (value >= gscale) {
-        value /= gscale;
-        scale = "G";
+    bool negative = value < 0.0;
+    value = std::abs(value);
+    if (value > formatLimit->LIMIT_k) { // divide into classes
+        if (value < formatLimit->LIMIT_M) { // check common cases first
+            value /= formatLimit->LIMIT_k;
+            scale = "k";
+        }
+        else if (value < formatLimit->LIMIT_G) {
+            value /= formatLimit->LIMIT_M;
+            scale = "M";
+        }
+        else if (value < formatLimit->LIMIT_T) {
+            value /= formatLimit->LIMIT_G;
+            scale = "G";
+        }
+        else {
+            value /= formatLimit->LIMIT_T;
+            scale = "T";
+        }
     }
-    else if (value >= mscale) {
-        value /= mscale;
-        scale = "M";
-    }
-    else if (value >= scaleFactor) {
-        value /= scaleFactor;
-        scale = "k";
-    }
-    else if (value < 10.0 / scaleFactor) {
-        value *= scaleFactor;
-        scale = "m";
-    }
-    else if (value < 10.0 / mscale) {
-        value *= mscale;
-        scale = "µ";
-    }
-    else if (value < 10.0 / gscale) {
-        value *= gscale;
-        scale = "n";
+    else if (value < 0.1 && value != 0.0) { // show 0 without unit
+        if (value > formatLimit->LIMIT_m) {
+            value *= formatLimit->LIMIT_k;
+            scale = "m";
+        }
+        else if (value > formatLimit->LIMIT_u) {
+            value *= formatLimit->LIMIT_M;
+            scale = "µ";
+        }
+        else {
+            value *= formatLimit->LIMIT_G;
+            scale = "n";
+        }
     }
     guint places = 0;
-    if (value < 1.0) {
+    if (value <= 1.0) {
         places = 3;
     }
     else if (value < 10.0) {
@@ -285,11 +305,12 @@ Monitor::formatScale(double value, const char *suffix, double scaleFactor)
     else if (value < 100.0) {
         places = 1;
     }
+    if (negative) {
+        value = -value;
+    }
     std::ostringstream oss1;
     oss1.precision(places);
-    oss1 << std::fixed << value;
-    oss1 << scale;
-    oss1 << suffix;
+    oss1 << std::fixed << value << scale << suffix;
     std::string max = oss1.str();
     return max;
 }

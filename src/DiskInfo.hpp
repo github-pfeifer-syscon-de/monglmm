@@ -20,14 +20,11 @@
 #include <glib-2.0/glib.h>
 #include <string>
 #include <sys/statvfs.h>
-#include <Geom2.hpp>
-#include <Text2.hpp>
-
 
 #include "libgtop_helper.h"
 /*
  1 - major number
- 2 - minor mumber
+ 2 - minor number
  3 - device name
  4 - reads completed successfully
  5 - reads merged
@@ -45,39 +42,75 @@ struct disk_stat {
     unsigned long major,minor,reads,rmerged,rsect,rtime,writes,wmerged,wsect,wtime,curr,iotime,weightime;
 };
 
+class MountInfo;
 
-class DiskInfo {
+using PtrMountInfo = std::shared_ptr<MountInfo>;
+
+// this gives infos of mounted filesystems
+//    -> using dev nodes
+class MountInfo
+{
 public:
-    DiskInfo();
-    virtual ~DiskInfo();
+    MountInfo(const std::string& line);
+    virtual ~MountInfo() = default;
 
-    void removeGeometry();
-    void reinit();
-
-    bool readStat(char const *line, gint64 delta_us);
+    std::string getMount() const;
+    //  e.g. sda
+    std::string getDevName() const;
+    bool isDev() const;
+    static std::vector<PtrMountInfo> getMounts();
     bool refreshFilesys(glibtop * glibtop);
-
-    const std::string &getDevice() const {
-        return m_device;
-    }
-    const std::string &getMount() const {
-        return m_mount;
-    }
-    void setMount(const std::string &mount) {
-        m_mount = mount;
-    }
-    bool isTouched() const {
-        return m_touched;
-    }
-    void setTouched(bool _touched) {
-        m_touched = _touched;
-    }
+    // used ratio 0 = empty, 1 = full
+    double getUsage();
+    guint64 getCapacityBytes();
+    double getAvailBytes();
+    float getFreePercent();
+    void reinit();
+    static constexpr auto DEV_PREFIX{"/dev/"};
     bool isFilesysTouched() const {
         return m_filesysTouched;
     }
     void setFilesysTouched(bool _filesysTouched) {
         m_filesysTouched = _filesysTouched;
     }
+    void setLastUsage(double _lastUsage) {
+        m_lastUsage = _lastUsage;
+    }
+    double getLastUsage() const {
+        return m_lastUsage;
+    }
+    bool isChanged();
+
+    static constexpr auto USAGE_THRESHOLD{0.05};// some threshold 5% change in usage
+protected:
+
+private:
+    bool m_filesysTouched;
+    std::string m_dev;
+    std::string m_mount;
+    std::string m_type;
+    std::string m_opt;
+    int m_n1;
+    int m_n2;
+    struct statvfs fsd;
+    double m_lastUsage{};
+};
+
+class DiskInfo;
+using PtrDiskInfo = std::shared_ptr<DiskInfo>;
+
+// these infos relate to dev nodes e.g. sda...sda4
+class DiskInfo {
+public:
+    DiskInfo();
+    virtual ~DiskInfo() = default;
+
+    bool readStat(char const *line, gint64 delta_us);
+
+    std::string getDevice() const {
+        return m_device;
+    }
+
     guint64 getBytesReadPerS() const {
         return m_bytesReadPerS;
     }
@@ -96,52 +129,17 @@ public:
     void setLastWriteTime(unsigned long lastWriteTime) {
         m_lastWriteTime = lastWriteTime;
     }
-    double getUsage();
-
-    void setGeometry(const psc::gl::aptrGeom2& _geometry);
-    psc::gl::aptrGeom2 getGeometry() const;
-    void setDevText(const psc::gl::aptrText2& _devTxt) {
-        m_devTxt = _devTxt;
-    }
-    auto getDevText() const {
-        return m_devTxt;
-    }
-    void setMountText(const psc::gl::aptrText2&  _MountTxt) {
-        m_mountTxt = _MountTxt;
-    }
-    auto getMountText() const {
-        return m_mountTxt;
-    }
-    void setLastUsage(double _lastUsage) {
-        m_lastUsage = _lastUsage;
-    }
-    double getLastUsage() const {
-        return m_lastUsage;
-    }
-
-    guint64 getCapacityBytes();
-    double getAvailBytes();
     bool isChanged(gint updateInterval);
-    float getFreePercent();
     guint64 getTotalRWSectors();
+    void reinit();
+    static void getDiskStats(std::map<std::string, PtrDiskInfo>& map, int64_t diff_us);
 private:
     struct disk_stat previous_disk_stat;
-
     std::string m_device;
-    std::string m_mount;
-    bool m_touched;
-    bool m_filesysTouched;
     guint64 m_bytesReadPerS;
     guint64 m_bytesWrittenPerS;
-    struct statvfs fsd;
-    double m_lastUsage;
-    psc::gl::aptrGeom2 m_geometry;
-    psc::gl::aptrText2 m_devTxt;
-    psc::gl::aptrText2 m_mountTxt;
     unsigned long m_actualReadTime;
     unsigned long m_actualWriteTime;
     unsigned long m_lastReadTime;
     unsigned long m_lastWriteTime;
-
 };
-

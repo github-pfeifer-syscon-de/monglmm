@@ -26,7 +26,7 @@ class DiskMonitor : public HistMonitor
 {
 public:
     DiskMonitor(guint points);
-    virtual ~DiskMonitor();
+    virtual ~DiskMonitor() = default;
 
     gboolean update(int refreshRate, glibtop * glibtop) override;
     void updateG15(Cairo::RefPtr<Cairo::Context> cr, guint width, guint height) override;

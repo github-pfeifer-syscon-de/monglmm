@@ -30,7 +30,7 @@
 
 class CompareByData  {
     public:
-    bool operator()(const ptrDiskInfo &a, const ptrDiskInfo &b) {
+    bool operator()(const PtrDiskInfo &a, const PtrDiskInfo &b) {
         if (a == nullptr) {
             return FALSE;
         }
@@ -41,13 +41,38 @@ class CompareByData  {
     }
 };
 
+DiskGeom::DiskGeom()
+{
+}
+
+DiskGeom::~DiskGeom()
+{
+    removeGeometry();
+}
+
+void
+DiskGeom::removeGeometry()
+{
+    m_devTxt.resetAll();
+    m_mountTxt.resetAll();
+    m_geometry.resetAll();
+}
+void
+DiskGeom::setGeometry(const psc::gl::aptrGeom2& _geometry)
+{
+    m_geometry = _geometry;
+}
+
+psc::gl::aptrGeom2
+DiskGeom::getGeometry() const
+{
+    return m_geometry;
+}
 
 
 DiskInfos::DiskInfos()
 : Infos()
-, m_previous_diskstat_time{0l}
-, m_devices()
-, m_mounts()
+, m_previous_diskstat_time{}
 {
 }
 
@@ -55,6 +80,7 @@ DiskInfos::DiskInfos()
 DiskInfos::~DiskInfos()
 {
     m_mounts.clear();
+    m_geom.clear();
     m_devices.clear();
 }
 
@@ -68,59 +94,28 @@ void
 DiskInfos::updateDiskStat(int refreshRate, glibtop * glibtop)
 {
     gint64 actual_time = g_get_monotonic_time();    // the promise is this does not get screwed up by time adjustments
-    gint64 diff = 0l;
+    gint64 diff_us{};
     if (m_previous_diskstat_time > 0l) {
-        diff = actual_time - m_previous_diskstat_time;
+        diff_us = actual_time - m_previous_diskstat_time;
     }
-    FileByLine fileByLine;
-    if (!fileByLine.open("/proc/diskstats", "r")) {
-        g_warning("DiskInfos: Could not open /proc/diskstats: %d, %s",
-                  errno, strerror(errno));
-        return;
-    }
-    // mark all as untouched
-    for (auto devDisk = m_devices.begin(); devDisk != m_devices.end(); ++devDisk) {
-        (devDisk->second)->setTouched(false);
-    }
-    size_t len = 0;
-    while (TRUE) {
-        const char *line = fileByLine.nextLine(&len);
-        if (line == nullptr) {
-            break;
-        }
-        if (len > 6) {
-            DiskInfo tInfo;
-            if (tInfo.readStat(line, 0l)) {
-                auto devDisk = m_devices.find(tInfo.getDevice());
-                ptrDiskInfo diskInfo;
-                if (devDisk != m_devices.end()) {
-                    diskInfo = devDisk->second;
-                }
-                else {
-                    diskInfo = std::make_shared<DiskInfo>();
-                    m_devices.insert(std::pair(tInfo.getDevice(), diskInfo));
-                }
-                diskInfo->readStat(line, diff);
-            }
-        }
-    }
+    DiskInfo::getDiskStats(m_devices, diff_us);
     m_previous_diskstat_time = actual_time;
-    // remove those we did not touch
-    for (auto devDisk = m_devices.begin(); devDisk != m_devices.end(); ) {
-        auto diskInfo = devDisk->second;
-        if (!diskInfo->isTouched()) {
-            devDisk = m_devices.erase(devDisk);
-            remove(diskInfo);
+    // remove geom we don't have a device for
+    for (auto iterGeom = m_geom.begin(); iterGeom != m_geom.end(); ) {
+        auto diskGeom = iterGeom->second;
+        if (m_devices.find(iterGeom->first) == m_devices.end()) {
+            //std::cout << "Remove device not touched " << iterGeom->first << std::endl;
+            iterGeom = m_geom.erase(iterGeom);
         }
         else {
-            ++devDisk;
+            ++iterGeom;
         }
     }
 }
 
 // get from device name of a partition the disk e.g. sda1 -> sda
-//   expected map to be sorted e.g. sda before sda1 so we wont find sda1 from sda10
-ptrDiskInfo
+//   expected map to be sorted e.g. sda before sda1 so we won't find sda1 from sda10
+PtrDiskInfo
 DiskInfos::getDisk(std::string const &device) const
 {
     for (auto p : m_devices) {
@@ -132,11 +127,19 @@ DiskInfos::getDisk(std::string const &device) const
     return nullptr;
 }
 
+PtrDiskGeom
+DiskInfos::createGeometry(const std::string& dev)
+{
+    auto ptrGeom = std::make_shared<DiskGeom>();
+    m_geom.insert(std::pair(dev, ptrGeom));
+    return ptrGeom;
+}
+
 void
 DiskInfos::updateMounts(int refresh_rate, glibtop * glibtop)
 {
-    for (auto p : m_devices) {
-        auto diskInfo = p.second;
+    for (auto p : m_mounts) {
+        auto& diskInfo = p.second;
         diskInfo->setFilesysTouched(false);
     }
 #ifdef LIBGTOP
@@ -163,96 +166,52 @@ DiskInfos::updateMounts(int refresh_rate, glibtop * glibtop)
     }
     g_free(mount_entry);
 #else
-
-    std::ifstream mnts;
-
-    std::ios_base::iostate exceptionMask = mnts.exceptions() | std::ios::failbit | std::ios::badbit;
-    mnts.exceptions(exceptionMask);
-
-    try {
-        mnts.open("/proc/mounts");
-        if (mnts.is_open()) {
-            while (!mnts.eof()
-                && mnts.peek() >= 0) {   // try to read ahead
-                std::string line;
-                std::getline(mnts, line);
-                if (line.length() > 8) {
-                    std::istringstream is(line);
-                    std::string dev;
-                    std::string mount;
-                    std::string type;
-                    std::string opt;
-                    int n1,n2;
-                    is >> dev
-                       >> mount
-                       >> type
-                       >> opt
-                       >> n1
-                       >> n2;
-                    if (dev.rfind("/dev/", 0) == 0) {   // this shoud give us "real" mounts
-                        std::string devName = dev.substr(5);
-                        auto p = m_devices.find(devName);
-                        if (p != m_devices.end()) {
-                            auto diskInfo = p->second;
-                            auto m = m_mounts.find(mount);
-                            if (m == m_mounts.end()) {      // add to mounts if needed
-                                m_mounts.insert(std::pair(mount, diskInfo));
-                                diskInfo->setMount(mount);
-                            }
-                            diskInfo->refreshFilesys(glibtop);
-                        }
-                        else {
-                            std::cout << "Unexpected found fs " << mount << " but no dev " << dev << std::endl;
-                        }
-                    }
-                }
+    for (auto& mnt : MountInfo::getMounts()) {
+        auto mount = mnt->getMount();
+        auto devName = mnt->getDevName();
+        auto p = m_devices.find(devName);
+        if (p != m_devices.end()) { // only use if we have a device as these are out display unit
+            auto m = m_mounts.find(mount);
+            PtrMountInfo ptrMount;
+            if (m == m_mounts.end()) {      // add to mounts if needed
+                m_mounts.insert(std::pair(mount, mnt));
+                ptrMount = mnt;
             }
-            mnts.close();
+            else {
+                ptrMount = m->second;
+            }
+            ptrMount->refreshFilesys(glibtop);
         }
-    }
-    catch (std::ios_base::failure& e) {
-        g_warning("monitors: Could not read /proc/mounts: %d, %s",
-                  errno, strerror(errno));
+        else {
+            std::cout << "Unexpected found fs " << mount << " but no dev " << devName << std::endl;
+        }
     }
 #endif
-    for (auto p : m_devices) {
-        auto filesys = p.second;
-        if (!filesys->isFilesysTouched()
-          && filesys->getMount().length() > 0) {    // if device is unmounted keep device, but remove mount
-            auto m = m_mounts.find(filesys->getMount());
-            if (m != m_mounts.end()) {
-                //std::cout << "Removing fs " << filesys->getMount() << " with dev " << filesys->getMount() << std::endl;
-                m_mounts.erase(m);
-                filesys->setMount("");
-                filesys->removeGeometry();
-            }
+    std::set<std::string> touchedDevices;
+    for (auto imap = m_mounts.begin(); imap != m_mounts.end(); ) {
+        auto& filesys = imap->second;
+        if (!filesys->isFilesysTouched()) {    // if device is unmounted keep device, but remove from display
+            imap = m_mounts.erase(imap);
+        }
+        else {
+            //std::cout << "Collecting dev " << filesys->getDevName() << std::endl;
+            touchedDevices.insert(filesys->getDevName());
+            ++imap;
+        }
+    }
+    for (auto dev : m_geom) {
+        if (!touchedDevices.contains(dev.first)) {  // since we have no association to filesys don't show device
+            auto& diskGeo = dev.second;
+            //std::cout << "DiskInfos::updateMounts removing devGeo first " << dev.first << " dev " << dev.first << std::endl;
+            diskGeo->removeGeometry();
         }
     }
 }
 
-
-void
-DiskInfos::remove(ptrDiskInfo diskInfo)
-{
-    // keep structures in sync
-    if (diskInfo->getDevice() != "") {
-        auto dev = m_devices.find(diskInfo->getDevice());
-        if (dev != m_devices.end()) {
-            m_devices.erase(dev);
-        }
-    }
-    if (diskInfo->getMount() != "") {
-        auto mnt = m_mounts.find(diskInfo->getMount());
-        if (mnt != m_mounts.end()) {
-            m_mounts.erase(mnt);
-        }
-    }
-}
-
-ptrDiskInfo
+PtrDiskInfo
 DiskInfos::getPrefered(std::string const &device) const
 {
-    ptrDiskInfo diskInfo;
+    PtrDiskInfo diskInfo;
     if (!device.empty()) {
         auto dev = m_devices.find(device);
         if (dev != m_devices.end()) {
@@ -260,7 +219,7 @@ DiskInfos::getPrefered(std::string const &device) const
         }
     }
     if (!diskInfo) {
-        std::vector<ptrDiskInfo> devs;
+        std::vector<PtrDiskInfo> devs;
         for (auto dev : m_devices) {
             auto diskInf = dev.second;
             devs.push_back(diskInf);
@@ -274,14 +233,32 @@ DiskInfos::getPrefered(std::string const &device) const
     return diskInfo;
 }
 
-const std::map<std::string, ptrDiskInfo> &
+const std::map<std::string, PtrMountInfo> &
 DiskInfos::getFilesyses()
 {
     return m_mounts;
 }
 
+std::vector<PtrMountInfo>
+DiskInfos::getFilesyses(const std::string& device)
+{
+    std::vector<PtrMountInfo> mnts;
+    mnts.reserve(4);
+    for (auto fs : m_mounts) {
+        if (fs.second->getDevName() == device) {
+            mnts.push_back(fs.second);
+        }
+    }
+    return mnts;
+}
 
-const std::map<std::string, ptrDiskInfo> &
+const std::map<std::string, PtrDiskGeom>&
+DiskInfos::getGeometries()
+{
+    return m_geom;
+}
+
+const std::map<std::string, PtrDiskInfo> &
 DiskInfos::getDevices()
 {
     return m_devices;

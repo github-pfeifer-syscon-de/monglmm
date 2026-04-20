@@ -17,17 +17,19 @@
 
 #pragma once
 
-#include <memory>
+#include "DiskInfo.hpp"
+
+#include <Font2.hpp>
 #include <Geom2.hpp>
 #include <Matrix.hpp>
-#include <Font2.hpp>
 #include <Text2.hpp>
+#include <memory>
 
 #include "Page.hpp"
 #include "GraphShaderContext.hpp"
 
 class DiskInfos;    // forward declaration
-class DiskInfo;    // forward declaration
+class DiskGeom;    // forward declaration
 
 class Filesyses : public Page {
 public:
@@ -47,7 +49,9 @@ public:
 protected:
     void updateDiskGeometry(
           const psc::gl::aptrGeom2& geo
-        , const std::shared_ptr<DiskInfo>& partInfo
+        , const std::shared_ptr<DiskGeom>& diskGeom
+        , const std::shared_ptr<DiskInfo>& diskInfo
+        , const std::vector<PtrMountInfo>& mntInfo
         , GraphShaderContext *_ctx
         , TextContext *_txtCtx
         , const psc::gl::ptrFont2& font
@@ -55,9 +59,12 @@ protected:
         , gint updateInterval);
 
 private:
-    float getOffset(const std::shared_ptr<DiskInfo>& partInfo, guint64 diffTime, gint updateInterval);
+    float getColorOffsetRW(
+          const std::shared_ptr<DiskInfo>& partInfo
+        , guint64 diffTime
+        , gint updateInterval);
 
     std::shared_ptr<DiskInfos> m_diskInfos;
-    static constexpr float FS_RADIUS = 0.5f;
+    static constexpr auto FS_RADIUS{ 0.5f };
 };
 

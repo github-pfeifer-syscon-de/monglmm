@@ -34,11 +34,6 @@ DiskMonitor::DiskMonitor(guint points)
     m_enabled = FALSE;
 }
 
-
-DiskMonitor::~DiskMonitor() {
-}
-
-
 void
 DiskMonitor::reinit()
 {
@@ -65,12 +60,24 @@ DiskMonitor::create_config_page(MonglView *monglView)
 
     auto combo = Gtk::manage(new Gtk::ComboBoxText());
     combo->append("", "");
-    for (auto dev : m_diskInfos->getDevices()) {
+    for (auto& dev : m_diskInfos->getDevices()) {
         auto device = dev.first;
         auto devInfo = dev.second;
         std::string name(device);
-        if (!devInfo->getMount().empty()) {
-            name += " (" + devInfo->getMount() + ")";
+        name.reserve(32);
+        bool first = true;
+        for (auto fs : m_diskInfos->getFilesyses(device)) {
+            if (first) {
+                name += " (";
+                first = false;
+            }
+            else {
+                name += " ";
+            }
+            name += fs->getMount();
+        }
+        if (!first) {
+            name += ")";
         }
         combo->append(device, name);
     }

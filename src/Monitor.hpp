@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <glib-2.0/glib.h>
+#include <glibmm.h>
 #include <string>
 #include <memory>
 
@@ -26,20 +26,31 @@
 #include "Page.hpp"
 #include "Buffer.hpp"
 
-namespace Gtk {
-    class Box;
-    class Widget;
-    class ToggleButton;
-    class ColorButton;
-}
-namespace Glib {
-    class KeyFile;
-}
-
 class MonglView;
 
-class Monitor : public Page
+struct FormatLimit
 {
+    constexpr FormatLimit(uint64_t size)
+    : LIMIT_T{static_cast<double>(size*size*size*size)}
+    , LIMIT_G{static_cast<double>(size*size*size)}
+    , LIMIT_M{static_cast<double>(size*size)}
+    , LIMIT_k{static_cast<double>(size)}
+    , LIMIT_m{(1.0/LIMIT_k)}
+    , LIMIT_u{(1.0/LIMIT_M)}
+    , LIMIT_n{(1.0/LIMIT_G)}
+    {
+    }
+    const double LIMIT_T;
+    const double LIMIT_G;
+    const double LIMIT_M;
+    const double LIMIT_k;
+    const double LIMIT_m;
+    const double LIMIT_u;
+    const double LIMIT_n;
+};
+
+class Monitor
+: public Page {
 public:
     Monitor(guint points, const char *_name);
     virtual ~Monitor();
@@ -65,7 +76,7 @@ public:
     virtual unsigned long getTotal() = 0;
     virtual std::string getPrimMax() = 0;
     virtual std::string getSecMax() = 0;
-    static std::string formatScale(double value, const char *suffix, double scale = 1024.0);
+    static std::string formatScale(double value, const char *suffix, uint64_t scale = 1024);
     static void add_widget2box(Gtk::Box *dest, const char *lbl, Gtk::Widget *toAdd, gfloat y_scale);
     virtual void close();
     virtual guint defaultValues();  // number of values used by default
@@ -78,8 +89,8 @@ public:
     void ternary_color_changed(Gtk::ColorButton *ternary_color);
 protected:
     Gtk::Box* create_default_config_page(const char *enabledLabel,
-					const char *primaryColorLabel,
-					const char *secondaryColorLabel,
+                                        const char *primaryColorLabel,
+                                        const char *secondaryColorLabel,
                                         const char *ternaryColorLabel = nullptr);
     gboolean m_enabled;
     guint m_size;       // number of values
@@ -93,6 +104,9 @@ protected:
     Gdk::RGBA m_ternary_color;
 
     void toggle_changed(Gtk::ToggleButton *enabled);
+
+    static constexpr FormatLimit formatLimitIec{1024ul};
+    static constexpr FormatLimit formatLimitSi{1000ul};
 private:
 
 };

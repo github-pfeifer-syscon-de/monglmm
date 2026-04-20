@@ -9,6 +9,8 @@ process_test = executable('process_test'
     , '../src/NameValue.cpp'
     , '../src/Monitor.cpp'
     , '../src/Page.cpp'
+    , '../src/DiskInfo.cpp'
+    , '../src/FileByLine.cpp'
     , dependencies: deps
     , include_directories : test_headers)
 

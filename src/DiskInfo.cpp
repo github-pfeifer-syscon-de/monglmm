@@ -31,89 +31,43 @@
 
 #include "Monitor.hpp"
 #include "DiskInfo.hpp"
+#include "FileByLine.hpp"
 
-DiskInfo::DiskInfo()
-: m_touched{true}
-, m_bytesReadPerS{0l}
-, m_bytesWrittenPerS{0l}
-, m_lastUsage{-1.0}  //  ?
-, m_actualReadTime{0l}
-, m_actualWriteTime{0l}
-, m_lastReadTime{0l}
-, m_lastWriteTime{0l}
+MountInfo::MountInfo(const std::string& line)
 {
-    reinit();
+    std::istringstream is(line);
+    is >> m_dev
+       >> m_mount
+       >> m_type
+       >> m_opt
+       >> m_n1
+       >> m_n2;
 }
 
-DiskInfo::~DiskInfo()
+std::string
+MountInfo::getMount() const
 {
-    removeGeometry();
+    return m_mount;
 }
 
-void
-DiskInfo::removeGeometry()
+std::string
+MountInfo::getDevName() const
 {
-    m_devTxt.resetAll();
-    m_mountTxt.resetAll();
-    m_geometry.resetAll();
-}
-
-void
-DiskInfo::reinit()
-{
-   // So we wont pickup sum on reactivation ???
-   std::memset(&previous_disk_stat, 0, sizeof(struct disk_stat));
-   std::memset(&fsd, 0, sizeof(struct statvfs));
+    return m_dev.substr(5);
 }
 
 bool
-DiskInfo::readStat(char const *line, gint64 delta_us)
+MountInfo::isDev() const
 {
-    struct disk_stat tdisk;
-    char tdev[80];
-    int fscanf_result = sscanf(line, " %lu %lu %s %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu",
-                                &tdisk.major,&tdisk.minor,tdev,&tdisk.reads,&tdisk.rmerged,&tdisk.rsect,&tdisk.rtime,&tdisk.writes,&tdisk.wmerged,&tdisk.wsect,&tdisk.wtime,&tdisk.curr,&tdisk.iotime,&tdisk.weightime);
-    if (fscanf_result >= 14)
-    {
-        m_device = tdev;    // is  without "/dev/"
-
-        struct disk_stat disk_delta;
-        // what do about wrapping ? -> it will give us a huge peak :)
-        disk_delta.reads = tdisk.reads - previous_disk_stat.reads;
-        disk_delta.rmerged = tdisk.rmerged - previous_disk_stat.rmerged;
-        disk_delta.rsect = tdisk.rsect - previous_disk_stat.rsect;
-        disk_delta.rtime = tdisk.rtime - previous_disk_stat.rtime;
-        disk_delta.writes = tdisk.writes - previous_disk_stat.writes;
-        disk_delta.wmerged = tdisk.wmerged - previous_disk_stat.wmerged;
-        disk_delta.wsect = tdisk.wsect - previous_disk_stat.wsect;
-        disk_delta.wtime = tdisk.wtime - previous_disk_stat.wtime;
-        disk_delta.iotime = tdisk.iotime - previous_disk_stat.iotime;
-        disk_delta.weightime = tdisk.weightime - previous_disk_stat.weightime;
-        unsigned long writeValue = disk_delta.wsect;
-        unsigned long readValue = disk_delta.rsect;
-        if (delta_us > 0l) {    // for the first call time will not be valid and values will jump from 0 to all
-            // only update after init
-            double delta_sect_s = 512.0E6/(double)delta_us;        // factor that combines conversion sectors per time unit to byte/s
-
-            m_bytesReadPerS = (guint64)(readValue * delta_sect_s);
-            m_bytesWrittenPerS = (guint64)(writeValue * delta_sect_s);
-        }
-        /* Copy current to previous. */
-        memcpy(&previous_disk_stat, &tdisk, sizeof(struct disk_stat));
-        m_actualReadTime = disk_delta.rtime;
-        m_actualWriteTime = disk_delta.wtime;
-
-        setTouched(true);
-        return true;
-    }
-    return false;
+    return m_dev.rfind(DEV_PREFIX, 0) == 0;   // this should give us "real" devices/mounts
 }
 
 bool
-DiskInfo::refreshFilesys(glibtop * glibtop)
+MountInfo::refreshFilesys(glibtop * glibtop)
 {
     // does not consume much time
     if (statvfs(m_mount.c_str(), &fsd) < 0) {
+        std::cout << "Error querying fs " << m_mount << std::endl;
         return false;
     }
     setFilesysTouched(true);
@@ -140,21 +94,9 @@ DiskInfo::refreshFilesys(glibtop * glibtop)
     return true;
 }
 
-
-void
-DiskInfo::setGeometry(const psc::gl::aptrGeom2& _geometry)
-{
-    m_geometry = _geometry;
-}
-
-psc::gl::aptrGeom2
-DiskInfo::getGeometry() const
-{
-    return m_geometry;
-}
-
 double
-DiskInfo::getUsage() {
+MountInfo::getUsage()
+{
     //std::cout << dev
     //         << " " << mount
     //         << " size: " << fsd.f_blocks * fsd.f_frsize / (1024l*1024l) << "M"
@@ -165,44 +107,199 @@ DiskInfo::getUsage() {
 }
 
 guint64
-DiskInfo::getCapacityBytes()
+MountInfo::getCapacityBytes()
 {
-    return (guint64)fsd.f_blocks * (guint64)fsd.f_bsize;
+    return (uint64_t)fsd.f_blocks * (uint64_t)fsd.f_bsize;
 }
 
 double
-DiskInfo::getAvailBytes()
+MountInfo::getAvailBytes()
 {
-    return (double)((guint64)fsd.f_bavail * (guint64)fsd.f_frsize);    // long cast is for compat 32bit
+    return (double)(static_cast<uint64_t>(fsd.f_bavail)
+            * static_cast<uint64_t>(fsd.f_frsize));    // long cast is for compat 32bit
 }
 
 float
-DiskInfo::getFreePercent()
+MountInfo::getFreePercent()
 {
-    if (fsd.f_ffree <= 0) {
+    if (fsd.f_blocks <= 0) {
         return 0.0;
     }
-    return (float)((double)fsd.f_bavail / (double)fsd.f_blocks * 100.0);
+    return static_cast<float>((static_cast<double>(fsd.f_bavail)
+            / static_cast<double>(fsd.f_blocks)) * 100.0);
+}
+
+void
+MountInfo::reinit()
+{
+    std::memset(&fsd, 0, sizeof(struct statvfs));
 }
 
 bool
-DiskInfo::isChanged(gint updateInterval)
+MountInfo::isChanged()
 {
-    double diff = std::abs(getUsage() - m_lastUsage);
-    long diffRead = std::abs((gint64)m_lastReadTime - (gint64)getActualReadTime());
-    long diffWrite = std::abs((gint64)m_lastWriteTime - (gint64)getActualWriteTime());
-    long ioThreshold = updateInterval * 10;  // interval is seconds  (io is ms ) -> *1000, want percent -> /100  = *10
-    if (diff > 0.01                 // some threshold 1% change in usage / 1% of io time
-        || diffRead > ioThreshold
-        || diffWrite > ioThreshold) {
+    auto usageDiff = std::abs(getUsage() - m_lastUsage);
+    return usageDiff > USAGE_THRESHOLD;
+}
+
+std::vector<PtrMountInfo>
+MountInfo::getMounts()
+{
+    std::vector<PtrMountInfo> ret;
+    ret.reserve(16);
+    std::ifstream mnts;
+    std::ios_base::iostate exceptionMask = mnts.exceptions() | std::ios::failbit | std::ios::badbit;
+    mnts.exceptions(exceptionMask);
+    try {
+        mnts.open("/proc/mounts");
+        if (mnts.is_open()) {
+            while (!mnts.eof()
+                && mnts.peek() >= 0) {   // try to read ahead
+                std::string line;
+                std::getline(mnts, line);
+                if (line.length() > 8) {
+                    auto mountInfo = std::make_shared<MountInfo>(line);
+                    if (mountInfo->isDev()) {
+                        ret.emplace_back(std::move(mountInfo));
+                    }
+                }
+            }
+        }
+    }
+    catch (std::ios_base::failure& e) {
+        g_warning("monitors: Could not read /proc/mounts: %d, %s",
+                  errno, strerror(errno));
+    }
+    if (mnts.is_open()) {
+        mnts.close();
+    }
+    return ret;
+}
+
+
+DiskInfo::DiskInfo()
+: m_bytesReadPerS{}
+, m_bytesWrittenPerS{}
+, m_actualReadTime{}
+, m_actualWriteTime{}
+, m_lastReadTime{}
+, m_lastWriteTime{}
+{
+    reinit();
+}
+
+void
+DiskInfo::reinit()
+{
+    // So we won't pick up sum on reactivation ???
+    m_bytesReadPerS = 0ul;
+    m_bytesWrittenPerS = 0ul;
+}
+
+bool
+DiskInfo::readStat(char const *line, gint64 delta_us)
+{
+    struct disk_stat tdisk;
+    char tdev[80];
+    int fscanf_result = sscanf(line, " %lu %lu %s %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu",
+                                &tdisk.major,&tdisk.minor,tdev,&tdisk.reads,&tdisk.rmerged,&tdisk.rsect,&tdisk.rtime,&tdisk.writes,&tdisk.wmerged,&tdisk.wsect,&tdisk.wtime,&tdisk.curr,&tdisk.iotime,&tdisk.weightime);
+    if (fscanf_result >= 14) {
+        m_device = tdev;    // is  without "/dev/"
+        struct disk_stat disk_delta;
+        // what do about wrapping ? -> it will give us a huge peak :)
+        disk_delta.reads = tdisk.reads - previous_disk_stat.reads;
+        disk_delta.rmerged = tdisk.rmerged - previous_disk_stat.rmerged;
+        disk_delta.rsect = tdisk.rsect - previous_disk_stat.rsect;
+        disk_delta.rtime = tdisk.rtime - previous_disk_stat.rtime;
+        disk_delta.writes = tdisk.writes - previous_disk_stat.writes;
+        disk_delta.wmerged = tdisk.wmerged - previous_disk_stat.wmerged;
+        disk_delta.wsect = tdisk.wsect - previous_disk_stat.wsect;
+        disk_delta.wtime = tdisk.wtime - previous_disk_stat.wtime;
+        disk_delta.iotime = tdisk.iotime - previous_disk_stat.iotime;
+        disk_delta.weightime = tdisk.weightime - previous_disk_stat.weightime;
+        unsigned long writeValue = disk_delta.wsect;
+        unsigned long readValue = disk_delta.rsect;
+        if (delta_us > 0l) {    // for the first call time will not be valid and values will jump from 0 to all
+            // only update after init
+            double delta_sect_s = 512.0E6/(double)delta_us;        // factor that combines conversion sectors per time unit to byte/s
+
+            m_bytesReadPerS = (guint64)(readValue * delta_sect_s);
+            m_bytesWrittenPerS = (guint64)(writeValue * delta_sect_s);
+            //std::cout << "DiskInfo::readStat " << m_device
+            //          << " diff " << delta_us << "us"
+            //          <<  " read " << tdisk.rsect << "sect prev " <<  previous_disk_stat.rsect << "sect"
+            //          << " " << readValue << "sect"
+            //          << " " << m_bytesReadPerS << "B/s"
+            //          << " write " << tdisk.wsect << "sect prev " <<  previous_disk_stat.wsect << "sect"
+            //          << " " << writeValue << "sect"
+            //          << " " << m_bytesWrittenPerS << "B/s" << std::endl;
+        }
+        /* Copy current to previous. */
+        previous_disk_stat = tdisk;
+        m_actualReadTime = disk_delta.rtime;
+        m_actualWriteTime = disk_delta.wtime;
         return true;
     }
     return false;
 }
 
+bool
+DiskInfo::isChanged(gint updateInterval)
+{
+    auto diffRead = std::abs((gint64)m_lastReadTime - (gint64)getActualReadTime());
+    auto diffWrite = std::abs((gint64)m_lastWriteTime - (gint64)getActualWriteTime());
+    long ioThreshold = updateInterval * 10;  // interval is seconds  (io is ms ) -> *1000, want percent -> /100  = *10
+    if (diffRead > ioThreshold
+     || diffWrite > ioThreshold) {  // 1% of io time
+        return true;
+    }
+    return false;
+}
 
 guint64
 DiskInfo::getTotalRWSectors()
 {
     return previous_disk_stat.rsect + previous_disk_stat.wsect;
+}
+
+void
+DiskInfo::getDiskStats(std::map<std::string, PtrDiskInfo>& map, int64_t diff_us)
+{
+    FileByLine fileByLine;
+    if (!fileByLine.open("/proc/diskstats", "r")) {
+        std::cout << "DiskInfos: Could not open /proc/diskstats: " << errno << " " << strerror(errno) << std::endl;
+        return;
+    }
+    size_t len{};
+    std::set<std::string> foundDev;
+    while (true) {
+        const char *line = fileByLine.nextLine(&len);
+        if (line == nullptr) {
+            break;
+        }
+        if (len > 6) {
+            DiskInfo tInfo;
+            if (tInfo.readStat(line, 0l)) {
+                auto dev = map.find(tInfo.getDevice());
+                PtrDiskInfo pInfo;
+                if (dev == map.end()) {
+                    pInfo = std::make_shared<DiskInfo>();
+                    map.insert(std::pair(tInfo.getDevice(), pInfo));
+                }
+                else {
+                    pInfo = dev->second;
+                }
+                pInfo->readStat(line, diff_us);
+                foundDev.insert(tInfo.getDevice());
+            }
+        }
+    }
+    for (auto entry = map.begin(); entry != map.end(); ) {  // remove obsolet
+        if (!foundDev.contains(entry->first)) {
+            entry = map.erase(entry);
+        }
+        else {
+            ++entry;
+        }
+    }
 }

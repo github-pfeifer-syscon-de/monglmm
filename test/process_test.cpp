@@ -23,8 +23,13 @@
 #include <map>
 #include <netdb.h>
 #include <arpa/inet.h>  // htons
+#include <unistd.h>
+#include <cstdlib>
+#include <cstdio>
+#include <fcntl.h>
+#include <vector>
 
-
+#include "DiskInfo.hpp"
 #include "Process.hpp"
 
 static bool
@@ -64,7 +69,7 @@ net_test_etcservices()
         stat.open("/etc/services");
         std::string line;
         while (!stat.eof()) {   //  will only be set after we read past end, so we end up with a exception
-            auto next = stat.peek();
+            [[maybe_unused]] auto next = stat.peek();       // just to check eof
             if (stat.eof()) {
                 break;
             }
@@ -136,7 +141,6 @@ net_test_getservent_r()
 
     return true;
 }
-
 //    if (m_portNames.empty()) {
 //        struct servent result_buf;
 //        struct servent *result;
@@ -164,6 +168,103 @@ net_test_getservent_r()
 //        }
 //    }
 
+static void
+disk_print(std::map<std::string, PtrDiskInfo>& mapDisks)
+{
+    for (auto entryDisk : mapDisks) {
+        auto& dev = entryDisk.second;
+        std::cout << "disk " << entryDisk.first
+                 // << " rwSect " << dev->getTotalRWSectors()
+                  << " read " << dev->getBytesReadPerS() << " B/s"
+                  << " write " << dev->getBytesWrittenPerS() << " B/s" << std::endl;
+    }
+}
+
+static bool
+writeTest(const std::string& file, size_t writeBytes, size_t& sum)
+{
+    //std::cout << "Creating file " << file << std::endl;
+    std::srand(0u);
+    // | O_DIRECT | O_DSYNC write synchronous, but slows down by factor 10, and reports 2 times io ?
+    //   -> fsync at end seems sufficient
+    auto fd = open(file.c_str(), O_CREAT | O_WRONLY );
+    if (fd < 0) {
+        std::cout << "Error " << strerror(errno) << " creating " << file << std::endl;
+        return false;
+    }
+    std::array<int, 1024ul*64ul> buf;
+    auto bufBytes{buf.size() * sizeof(int)};
+    for (size_t i = 0; i < writeBytes / bufBytes; ++i ) {
+        for (size_t j = 0; j < buf.size(); ++j) {
+            buf[j] = std::rand();
+        }
+        auto len = write(fd, buf.data(), bufBytes);
+        if (len < 0) {
+            std::cout << "Error " << strerror(errno) << " writing " << file << std::endl;
+            return false;
+        }
+        sum += len;
+    }
+    fsync(fd);
+    close(fd);
+    return true;
+}
+
+// this is a check your output test.
+//   It will create a temp file, and write some data,
+//   then show the statistic output.
+//   @param  realistic: false: suited for everyday use, but limited result
+//                      true:  read and understand the implications e.g. uses home
+static bool
+disk_test(bool realistic)
+{
+    std::cout << "disk_device ---------------------------------" << std::endl;
+    const size_t writeBytes = realistic ? 1024ul*1024ul*512ul : 1024ul*1024ul*5ul;
+    auto dir = realistic ? Glib::get_home_dir() : Glib::get_tmp_dir();
+    std::map<std::string, PtrDiskInfo> mapDisks;
+    gint64 start_time = g_get_monotonic_time();
+    DiskInfo::getDiskStats(mapDisks, 0ul);
+    std::string basename,file;
+    Glib::RefPtr<Gio::File> gfile;
+    do {
+        basename = Glib::ustring::sprintf("test%ld.txt", start_time);
+        file = Glib::canonicalize_filename(basename.c_str(), dir);
+        gfile = Gio::File::create_for_path(file);
+        ++start_time;
+    } while (gfile->query_exists());    // avoid using existing
+    size_t sum{};
+    if (!writeTest(file, writeBytes, sum)) {
+        return false;
+    }
+    gint64 end_time = g_get_monotonic_time();    // the promise is this does not get screwed up by time adjustments
+    gint64 diff_us{end_time - start_time};
+    DiskInfo::getDiskStats(mapDisks, diff_us);
+    disk_print(mapDisks);
+    auto writeMB = static_cast<double>(sum) / (1024.0*1024.0);
+    auto timeS = static_cast<double>(diff_us) / 1.0e6;
+    std::cout << "write " << writeMB << "MB"
+              << " time " << diff_us << "us"
+              << " " << timeS << "s" << std::endl;
+    std::cout << "Estimated write rate " << writeMB / timeS << "MB/s" << std::endl;
+    gfile->remove();
+    //auto mnt = gfile->find_enclosing_mount();
+    //auto drv =  mnt->get_drive();
+    //auto vol = mnt->get_volume();
+    //std::cout << "Drive " << (drv ? drv->get_name() : "")
+    //          << " vol " << (vol ? vol->get_name() : "") << std::endl;
+    std::cout << "disk_mount ---------------------------------" << std::endl;
+    auto mnts = MountInfo::getMounts();
+    for (auto& mnt : mnts) {
+        mnt->refreshFilesys(nullptr);
+        std::cout << "found mount " << mnt->getMount()
+                  << " dev " << mnt->getDevName()
+                  << " used " << mnt->getUsage()
+                  << " free " << mnt->getFreePercent() << "%"
+                  << " avail " << Monitor::formatScale(mnt->getAvailBytes(),"B") <<  std::endl;
+    }
+    return true;
+}
+
 
 int
 main(int argc, char** argv)
@@ -178,6 +279,9 @@ main(int argc, char** argv)
     }
     if (!net_test_getservent_r()) {
         return 3;
+    }
+    if (!disk_test(false)) {
+        return 4;
     }
 
     return 0;

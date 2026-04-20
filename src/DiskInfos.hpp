@@ -19,42 +19,77 @@
 
 #pragma once
 
-#include <glib-2.0/glib.h>
+#include <glibmm.h>
 #include <string>
 #include <map>
 #include <memory>
+#include <Geom2.hpp>
+#include <Text2.hpp>
 
 #include "Infos.hpp"
 #include "libgtop_helper.h"
 #include "DiskInfo.hpp"
 
+class DiskGeom
+{
+public:
+    DiskGeom();
+    explicit DiskGeom(const DiskGeom& other) = delete;
+    virtual ~DiskGeom();
 
-typedef std::shared_ptr<DiskInfo> ptrDiskInfo;
+    void removeGeometry();
 
-class DiskInfos : public Infos {
+    void setGeometry(const psc::gl::aptrGeom2& _geometry);
+    psc::gl::aptrGeom2 getGeometry() const;
+    void setDevText(const psc::gl::aptrText2& _devTxt) {
+        m_devTxt = _devTxt;
+    }
+    auto getDevText() const {
+        return m_devTxt;
+    }
+    void setMountText(const psc::gl::aptrText2&  _mountTxt) {
+        m_mountTxt = _mountTxt;
+    }
+    auto getMountText() const {
+        return m_mountTxt;
+    }
+
+private:
+    psc::gl::aptrGeom2 m_geometry;
+    psc::gl::aptrText2 m_devTxt;
+    psc::gl::aptrText2 m_mountTxt;
+
+};
+
+using PtrDiskGeom = std::shared_ptr<DiskGeom>;
+
+class DiskInfos : public Infos
+{
 public:
     DiskInfos();
     virtual ~DiskInfos();
 
     void update(int refreshRate, glibtop * glibtop) override;
-
-    ptrDiskInfo getPrefered(std::string const &device) const;
+    bool updateDiskStat(gint64 diff);
+    PtrDiskInfo getPrefered(std::string const &device) const;
     // get from device name of a partition the disk e.g. sda1 -> sda
-    ptrDiskInfo getDisk(std::string const &device) const;
+    PtrDiskInfo getDisk(std::string const &device) const;
 
-    const std::map<std::string, ptrDiskInfo> & getFilesyses();
-    const std::map<std::string, ptrDiskInfo> & getDevices();
+    const std::map<std::string, PtrMountInfo> & getFilesyses();
+    std::vector<PtrMountInfo> getFilesyses(const std::string& device);
+    const std::map<std::string, PtrDiskGeom>& getGeometries();
+    const std::map<std::string, PtrDiskInfo> & getDevices();
     void removeDiskInfos();
+    PtrDiskGeom createGeometry(const std::string& dev);
 private:
     void updateDiskStat(int refreshRate, glibtop * glibtop);
     void updateMounts(int refresh_rate, glibtop * glibtop);
 
-    void remove(ptrDiskInfo diskInfo);
-
     gint64 m_previous_diskstat_time;
 
-    std::map<std::string, ptrDiskInfo> m_devices;
-    std::map<std::string, ptrDiskInfo> m_mounts;
+    std::map<std::string, PtrDiskInfo> m_devices;   // key is device e.g. sda1
+    std::map<std::string, PtrDiskGeom> m_geom;      // key is device e.g. sda1
+    std::map<std::string, PtrMountInfo> m_mounts;   // key is mount point e.g. /home
 
 };
 
