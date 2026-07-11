@@ -49,7 +49,7 @@ MonglAppWindow::MonglAppWindow(Gtk::Application* application)
 	#endif
     add(*naviGlArea);
 
-    set_default_size(480, 640);
+    set_default_size(540, 720);
     show_all_children();
 }
 
